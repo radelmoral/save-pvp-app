@@ -30,16 +30,29 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api', require('./routes/index'));
 
 // ── Frontend estático ──────────────────────────────────────
-// Sirve el HTML del prototipo y los assets desde la carpeta padre
-app.use(express.static(path.join(__dirname, '..'), {
+// En producción (Docker) los estáticos están en la misma carpeta que server.js
+// En desarrollo local están en la carpeta padre (..)
+const STATIC_DIR = process.env.STATIC_DIR || path.join(__dirname, '..');
+
+app.use(express.static(STATIC_DIR, {
   index: 'save-pvp-prototipo.html',
 }));
 
 // Cualquier ruta no-API devuelve el frontend
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, '..', 'save-pvp-prototipo.html'));
+    const filePath = path.join(STATIC_DIR, 'save-pvp-prototipo.html');
+    console.log(`📄  Sirviendo: ${filePath}`);
+    res.sendFile(filePath, err => {
+      if (err) console.error(`❌  Error sirviendo HTML: ${err.message}`);
+    });
   }
+});
+
+// ── Error handler global ───────────────────────────────────
+app.use((err, req, res, next) => {
+  console.error('❌  Error no controlado:', err.message);
+  res.status(500).json({ error: err.message });
 });
 
 // ── Arranque ───────────────────────────────────────────────
