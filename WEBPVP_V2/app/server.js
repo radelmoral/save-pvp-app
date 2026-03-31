@@ -9,6 +9,9 @@ const path        = require('path');
 const app    = express();
 const PORT   = process.env.PORT || 3000;
 
+// Necesario cuando Express está detrás de un proxy inverso (Easypanel/Traefik)
+app.set('trust proxy', 1);
+
 // ── Seguridad ──────────────────────────────────────────────
 app.use(helmet({ contentSecurityPolicy: false }));   // CSP deshabilitado para el prototipo (re-habilitar en prod)
 app.use(cors());
