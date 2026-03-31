@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SAVE PVP — Acceso</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --save: #00BFB3; --save-dk: #009e92;
+  --g900:#111827; --g500:#6b7280; --g300:#d1d5db; --g100:#f3f4f6; --g50:#f9fafb;
+  --red: #ef4444;
+}
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: linear-gradient(135deg, #0a2e2b 0%, #0d3d38 50%, #0a2e2b 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.box {
+  background: white;
+  border-radius: 16px;
+  padding: 44px 40px 36px;
+  width: 380px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+}
+.logo-wrap { text-align: center; margin-bottom: 30px; }
+.logo-wrap img { height: 44px; width: auto; }
+h1 { font-size: 20px; font-weight: 700; color: var(--g900); margin-bottom: 6px; text-align:center; }
+.subtitle { font-size: 13px; color: var(--g500); text-align: center; margin-bottom: 28px; }
+.ff { display: flex; flex-direction: column; gap: 5px; margin-bottom: 16px; }
+label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--g500); }
+input {
+  border: 1px solid var(--g300); border-radius: 8px;
+  padding: 10px 13px; font-size: 14px; color: var(--g900);
+  outline: none; transition: border .15s, box-shadow .15s;
+  width: 100%;
+}
+input:focus { border-color: var(--save); box-shadow: 0 0 0 3px rgba(0,191,179,.14); }
+.btn {
+  width: 100%; padding: 11px; border-radius: 8px; border: none;
+  background: var(--save); color: white; font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: background .15s, transform .1s;
+  margin-top: 8px;
+}
+.btn:hover { background: var(--save-dk); transform: translateY(-1px); }
+.btn:active { transform: none; }
+.error {
+  background: #fef2f2; border: 1px solid #fca5a5;
+  color: var(--red); border-radius: 8px; padding: 10px 14px;
+  font-size: 13px; margin-bottom: 14px; display: none;
+}
+.footer { text-align: center; margin-top: 24px; font-size: 11px; color: var(--g500); }
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="logo-wrap">
+    <img src="save_logo.png" alt="save." />
+  </div>
+  <h1>Bienvenido</h1>
+  <p class="subtitle">Gestión de Tarifas de Reparación</p>
+
+  <div class="error" id="errorMsg"></div>
+
+  <form onsubmit="doLogin(event)">
+    <div class="ff">
+      <label>Usuario</label>
+      <input type="text" id="username" placeholder="tu usuario" autocomplete="username" required />
+    </div>
+    <div class="ff">
+      <label>Contraseña</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required />
+    </div>
+    <button class="btn" type="submit" id="loginBtn">Entrar</button>
+  </form>
+
+  <div class="footer">SAVE · Sistema interno · v1.0</div>
+</div>
+
+<script src="app/public/js/api.js"></script>
+<script>
+  // Si ya hay token válido, redirigir al app
+  if (API.getToken()) {
+    API.me()
+      .then(() => { window.location.href = '/'; })
+      .catch(() => API.clearToken());
+  }
+
+  async function doLogin(e) {
+    e.preventDefault();
+    const btn = document.getElementById('loginBtn');
+    const err = document.getElementById('errorMsg');
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    btn.textContent = 'Entrando…';
+    btn.disabled = true;
+    err.style.display = 'none';
+
+    try {
+      const res = await API.login(username, password);
+      API.setToken(res.token);
+      window.location.href = '/';
+    } catch (ex) {
+      err.textContent = ex.message || 'Error al iniciar sesión';
+      err.style.display = 'block';
+      btn.textContent = 'Entrar';
+      btn.disabled = false;
+    }
+  }
+</script>
+</body>
+</html>
