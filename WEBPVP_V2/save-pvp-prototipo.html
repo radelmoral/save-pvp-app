@@ -1252,9 +1252,11 @@ async function enviarSolicitudAPI() {
 async function checkAuth() {
   if (!API_AVAILABLE) return;
   const token = API.getToken();
+  console.log('checkAuth - token:', token ? 'existe' : 'no existe');
   if (!token) { window.location.href = '/login.html'; return; }
   try {
     const user = await API.me();
+    console.log('checkAuth - user:', user);
     // Actualizar UI con usuario real
     document.getElementById('uaName').textContent  = user.nombre;
     document.getElementById('uaRole').textContent  = user.rol;
@@ -1264,8 +1266,10 @@ async function checkAuth() {
     // Aplicar rol real
     setRole(user.rol);
   } catch(e) {
-    API.clearToken();
-    window.location.href = '/login.html';
+    console.error('checkAuth - error:', e.message);
+    // No redirigir automáticamente, mostrar error en consola
+    // API.clearToken();
+    // window.location.href = '/login.html';
   }
 }
 
