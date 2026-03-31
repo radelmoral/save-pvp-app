@@ -3,7 +3,7 @@ FROM node:20-alpine AS builder
 
 WORKDIR /build
 
-COPY webpvp_v2/app/package*.json ./
+COPY WEBPVP_V2/app/package*.json ./
 RUN npm ci --omit=dev
 
 # ── Runtime stage ───────────────────────────────────────────────
@@ -15,12 +15,12 @@ WORKDIR /srv/app
 COPY --from=builder /build/node_modules ./node_modules
 
 # Copia el código de la app
-COPY webpvp_v2/app/ .
+COPY WEBPVP_V2/app/ .
 
-# Copia el frontend estático (HTML, logo) a la carpeta padre (../)
-COPY webpvp_v2/save-pvp-prototipo.html /srv/
-COPY webpvp_v2/login.html /srv/
-COPY webpvp_v2/save_logo.png /srv/
+# Copia el frontend estático un nivel arriba (server.js sirve desde '..')
+COPY WEBPVP_V2/save-pvp-prototipo.html /srv/
+COPY WEBPVP_V2/login.html /srv/
+COPY WEBPVP_V2/save_logo.png /srv/
 
 EXPOSE 3000
 
