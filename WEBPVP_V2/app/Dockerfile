@@ -3,28 +3,25 @@ FROM node:20-alpine AS builder
 
 WORKDIR /build
 
-# Instala dependencias primero (aprovecha cache de Docker)
-COPY app/package*.json ./
+COPY webpvp_v2/app/package*.json ./
 RUN npm ci --omit=dev
 
 # ── Runtime stage ───────────────────────────────────────────────
 FROM node:20-alpine
 
-WORKDIR /srv
+WORKDIR /srv/app
 
 # Copia node_modules desde el build stage
-COPY --from=builder /build/node_modules ./app/node_modules
+COPY --from=builder /build/node_modules ./node_modules
 
-# Copia todo el repo (contexto = raíz del repo)
-COPY app/ ./app/
-COPY save-pvp-prototipo.html ./
-COPY login.html ./
-COPY save_logo.png ./
+# Copia el código de la app
+COPY webpvp_v2/app/ .
 
-# Puerto que expone la app
+# Copia el frontend estático (HTML, logo) a la carpeta padre (../)
+COPY webpvp_v2/save-pvp-prototipo.html /srv/
+COPY webpvp_v2/login.html /srv/
+COPY webpvp_v2/save_logo.png /srv/
+
 EXPOSE 3000
-
-# Directorio de trabajo = donde está server.js
-WORKDIR /srv/app
 
 CMD ["node", "server.js"]
