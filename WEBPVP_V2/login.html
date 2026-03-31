@@ -102,9 +102,14 @@ input:focus { border-color: var(--save); box-shadow: 0 0 0 3px rgba(0,191,179,.1
 
     try {
       const res = await API.login(username, password);
+      console.log('Login response:', JSON.stringify(res));
+      if (!res || !res.token) {
+        throw new Error('No se recibió token. Respuesta: ' + JSON.stringify(res));
+      }
       API.setToken(res.token);
       window.location.href = '/';
     } catch (ex) {
+      console.error('Login error:', ex);
       err.textContent = ex.message || 'Error al iniciar sesión';
       err.style.display = 'block';
       btn.textContent = 'Entrar';
