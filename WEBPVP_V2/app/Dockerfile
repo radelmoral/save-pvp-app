@@ -1,7 +1,7 @@
 # ── Build stage ────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
-WORKDIR /build/app
+WORKDIR /build
 
 # Instala dependencias primero (aprovecha cache de Docker)
 COPY app/package*.json ./
@@ -13,12 +13,10 @@ FROM node:20-alpine
 WORKDIR /srv
 
 # Copia node_modules desde el build stage
-COPY --from=builder /build/app/node_modules ./app/node_modules
+COPY --from=builder /build/node_modules ./app/node_modules
 
-# Copia el código de la app
+# Copia todo el repo (contexto = raíz del repo)
 COPY app/ ./app/
-
-# Copia el frontend (HTML, logo, assets) que server.js sirve desde ".."
 COPY save-pvp-prototipo.html ./
 COPY login.html ./
 COPY save_logo.png ./
