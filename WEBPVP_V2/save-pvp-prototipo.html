@@ -1257,19 +1257,18 @@ async function checkAuth() {
   try {
     const user = await API.me();
     console.log('checkAuth - user:', user);
-    // Actualizar UI con usuario real
-    document.getElementById('uaName').textContent  = user.nombre;
-    document.getElementById('uaRole').textContent  = user.rol;
+    // Aplicar rol real primero (antes de eliminar los botones)
+    setRole(user.rol);
+    // Actualizar UI con datos reales del usuario (sobreescribe lo que puso setRole)
+    document.getElementById('uaName').textContent   = user.nombre;
+    document.getElementById('uaRole').textContent   = user.rol;
     document.getElementById('uaAvatar').textContent = user.nombre.slice(0,2).toUpperCase();
     // Ocultar role switcher en producción (usuario real)
     document.querySelector('.role-switcher')?.closest('div')?.remove();
-    // Aplicar rol real
-    setRole(user.rol);
   } catch(e) {
     console.error('checkAuth - error:', e.message);
-    // No redirigir automáticamente, mostrar error en consola
-    // API.clearToken();
-    // window.location.href = '/login.html';
+    API.clearToken();
+    window.location.href = '/login.html';
   }
 }
 
