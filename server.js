@@ -9,6 +9,9 @@ const path        = require('path');
 const app    = express();
 const PORT   = process.env.PORT || 3000;
 
+// Necesario cuando Express está detrás de un proxy inverso (Easypanel/Traefik)
+app.set('trust proxy', 1);
+
 // ── Seguridad ──────────────────────────────────────────────
 app.use(helmet({ contentSecurityPolicy: false }));   // CSP deshabilitado para el prototipo (re-habilitar en prod)
 app.use(cors());
@@ -28,18 +31,38 @@ app.use(express.urlencoded({ extended: true }));
 
 // ── API routes ─────────────────────────────────────────────
 app.use('/api', require('./routes/index'));
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Ruta API no encontrada' });
+});
 
 // ── Frontend estático ──────────────────────────────────────
-// Sirve el HTML del prototipo y los assets desde la carpeta padre
-app.use(express.static(path.join(__dirname, '..'), {
+// En producción (Docker) los estáticos están en la misma carpeta que server.js
+// En desarrollo local están en la carpeta padre (..)
+const STATIC_DIR = process.env.STATIC_DIR || path.join(__dirname, '..');
+
+app.use(express.static(STATIC_DIR, {
   index: 'save-pvp-prototipo.html',
 }));
 
 // Cualquier ruta no-API devuelve el frontend
-app.get('*', (req, res) => {
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) return next();
   if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, '..', 'save-pvp-prototipo.html'));
+    const filePath = path.join(STATIC_DIR, 'save-pvp-prototipo.html');
+    console.log(`📄  Sirviendo: ${filePath}`);
+    res.sendFile(filePath, err => {
+      if (err) console.error(`❌  Error sirviendo HTML: ${err.message}`);
+    });
   }
+});
+
+// ── Error handler global ───────────────────────────────────
+app.use((err, req, res, next) => {
+  console.error('❌  Error no controlado:', err.message);
+  const isDev = process.env.NODE_ENV !== 'production';
+  res.status(500).json({
+    error: isDev ? err.message : 'Error interno del servidor'
+  });
 });
 
 // ── Arranque ───────────────────────────────────────────────

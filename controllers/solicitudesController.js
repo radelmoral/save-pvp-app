@@ -75,9 +75,13 @@ async function aprobar(req, res) {
     return res.status(400).json({ error: 'El PVP a asignar es obligatorio' });
   }
 
+  let conn;
   try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
     // 1. Actualizar la solicitud
-    const [upd] = await db.execute(
+    const [upd] = await conn.execute(
       `UPDATE solicitudes_pvp
        SET estado           = 'aprobado',
            referencia       = COALESCE(?, referencia),
@@ -93,15 +97,16 @@ async function aprobar(req, res) {
     );
 
     if (upd.affectedRows === 0) {
+      await conn.rollback();
       return res.status(404).json({ error: 'Solicitud no encontrada o ya procesada' });
     }
 
     // 2. Obtener los datos definitivos de la solicitud
-    const [rows] = await db.execute('SELECT * FROM solicitudes_pvp WHERE id = ?', [req.params.id]);
+    const [rows] = await conn.execute('SELECT * FROM solicitudes_pvp WHERE id = ?', [req.params.id]);
     const s = rows[0];
 
     // 3. Insertar o actualizar en la tabla repuestos real
-    await db.execute(
+    await conn.execute(
       `INSERT INTO repuestos
          (referencia, marca, categoria, modelo, etiqueta, sage_new, pvp, pvp_clubsave)
        VALUES (?, '', ?, '', ?, ?, ?, ?)
@@ -115,10 +120,14 @@ async function aprobar(req, res) {
        s.coste, pvp_asignado, pvp_club_asignado || null]
     );
 
+    await conn.commit();
     res.json({ message: 'Solicitud aprobada y repuesto añadido a la BBDD' });
   } catch (err) {
+    if (conn) await conn.rollback();
     console.error(err);
     res.status(500).json({ error: 'Error al aprobar solicitud' });
+  } finally {
+    if (conn) conn.release();
   }
 }
 
