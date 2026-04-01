@@ -205,6 +205,19 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
 .empty .et { font-size:15px; font-weight:600; color:var(--g500); }
 .empty .es { font-size:12px; }
 
+/* ── GLOBAL RESULTS ── */
+.gr-panel { margin:14px 24px 0; background:var(--white); border:1px solid var(--g200); border-radius:12px; box-shadow:var(--sh); padding:14px; display:none; }
+.gr-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+.gr-title { font-size:14px; font-weight:700; color:var(--g900); }
+.gr-sub { font-size:12px; color:var(--g500); }
+.gr-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+.gr-card { border:1px solid var(--g200); border-radius:10px; overflow:hidden; }
+.gr-card h4 { margin:0; padding:10px 12px; font-size:12px; background:var(--g50); border-bottom:1px solid var(--g200); display:flex; justify-content:space-between; }
+.gr-card table { width:100%; border-collapse:collapse; font-size:12px; }
+.gr-card td { padding:8px 10px; border-bottom:1px solid var(--g100); }
+.gr-card tr:last-child td { border-bottom:none; }
+.gr-actions { display:flex; gap:8px; }
+
 /* scrollbar */
 ::-webkit-scrollbar { width:5px; height:5px; }
 ::-webkit-scrollbar-thumb { background:var(--g300); border-radius:999px; }
@@ -299,6 +312,37 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
       <button class="btn btn-p" onclick="openModal('modalRef')">+ Nueva referencia</button>
     </div>
   </header>
+
+  <section class="gr-panel" id="globalResultsPanel">
+    <div class="gr-head">
+      <div>
+        <div class="gr-title">Resultados globales</div>
+        <div class="gr-sub" id="globalResultsInfo">—</div>
+      </div>
+      <div class="gr-actions">
+        <button class="btn btn-o" onclick="navById('repuestos')">Ver Repuestos</button>
+        <button class="btn btn-o" onclick="navById('telefonos')">Ver Teléfonos</button>
+      </div>
+    </div>
+    <div class="gr-grid">
+      <div class="gr-card">
+        <h4><span>Repuestos</span><span id="grCountRep">0</span></h4>
+        <table><tbody id="grRowsRep"></tbody></table>
+      </div>
+      <div class="gr-card">
+        <h4><span>Teléfonos</span><span id="grCountTel">0</span></h4>
+        <table><tbody id="grRowsTel"></tbody></table>
+      </div>
+      <div class="gr-card">
+        <h4><span>Apple Original</span><span id="grCountApple">0</span></h4>
+        <table><tbody id="grRowsApple"></tbody></table>
+      </div>
+      <div class="gr-card">
+        <h4><span>Oppo Original</span><span id="grCountOppo">0</span></h4>
+        <table><tbody id="grRowsOppo"></tbody></table>
+      </div>
+    </div>
+  </section>
 
   <!-- ── DASHBOARD ── -->
   <section class="page active" id="page-dashboard">
@@ -728,6 +772,7 @@ async function ejecutarBusquedaGlobal(term) {
   if (!API_AVAILABLE) return;
 
   if (!term) {
+    ocultarResultadosGlobales();
     loadRepuestosFromAPI({ page: 1 });
     loadAppleFromAPI(1);
     loadOppoFromAPI(1);
@@ -735,29 +780,55 @@ async function ejecutarBusquedaGlobal(term) {
     return;
   }
 
-  // Mostrar resultados visibles en catálogo principal
-  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.sb-item')[1]?.classList.add('active');
-  navById('repuestos');
-  document.getElementById('tbTitle').textContent = `Resultados globales: ${term}`;
-  document.getElementById('fRef').value = '';
-
   try {
-    const [summary] = await Promise.allSettled([
-      API.busquedaGlobal(term),
-    ]);
+    const summary = await API.busquedaGlobal(term);
+    pintarResultadosGlobales(summary);
     await Promise.allSettled([
       loadRepuestosFromAPI({ q: term, page: 1 }),
       loadAppleFromAPI(1, { q: term }),
       loadOppoFromAPI(1, { q: term }),
       loadTelefonosFromAPI(1, { q: term }),
     ]);
-    if (summary.status === 'fulfilled') {
-      document.getElementById('tbTitle').textContent = `Resultados globales: ${summary.value.total}`;
-    }
+    document.getElementById('tbTitle').textContent = `Resultados globales: ${summary.total}`;
   } catch (e) {
+    ocultarResultadosGlobales();
     toast('Error en búsqueda global: ' + e.message, 'err');
   }
+}
+
+function pintarResultadosGlobales(summary) {
+  const panel = document.getElementById('globalResultsPanel');
+  panel.style.display = '';
+  document.getElementById('globalResultsInfo').textContent = `Consulta: "${summary.q}" · ${summary.total} coincidencias`;
+  document.getElementById('grCountRep').textContent = summary.repuestos.length;
+  document.getElementById('grCountTel').textContent = summary.telefonos.length;
+  document.getElementById('grCountApple').textContent = summary.apple.length;
+  document.getElementById('grCountOppo').textContent = summary.oppo.length;
+
+  renderRows('grRowsRep', summary.repuestos, r => `${escHTML(r.referencia)} · ${escHTML(r.marca || '—')} · ${escHTML(r.modelo || '—')}`);
+  renderRows('grRowsTel', summary.telefonos, r => `${escHTML(r.referencia)} · ${escHTML(r.marca || '—')} · ${escHTML(r.modelo || '—')}`);
+  renderRows('grRowsApple', summary.apple, r => `${escHTML(r.referencia)} · ${escHTML(r.modelo || '—')} · ${escHTML(r.etiqueta || '—')}`);
+  renderRows('grRowsOppo', summary.oppo, r => `${escHTML(r.referencia)} · ${escHTML(r.modelo || '—')} · ${escHTML(r.etiqueta || '—')}`);
+}
+
+function renderRows(targetId, rows, rowTextFn) {
+  const tb = document.getElementById(targetId);
+  tb.innerHTML = '';
+  const data = rows.slice(0, 6);
+  if (!data.length) {
+    tb.innerHTML = '<tr><td style="color:var(--g400);">Sin resultados</td></tr>';
+    return;
+  }
+  data.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${rowTextFn(r)}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function ocultarResultadosGlobales() {
+  const panel = document.getElementById('globalResultsPanel');
+  if (panel) panel.style.display = 'none';
 }
 function filtrarAdminSolicitudes() {
   const est = document.getElementById('adminFiltroEstado').value;
