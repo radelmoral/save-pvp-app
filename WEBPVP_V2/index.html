@@ -657,7 +657,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
 
 <script>
 // ── ROLE SYSTEM ──────────────────────────────────
-let currentRole = 'admin';
+let currentRole = 'eci';
 let globalSearchTerm = '';
 let globalSearchTimer = null;
 const roleConfig = {
@@ -735,15 +735,26 @@ async function ejecutarBusquedaGlobal(term) {
     return;
   }
 
+  // Mostrar resultados visibles en catálogo principal
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.sb-item')[1]?.classList.add('active');
+  navById('repuestos');
+  document.getElementById('tbTitle').textContent = `Resultados globales: ${term}`;
+  document.getElementById('fRef').value = '';
+
   try {
-    const resumen = await API.busquedaGlobal(term);
-    await Promise.all([
+    const [summary] = await Promise.allSettled([
+      API.busquedaGlobal(term),
+    ]);
+    await Promise.allSettled([
       loadRepuestosFromAPI({ q: term, page: 1 }),
       loadAppleFromAPI(1, { q: term }),
       loadOppoFromAPI(1, { q: term }),
       loadTelefonosFromAPI(1, { q: term }),
     ]);
-    document.getElementById('tbTitle').textContent = `Resultados globales: ${resumen.total}`;
+    if (summary.status === 'fulfilled') {
+      document.getElementById('tbTitle').textContent = `Resultados globales: ${summary.value.total}`;
+    }
   } catch (e) {
     toast('Error en búsqueda global: ' + e.message, 'err');
   }
@@ -1203,7 +1214,7 @@ async function enviarSolicitudAPI() {
 async function checkAuth() {
   if (!API_AVAILABLE) return;
   const token = API.getToken();
-  if (!token) { window.location.href = '/login.html'; return; }
+  if (!token) { window.location.href = '/login.html'; return false; }
   try {
     const user = await API.me();
     // Aplicar rol real primero (antes de eliminar los botones)
@@ -1214,9 +1225,11 @@ async function checkAuth() {
     document.getElementById('uaAvatar').textContent = user.nombre.slice(0,2).toUpperCase();
     // Ocultar role switcher en producción (usuario real)
     document.querySelector('.role-switcher')?.closest('div')?.remove();
+    return true;
   } catch(e) {
     API.clearToken();
     window.location.href = '/login.html';
+    return false;
   }
 }
 
@@ -1668,8 +1681,9 @@ async function loadDashboard() {
 }
 
 // ── CHARTS ────────────────────────────────────────
-window.addEventListener('load', () => {
-  checkAuth();
+window.addEventListener('load', async () => {
+  const authed = await checkAuth();
+  if (!authed) return;
   loadSolicitudesFromAPI();
   loadRepuestosFromAPI();
   loadCategoriasFromAPI();
