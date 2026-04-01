@@ -44,16 +44,25 @@ app.use(express.static(STATIC_DIR, {
   index: 'index.html',
 }));
 
-// Cualquier ruta no-API devuelve el frontend
+// Archivos HTML específicos servidos directamente
+const STATIC_HTML = ['login.html', 'Pedidos.html'];
+app.get('/:file.html', (req, res, next) => {
+  const file = req.params.file + '.html';
+  if (!STATIC_HTML.includes(file)) return next();
+  const filePath = path.join(STATIC_DIR, file);
+  res.sendFile(filePath, err => {
+    if (err) next(); // si no existe, deja pasar al catch-all
+  });
+});
+
+// Cualquier otra ruta no-API devuelve el frontend (SPA)
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
-  if (!req.path.startsWith('/api')) {
-    const filePath = path.join(STATIC_DIR, 'index.html');
-    console.log(`📄  Sirviendo: ${filePath}`);
-    res.sendFile(filePath, err => {
-      if (err) console.error(`❌  Error sirviendo HTML: ${err.message}`);
-    });
-  }
+  const filePath = path.join(STATIC_DIR, 'index.html');
+  console.log(`📄  Sirviendo: ${filePath}`);
+  res.sendFile(filePath, err => {
+    if (err) console.error(`❌  Error sirviendo HTML: ${err.message}`);
+  });
 });
 
 // ── Error handler global ───────────────────────────────────
