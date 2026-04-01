@@ -1,5 +1,27 @@
 const db = require('../config/db');
 
+function addTokenizedSearch(where, params, q, columns) {
+  const raw = String(q || '').trim();
+  const tokens = raw.split(/\s+/).filter(Boolean);
+  if (!tokens.length) return;
+
+  const parts = [];
+
+  // Coincidencia de frase completa
+  parts.push(`(${columns.map((c) => `${c} LIKE ?`).join(' OR ')})`);
+  columns.forEach(() => params.push(`%${raw}%`));
+
+  // Coincidencia por cualquier término (más flexible)
+  if (tokens.length > 1) {
+    tokens.forEach((tk) => {
+      parts.push(`(${columns.map((c) => `${c} LIKE ?`).join(' OR ')})`);
+      columns.forEach(() => params.push(`%${tk}%`));
+    });
+  }
+
+  where.push(`(${parts.join(' OR ')})`);
+}
+
 /**
  * Tablas reales en la BBDD `Repuestos`:
  *   repuestos       — referencia, marca, categoria, modelo, etiqueta,
@@ -22,10 +44,7 @@ async function listar(req, res) {
     if (categoria) { where.push('categoria = ?');      params.push(categoria);  }
     if (marca)     { where.push('marca = ?');          params.push(marca);      }
     if (modelo)    { where.push('modelo LIKE ?');      params.push(`%${modelo}%`); }
-    if (q) {
-      where.push('(referencia LIKE ? OR etiqueta LIKE ? OR marca LIKE ? OR modelo LIKE ?)');
-      params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`);
-    }
+    addTokenizedSearch(where, params, q, ['referencia', 'etiqueta', 'marca', 'modelo', 'categoria']);
 
     const whereSQL = where.length ? 'WHERE ' + where.join(' AND ') : '';
 
@@ -127,7 +146,7 @@ async function listarApple(req, res) {
     if (ref)      { where.push('referencia LIKE ?'); params.push(`%${ref}%`); }
     if (categoria){ where.push('categoria = ?');     params.push(categoria);  }
     if (modelo)   { where.push('modelo LIKE ?');     params.push(`%${modelo}%`); }
-    if (q)        { where.push('(referencia LIKE ? OR etiqueta LIKE ? OR modelo LIKE ?)'); params.push(`%${q}%`,`%${q}%`,`%${q}%`); }
+    addTokenizedSearch(where, params, q, ['referencia', 'etiqueta', 'modelo', 'categoria', 'marca']);
     const w = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const [[{ total }]] = await db.execute(`SELECT COUNT(*) AS total FROM apple_original ${w}`, params);
     const [rows] = await db.execute(
@@ -179,7 +198,7 @@ async function listarOppo(req, res) {
     let where = []; const params = [];
     if (ref)   { where.push('referencia LIKE ?'); params.push(`%${ref}%`); }
     if (modelo){ where.push('modelo LIKE ?');     params.push(`%${modelo}%`); }
-    if (q)     { where.push('(referencia LIKE ? OR etiqueta LIKE ? OR modelo LIKE ?)'); params.push(`%${q}%`,`%${q}%`,`%${q}%`); }
+    addTokenizedSearch(where, params, q, ['referencia', 'etiqueta', 'modelo', 'categoria', 'marca']);
     const w = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const [[{ total }]] = await db.execute(`SELECT COUNT(*) AS total FROM oppo_original ${w}`, params);
     const [rows] = await db.execute(
@@ -232,7 +251,7 @@ async function listarTelefonos(req, res) {
     if (ref)   { where.push('referencia LIKE ?'); params.push(`%${ref}%`); }
     if (marca) { where.push('marca = ?');         params.push(marca); }
     if (modelo){ where.push('modelo LIKE ?');     params.push(`%${modelo}%`); }
-    if (q)     { where.push('(referencia LIKE ? OR etiqueta LIKE ? OR marca LIKE ? OR modelo LIKE ?)'); params.push(`%${q}%`,`%${q}%`,`%${q}%`,`%${q}%`); }
+    addTokenizedSearch(where, params, q, ['referencia', 'etiqueta', 'marca', 'modelo']);
     const w = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const [[{ total }]] = await db.execute(`SELECT COUNT(*) AS total FROM telefonos ${w}`, params);
     const [rows] = await db.execute(
@@ -280,38 +299,44 @@ async function busquedaGlobal(req, res) {
     const q = String(req.query.q || '').trim();
     if (!q) return res.status(400).json({ error: 'q es obligatorio' });
 
-    const like = `%${q}%`;
-
+    const repWhere = []; const repParams = [];
+    addTokenizedSearch(repWhere, repParams, q, ['referencia', 'etiqueta', 'marca', 'modelo', 'categoria']);
     const [repRows] = await db.execute(
       `SELECT referencia, marca, categoria, modelo, etiqueta, pvp
        FROM repuestos
-       WHERE referencia LIKE ? OR etiqueta LIKE ? OR marca LIKE ? OR modelo LIKE ?
-       ORDER BY referencia LIMIT 10`,
-      [like, like, like, like]
+       WHERE ${repWhere.join(' AND ')}
+       ORDER BY referencia LIMIT 50`,
+      repParams
     );
 
+    const appleWhere = []; const appleParams = [];
+    addTokenizedSearch(appleWhere, appleParams, q, ['referencia', 'etiqueta', 'marca', 'modelo', 'categoria']);
     const [appleRows] = await db.execute(
       `SELECT referencia, categoria, modelo, etiqueta, pvp
        FROM apple_original
-       WHERE referencia LIKE ? OR etiqueta LIKE ? OR modelo LIKE ?
-       ORDER BY referencia LIMIT 10`,
-      [like, like, like]
+       WHERE ${appleWhere.join(' AND ')}
+       ORDER BY referencia LIMIT 50`,
+      appleParams
     );
 
+    const oppoWhere = []; const oppoParams = [];
+    addTokenizedSearch(oppoWhere, oppoParams, q, ['referencia', 'etiqueta', 'marca', 'modelo', 'categoria']);
     const [oppoRows] = await db.execute(
       `SELECT referencia, categoria, modelo, etiqueta, pvp
        FROM oppo_original
-       WHERE referencia LIKE ? OR etiqueta LIKE ? OR modelo LIKE ?
-       ORDER BY referencia LIMIT 10`,
-      [like, like, like]
+       WHERE ${oppoWhere.join(' AND ')}
+       ORDER BY referencia LIMIT 50`,
+      oppoParams
     );
 
+    const telWhere = []; const telParams = [];
+    addTokenizedSearch(telWhere, telParams, q, ['referencia', 'etiqueta', 'marca', 'modelo']);
     const [telRows] = await db.execute(
       `SELECT referencia, marca, modelo, etiqueta, pvp
        FROM telefonos
-       WHERE referencia LIKE ? OR etiqueta LIKE ? OR marca LIKE ? OR modelo LIKE ?
-       ORDER BY referencia LIMIT 10`,
-      [like, like, like, like]
+       WHERE ${telWhere.join(' AND ')}
+       ORDER BY referencia LIMIT 50`,
+      telParams
     );
 
     res.json({
