@@ -85,28 +85,31 @@ async function crear(req, res) {
 
 /** PUT /api/repuestos/:ref  — solo admin */
 async function actualizar(req, res) {
-  const { marca, categoria, modelo, etiqueta, sage_act, sage_new, pvp, pvp_clubsave } = req.body;
+  const { referencia, marca, categoria, modelo, etiqueta, sage_act, sage_new, pvp, pvp_clubsave } = req.body;
   try {
     const [result] = await db.execute(
       `UPDATE repuestos
-       SET marca=?, categoria=?, modelo=?, etiqueta=?,
+       SET referencia=COALESCE(NULLIF(?, ''), referencia),
+           marca=?, categoria=?, modelo=?, etiqueta=?,
            sage_act=?, sage_new=?, pvp=?, pvp_clubsave=?
        WHERE referencia=?`,
-      [marca, categoria, modelo, etiqueta,
+      [referencia || null, marca, categoria, modelo, etiqueta,
        sage_act || null, sage_new || null, pvp || null, pvp_clubsave || null,
        req.params.id]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Repuesto no encontrado' });
     res.json({ message: 'Repuesto actualizado' });
   } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'La referencia nueva ya existe' });
     res.status(500).json({ error: 'Error al actualizar repuesto' });
   }
 }
 
-/** DELETE /api/repuestos/:ref  — solo admin (elimina de verdad, o puedes adaptarlo) */
+/** DELETE /api/repuestos/:ref  — solo admin */
 async function eliminar(req, res) {
   try {
-    await db.execute('DELETE FROM repuestos WHERE referencia = ?', [req.params.id]);
+    const [result] = await db.execute('DELETE FROM repuestos WHERE referencia = ?', [req.params.id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Repuesto no encontrado' });
     res.json({ message: 'Repuesto eliminado' });
   } catch (err) {
     res.status(500).json({ error: 'Error al eliminar repuesto' });
@@ -136,6 +139,36 @@ async function listarApple(req, res) {
   } catch (err) { res.status(500).json({ error: 'Error al obtener Apple Original' }); }
 }
 
+/** PUT /api/apple/:ref  — solo admin */
+async function actualizarApple(req, res) {
+  const { referencia, categoria, modelo, etiqueta, pvp } = req.body;
+  try {
+    const [result] = await db.execute(
+      `UPDATE apple_original
+       SET referencia=COALESCE(NULLIF(?, ''), referencia),
+           categoria=?, modelo=?, etiqueta=?, pvp=?
+       WHERE referencia=?`,
+      [referencia || null, categoria || '', modelo || '', etiqueta || '', pvp || null, req.params.id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Referencia no encontrada' });
+    res.json({ message: 'Apple Original actualizado' });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'La referencia nueva ya existe' });
+    res.status(500).json({ error: 'Error al actualizar Apple Original' });
+  }
+}
+
+/** DELETE /api/apple/:ref  — solo admin */
+async function eliminarApple(req, res) {
+  try {
+    const [result] = await db.execute('DELETE FROM apple_original WHERE referencia = ?', [req.params.id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Referencia no encontrada' });
+    res.json({ message: 'Referencia Apple eliminada' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al eliminar Apple Original' });
+  }
+}
+
 // ── Oppo Original ───────────────────────────────────────────
 
 /** GET /api/oppo */
@@ -156,6 +189,36 @@ async function listarOppo(req, res) {
     );
     res.json({ total, page: parseInt(page), limit: parseInt(limit), data: rows });
   } catch (err) { res.status(500).json({ error: 'Error al obtener Oppo Original' }); }
+}
+
+/** PUT /api/oppo/:ref  — solo admin */
+async function actualizarOppo(req, res) {
+  const { referencia, categoria, modelo, etiqueta, pvp } = req.body;
+  try {
+    const [result] = await db.execute(
+      `UPDATE oppo_original
+       SET referencia=COALESCE(NULLIF(?, ''), referencia),
+           categoria=?, modelo=?, etiqueta=?, pvp=?
+       WHERE referencia=?`,
+      [referencia || null, categoria || '', modelo || '', etiqueta || '', pvp || null, req.params.id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Referencia no encontrada' });
+    res.json({ message: 'Oppo Original actualizado' });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'La referencia nueva ya existe' });
+    res.status(500).json({ error: 'Error al actualizar Oppo Original' });
+  }
+}
+
+/** DELETE /api/oppo/:ref  — solo admin */
+async function eliminarOppo(req, res) {
+  try {
+    const [result] = await db.execute('DELETE FROM oppo_original WHERE referencia = ?', [req.params.id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Referencia no encontrada' });
+    res.json({ message: 'Referencia Oppo eliminada' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al eliminar Oppo Original' });
+  }
 }
 
 // ── Teléfonos ───────────────────────────────────────────────
@@ -181,6 +244,89 @@ async function listarTelefonos(req, res) {
   } catch (err) { res.status(500).json({ error: 'Error al obtener teléfonos' }); }
 }
 
+/** PUT /api/telefonos/:ref  — solo admin */
+async function actualizarTelefono(req, res) {
+  const { referencia, marca, modelo, etiqueta, pvp } = req.body;
+  try {
+    const [result] = await db.execute(
+      `UPDATE telefonos
+       SET referencia=COALESCE(NULLIF(?, ''), referencia),
+           marca=?, modelo=?, etiqueta=?, pvp=?
+       WHERE referencia=?`,
+      [referencia || null, marca || '', modelo || '', etiqueta || '', pvp || null, req.params.id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Referencia no encontrada' });
+    res.json({ message: 'Teléfono actualizado' });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'La referencia nueva ya existe' });
+    res.status(500).json({ error: 'Error al actualizar teléfono' });
+  }
+}
+
+/** DELETE /api/telefonos/:ref  — solo admin */
+async function eliminarTelefono(req, res) {
+  try {
+    const [result] = await db.execute('DELETE FROM telefonos WHERE referencia = ?', [req.params.id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Referencia no encontrada' });
+    res.json({ message: 'Teléfono eliminado' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al eliminar teléfono' });
+  }
+}
+
+/** GET /api/busqueda-global?q=... */
+async function busquedaGlobal(req, res) {
+  try {
+    const q = String(req.query.q || '').trim();
+    if (!q) return res.status(400).json({ error: 'q es obligatorio' });
+
+    const like = `%${q}%`;
+
+    const [repRows] = await db.execute(
+      `SELECT referencia, marca, categoria, modelo, etiqueta, pvp
+       FROM repuestos
+       WHERE referencia LIKE ? OR etiqueta LIKE ? OR marca LIKE ? OR modelo LIKE ?
+       ORDER BY referencia LIMIT 10`,
+      [like, like, like, like]
+    );
+
+    const [appleRows] = await db.execute(
+      `SELECT referencia, categoria, modelo, etiqueta, pvp
+       FROM apple_original
+       WHERE referencia LIKE ? OR etiqueta LIKE ? OR modelo LIKE ?
+       ORDER BY referencia LIMIT 10`,
+      [like, like, like]
+    );
+
+    const [oppoRows] = await db.execute(
+      `SELECT referencia, categoria, modelo, etiqueta, pvp
+       FROM oppo_original
+       WHERE referencia LIKE ? OR etiqueta LIKE ? OR modelo LIKE ?
+       ORDER BY referencia LIMIT 10`,
+      [like, like, like]
+    );
+
+    const [telRows] = await db.execute(
+      `SELECT referencia, marca, modelo, etiqueta, pvp
+       FROM telefonos
+       WHERE referencia LIKE ? OR etiqueta LIKE ? OR marca LIKE ? OR modelo LIKE ?
+       ORDER BY referencia LIMIT 10`,
+      [like, like, like, like]
+    );
+
+    res.json({
+      q,
+      repuestos: repRows,
+      apple: appleRows,
+      oppo: oppoRows,
+      telefonos: telRows,
+      total: repRows.length + appleRows.length + oppoRows.length + telRows.length,
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error en búsqueda global' });
+  }
+}
+
 // ── Categorías únicas de la tabla repuestos ─────────────────
 
 /** GET /api/categorias  — extrae las categorías reales de la BBDD */
@@ -199,6 +345,9 @@ async function listarCategorias(req, res) {
 
 module.exports = {
   listar, obtener, crear, actualizar, eliminar,
-  listarApple, listarOppo, listarTelefonos,
+  listarApple, actualizarApple, eliminarApple,
+  listarOppo, actualizarOppo, eliminarOppo,
+  listarTelefonos, actualizarTelefono, eliminarTelefono,
+  busquedaGlobal,
   listarCategorias,
 };
