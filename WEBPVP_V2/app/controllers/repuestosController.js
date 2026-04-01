@@ -2,14 +2,32 @@ const db = require('../config/db');
 
 function addTokenizedSearch(where, params, q, columns) {
   const raw = String(q || '').trim();
-  const tokens = raw.split(/\s+/).filter(Boolean);
-  if (!tokens.length) return;
+  const baseTokens = raw.split(/\s+/).filter(Boolean);
+  if (!baseTokens.length) return;
   const normalizedExpr = (c) => `REPLACE(REPLACE(LOWER(${c}), ' ', ''), '-', '')`;
+  const hasDigit = (s) => /\d/.test(s);
+
+  // Fusiona patrones tipo "iphone 7" => "iphone7"
+  // para evitar falsos positivos por el término numérico suelto.
+  const tokens = [];
+  baseTokens.forEach((tkRaw) => {
+    const tk = tkRaw.toLowerCase();
+    if (!tokens.length) {
+      tokens.push(tk);
+      return;
+    }
+    const prev = tokens[tokens.length - 1];
+    if (/^\d+[a-z]*$/i.test(tk) && !hasDigit(prev)) {
+      tokens[tokens.length - 1] = `${prev}${tk}`;
+      return;
+    }
+    tokens.push(tk);
+  });
 
   // Requiere que TODOS los términos estén presentes (AND),
   // pero cada término puede estar en cualquier columna (OR).
   tokens.forEach((tk) => {
-    const tkNorm = tk.toLowerCase().replace(/[\s-]+/g, '');
+    const tkNorm = tk.replace(/[\s-]+/g, '');
     const perToken = columns
       .map((c) => `(${c} LIKE ? OR ${normalizedExpr(c)} LIKE ?)`)
       .join(' OR ');
@@ -19,20 +37,6 @@ function addTokenizedSearch(where, params, q, columns) {
       params.push(`%${tkNorm}%`);
     });
   });
-
-  // Ajuste para búsquedas tipo "iphone 7", "redmi 9", etc.
-  // Obliga a que la combinación de los dos últimos términos exista también,
-  // reduciendo falsos positivos de modelos cercanos.
-  if (tokens.length >= 2) {
-    const a = tokens[tokens.length - 2].toLowerCase().replace(/[\s-]+/g, '');
-    const b = tokens[tokens.length - 1].toLowerCase().replace(/[\s-]+/g, '');
-    const combined = `${a}${b}`;
-    if (combined.length >= 3) {
-      const comboExpr = columns.map((c) => `${normalizedExpr(c)} LIKE ?`).join(' OR ');
-      where.push(`(${comboExpr})`);
-      columns.forEach(() => params.push(`%${combined}%`));
-    }
-  }
 }
 
 /**
