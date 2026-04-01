@@ -435,22 +435,18 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
 
   <!-- ── PEDIDOS ── -->
   <section class="page" id="page-pedidos">
-    <div style="display:flex;align-items:center;justify-content:space-between;"><div><h2 style="font-size:20px;font-weight:800;">Gestión de Pedidos</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;">Conectado con n8n</p></div><a href="https://www.save-pvp.es/sistema/Pedidos.html" target="_blank" class="btn btn-p">Abrir formulario →</a></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-      <div class="card">
-        <div class="ch"><div class="ct">Historial de pedidos</div></div>
-        <div class="tw"><table><thead><tr><th>Nº</th><th>Fecha</th><th>Tienda</th><th>Líneas</th><th>Estado</th></tr></thead><tbody>
-          <tr><td class="td-ref">#0042</td><td style="font-size:11px;color:var(--g500)">29/03/2026</td><td>SAVE El Paseo</td><td style="text-align:center">3</td><td><span class="badge bd-g">Enviado</span></td></tr>
-          <tr><td class="td-ref">#0041</td><td style="font-size:11px;color:var(--g500)">27/03/2026</td><td>ECI Callao</td><td style="text-align:center">7</td><td><span class="badge bd-g">Enviado</span></td></tr>
-          <tr><td class="td-ref">#0040</td><td style="font-size:11px;color:var(--g500)">25/03/2026</td><td>SAVE La Sierra</td><td style="text-align:center">2</td><td><span class="badge bd-g">Enviado</span></td></tr>
-        </tbody></table></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <h2 style="font-size:20px;font-weight:800;">Gestión de Pedidos</h2>
+        <p style="color:var(--g500);font-size:13px;margin-top:3px;">Conectado con n8n</p>
       </div>
-      <div class="card">
-        <div class="ch"><div class="ct">Estado del sistema</div></div>
-        <div class="cb">
-          <div class="infobox infobox-info" style="margin-bottom:14px;"><span style="font-size:20px;">✅</span><div><div style="font-weight:700;">Webhook n8n activo</div><div style="font-size:12px;margin-top:2px;">Enviando pedidos correctamente</div></div></div>
-          <a href="https://www.save-pvp.es/sistema/Pedidos.html" target="_blank" class="btn btn-p" style="width:100%;justify-content:center;">Abrir formulario de pedidos →</a>
-        </div>
+      <button class="btn btn-p" onclick="openPedidosFormulario()">Abrir formulario →</button>
+    </div>
+    <div id="pedidosAdminEstado" class="card">
+      <div class="ch"><div class="ct">Estado del sistema</div></div>
+      <div class="cb">
+        <div class="infobox infobox-info" style="margin-bottom:14px;"><span style="font-size:20px;">✅</span><div><div style="font-weight:700;">Webhook n8n activo</div><div style="font-size:12px;margin-top:2px;">Enviando pedidos correctamente</div></div></div>
+        <button class="btn btn-p" style="width:100%;justify-content:center;" onclick="openPedidosFormulario()">Abrir formulario de pedidos →</button>
       </div>
     </div>
   </section>
@@ -727,6 +723,8 @@ function setRole(role) {
   document.getElementById('adminSection').style.display = (role === 'admin') ? '' : 'none';
   const notif = document.getElementById('ibNotif');
   if (notif) notif.style.display = (role === 'admin') ? '' : 'none';
+  const pedidosAdminEstado = document.getElementById('pedidosAdminEstado');
+  if (pedidosAdminEstado) pedidosAdminEstado.style.display = (role === 'admin') ? '' : 'none';
   // If on an admin-only page, redirect to dashboard
   const adminPages = ['usuarios','solicitudes-pvp-admin'];
   const active = document.querySelector('.page.active');
@@ -736,8 +734,16 @@ function setRole(role) {
   toast(`Rol cambiado a ${cfg.label}`, 'ok');
 }
 
+function openPedidosFormulario() {
+  window.open('https://www.save-pvp.es/sistema/Pedidos.html', '_blank', 'noopener');
+}
+
 // ── NAVIGATION ────────────────────────────────────
 function nav(id, btn) {
+  if (id === 'pedidos' && currentRole !== 'admin') {
+    openPedidosFormulario();
+    return;
+  }
   navById(id);
   document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
   if(btn) btn.classList.add('active');
@@ -750,6 +756,10 @@ function nav(id, btn) {
   document.getElementById('tbTitle').textContent = titles[id] || id;
 }
 function navById(id) {
+  if (id === 'pedidos' && currentRole !== 'admin') {
+    openPedidosFormulario();
+    return;
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const pg = document.getElementById('page-'+id);
   if(pg) pg.classList.add('active');
