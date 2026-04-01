@@ -69,15 +69,19 @@ async function crear(req, res) {
 
 /** PUT /api/solicitudes/:id/aprobar  — solo admin */
 async function aprobar(req, res) {
-  const { referencia, descripcion, categoria, coste, pvp_asignado, pvp_club_asignado } = req.body;
+  const { referencia, descripcion, categoria, coste, pvp_asignado, pvp_club_asignado, destino_catalogo } = req.body;
 
   if (!pvp_asignado) {
     return res.status(400).json({ error: 'El PVP a asignar es obligatorio' });
   }
 
+  let conn;
   try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
     // 1. Actualizar la solicitud
-    const [upd] = await db.execute(
+    const [upd] = await conn.execute(
       `UPDATE solicitudes_pvp
        SET estado           = 'aprobado',
            referencia       = COALESCE(?, referencia),
@@ -93,32 +97,75 @@ async function aprobar(req, res) {
     );
 
     if (upd.affectedRows === 0) {
+      await conn.rollback();
       return res.status(404).json({ error: 'Solicitud no encontrada o ya procesada' });
     }
 
     // 2. Obtener los datos definitivos de la solicitud
-    const [rows] = await db.execute('SELECT * FROM solicitudes_pvp WHERE id = ?', [req.params.id]);
+    const [rows] = await conn.execute('SELECT * FROM solicitudes_pvp WHERE id = ?', [req.params.id]);
     const s = rows[0];
 
-    // 3. Insertar o actualizar en la tabla repuestos real
-    await db.execute(
-      `INSERT INTO repuestos
-         (referencia, marca, categoria, modelo, etiqueta, sage_new, pvp, pvp_clubsave)
-       VALUES (?, '', ?, '', ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         categoria    = VALUES(categoria),
-         etiqueta     = VALUES(etiqueta),
-         sage_new     = VALUES(sage_new),
-         pvp          = VALUES(pvp),
-         pvp_clubsave = VALUES(pvp_clubsave)`,
-      [s.referencia, s.categoria || '', s.descripcion || s.referencia,
-       s.coste, pvp_asignado, pvp_club_asignado || null]
-    );
+    // 3. Insertar o actualizar en el catálogo destino
+    const destino = ['repuestos', 'telefonos', 'apple', 'oppo'].includes(destino_catalogo)
+      ? destino_catalogo
+      : 'repuestos';
 
-    res.json({ message: 'Solicitud aprobada y repuesto añadido a la BBDD' });
+    if (destino === 'repuestos') {
+      await conn.execute(
+        `INSERT INTO repuestos
+           (referencia, marca, categoria, modelo, etiqueta, sage_new, pvp, pvp_clubsave)
+         VALUES (?, '', ?, '', ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           categoria    = VALUES(categoria),
+           etiqueta     = VALUES(etiqueta),
+           sage_new     = VALUES(sage_new),
+           pvp          = VALUES(pvp),
+           pvp_clubsave = VALUES(pvp_clubsave)`,
+        [s.referencia, s.categoria || '', s.descripcion || s.referencia,
+         s.coste, pvp_asignado, pvp_club_asignado || null]
+      );
+    } else if (destino === 'telefonos') {
+      await conn.execute(
+        `INSERT INTO telefonos
+           (referencia, marca, modelo, etiqueta, pvp)
+         VALUES (?, '', '', ?, ?)
+         ON DUPLICATE KEY UPDATE
+           etiqueta = VALUES(etiqueta),
+           pvp      = VALUES(pvp)`,
+        [s.referencia, s.descripcion || s.referencia, pvp_asignado]
+      );
+    } else if (destino === 'apple') {
+      await conn.execute(
+        `INSERT INTO apple_original
+           (referencia, marca, categoria, modelo, etiqueta, pvp)
+         VALUES (?, '', ?, '', ?, ?)
+         ON DUPLICATE KEY UPDATE
+           categoria = VALUES(categoria),
+           etiqueta  = VALUES(etiqueta),
+           pvp       = VALUES(pvp)`,
+        [s.referencia, s.categoria || '', s.descripcion || s.referencia, pvp_asignado]
+      );
+    } else if (destino === 'oppo') {
+      await conn.execute(
+        `INSERT INTO oppo_original
+           (referencia, marca, categoria, modelo, etiqueta, pvp)
+         VALUES (?, '', ?, '', ?, ?)
+         ON DUPLICATE KEY UPDATE
+           categoria = VALUES(categoria),
+           etiqueta  = VALUES(etiqueta),
+           pvp       = VALUES(pvp)`,
+        [s.referencia, s.categoria || '', s.descripcion || s.referencia, pvp_asignado]
+      );
+    }
+
+    await conn.commit();
+    res.json({ message: `Solicitud aprobada y referencia añadida en ${destino}` });
   } catch (err) {
+    if (conn) await conn.rollback();
     console.error(err);
     res.status(500).json({ error: 'Error al aprobar solicitud' });
+  } finally {
+    if (conn) conn.release();
   }
 }
 
