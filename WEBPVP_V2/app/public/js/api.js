@@ -55,6 +55,7 @@ const API = (() => {
       actualizar:(id, data)    => request('PUT', `/repuestos/${id}`, data),
       eliminar:  (id)          => request('DELETE', `/repuestos/${id}`),
     },
+    busquedaGlobal: (q) => request('GET', '/busqueda-global?' + new URLSearchParams({ q })),
 
     // ── Solicitudes PVP ─────────────────────
     solicitudes: {
@@ -80,16 +81,22 @@ const API = (() => {
     // ── Apple Original ──────────────────────
     apple: {
       listar: (params = {}) => request('GET', '/apple?' + new URLSearchParams(params)),
+      actualizar:(id, data) => request('PUT', `/apple/${id}`, data),
+      eliminar:  (id)       => request('DELETE', `/apple/${id}`),
     },
 
     // ── Oppo Original ───────────────────────
     oppo: {
       listar: (params = {}) => request('GET', '/oppo?' + new URLSearchParams(params)),
+      actualizar:(id, data) => request('PUT', `/oppo/${id}`, data),
+      eliminar:  (id)       => request('DELETE', `/oppo/${id}`),
     },
 
     // ── Teléfonos ───────────────────────────
     telefonos: {
       listar: (params = {}) => request('GET', '/telefonos?' + new URLSearchParams(params)),
+      actualizar:(id, data) => request('PUT', `/telefonos/${id}`, data),
+      eliminar:  (id)       => request('DELETE', `/telefonos/${id}`),
     },
   };
 })();
