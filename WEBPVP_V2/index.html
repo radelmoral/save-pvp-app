@@ -289,8 +289,8 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
       <input type="text" placeholder="Buscar referencia, marca, modelo…" id="gSearch" oninput="onGSearch(this.value)"/>
     </div>
     <div class="tb-actions">
-      <div class="ib" title="Notificaciones">🔔<span class="ndot"></span></div>
-      <div class="ib" title="Ajustes">⚙️</div>
+      <div class="ib" title="Solicitudes pendientes" onclick="nav('solicitudes-pvp-admin',this);navById('solicitudes-pvp-admin');" id="ibNotif">🔔<span class="ndot" id="notifDot" style="display:none;"></span></div>
+      <div class="ib" title="Cerrar sesión" onclick="API.logout()">🚪</div>
       <button class="btn btn-p" onclick="openModal('modalRef')">+ Nueva referencia</button>
     </div>
   </header>
@@ -667,27 +667,21 @@ function navById(id) {
 
 // ── FILTERS ────────────────────────────────────────
 function filterR() {
-  const ref   = document.getElementById('fRef').value.toLowerCase();
-  const cat   = document.getElementById('fCat').value.toLowerCase();
-  const marca = document.getElementById('fMarca').value.toLowerCase();
-  const mod   = document.getElementById('fModelo').value.toLowerCase();
-  document.querySelectorAll('#tbRepuestos tr').forEach(row => {
-    const c = row.querySelectorAll('td');
-    const show = c[0].textContent.toLowerCase().includes(ref)
-              && c[1].textContent.toLowerCase().includes(cat)
-              && c[2].textContent.toLowerCase().includes(marca)
-              && c[3].textContent.toLowerCase().includes(mod);
-    row.style.display = show ? '' : 'none';
-  });
+  const ref      = document.getElementById('fRef').value;
+  const categoria = document.getElementById('fCat').value;
+  const marca    = document.getElementById('fMarca').value;
+  const modelo   = document.getElementById('fModelo').value;
+  loadRepuestosFromAPI({ ref, categoria, marca, modelo, page: 1 });
 }
 function onGSearch(v) {
-  if(!v) return;
-  document.getElementById('fRef').value = v;
-  document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.sb-item')[1].classList.add('active');
+  if (!v) return;
+  // Navegar a repuestos y buscar contra la API
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.sb-item')[1]?.classList.add('active');
   navById('repuestos');
   document.getElementById('tbTitle').textContent = 'Repuestos';
-  filterR();
+  document.getElementById('fRef').value = v;
+  loadRepuestosFromAPI({ q: v, page: 1 });
 }
 function filtrarAdminSolicitudes() {
   const est = document.getElementById('adminFiltroEstado').value;
@@ -968,6 +962,8 @@ async function loadSolicitudesFromAPI() {
     const pendientes = data.filter(s => s.estado === 'pendiente').length;
     document.getElementById('badgePendientes').textContent = pendientes;
     document.getElementById('dashPend').textContent = pendientes;
+    const dot = document.getElementById('notifDot');
+    if (dot) dot.style.display = pendientes > 0 ? '' : 'none';
   } catch(e) {
     console.warn('Error cargando solicitudes:', e.message);
   }
