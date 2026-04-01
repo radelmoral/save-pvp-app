@@ -341,45 +341,47 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
       </div>
       <div class="tw"><table id="tRepuestos">
         <thead><tr><th class="sort">Referencia ↕</th><th class="sort">Categoría ↕</th><th class="sort">Marca ↕</th><th class="sort">Modelo ↕</th><th>Etiqueta</th><th class="sort">PVP ↕</th><th class="sort">PVP Club ↕</th><th style="text-align:center;">Opciones</th></tr></thead>
-        <tbody id="tbRepuestos">
-          <tr><td class="td-ref">55050000A45Z</td><td><span class="badge bd-a">Tapa</span></td><td>XIAOMI</td><td>Redmi 9</td><td>Tapa Bateria Xiaomi Redmi 9 Azul</td><td class="price">44,99 €</td><td class="price-club">38,24 €</td><td><div class="abtns" style="justify-content:center;"><button class="ab e" onclick="openModal('modalRef')">✏️</button><button class="ab d" onclick="toast('Referencia eliminada','err')">🗑️</button></div></td></tr>
-          <tr><td class="td-ref">MOTO36366</td><td><span class="badge bd-t">Pantalla</span></td><td>MOTOROLA</td><td>Edge 60</td><td>Motorola Edge 60 LCD + Touchscreen</td><td class="price">119,99 €</td><td class="price-club">101,99 €</td><td><div class="abtns" style="justify-content:center;"><button class="ab e" onclick="openModal('modalRef')">✏️</button><button class="ab d" onclick="toast('Referencia eliminada','err')">🗑️</button></div></td></tr>
-          <tr><td class="td-ref">02351BDD</td><td><span class="badge bd-t">Pantalla</span></td><td>HUAWEI</td><td>Mate 9</td><td>Pantalla Huawei Mate 9 Negro</td><td class="price">99,99 €</td><td class="price-club">84,99 €</td><td><div class="abtns" style="justify-content:center;"><button class="ab e" onclick="openModal('modalRef')">✏️</button><button class="ab d" onclick="toast('Referencia eliminada','err')">🗑️</button></div></td></tr>
-          <tr><td class="td-ref">02351BDF</td><td><span class="badge bd-gy">Carcasa</span></td><td>HUAWEI</td><td>Mate 9</td><td>Carcasa Trasera Huawei Mate 9 Gris</td><td class="price">99,99 €</td><td class="price-club">84,99 €</td><td><div class="abtns" style="justify-content:center;"><button class="ab e" onclick="openModal('modalRef')">✏️</button><button class="ab d" onclick="toast('Referencia eliminada','err')">🗑️</button></div></td></tr>
-          <tr><td class="td-ref">02351CTK</td><td><span class="badge bd-a">Tapa</span></td><td>HUAWEI</td><td>P8 Lite 2017</td><td>Tapa Bateria Huawei P8 Lite 2017 Negro</td><td class="price">29,99 €</td><td class="price-club">25,49 €</td><td><div class="abtns" style="justify-content:center;"><button class="ab e" onclick="openModal('modalRef')">✏️</button><button class="ab d" onclick="toast('Referencia eliminada','err')">🗑️</button></div></td></tr>
-          <tr><td class="td-ref">02351FSL</td><td><span class="badge bd-t">Pantalla</span></td><td>HUAWEI</td><td>P10 Lite</td><td>Pantalla Huawei P10 Lite Azul</td><td class="price">99,99 €</td><td class="price-club">84,99 €</td><td><div class="abtns" style="justify-content:center;"><button class="ab e" onclick="openModal('modalRef')">✏️</button><button class="ab d" onclick="toast('Referencia eliminada','err')">🗑️</button></div></td></tr>
-          <tr><td class="td-ref">02351HFC</td><td><span class="badge bd-a">Tapa</span></td><td>HUAWEI</td><td>Y7</td><td>Tapa Bateria Huawei Y7 Plata</td><td class="price">49,99 €</td><td class="price-club">42,49 €</td><td><div class="abtns" style="justify-content:center;"><button class="ab e" onclick="openModal('modalRef')">✏️</button><button class="ab d" onclick="toast('Referencia eliminada','err')">🗑️</button></div></td></tr>
-          <tr><td class="td-ref">02351JGD</td><td><span class="badge bd-t">Pantalla</span></td><td>HUAWEI</td><td>MediaPad T3 10</td><td>Pantalla Huawei MediaPad T3 10</td><td class="price">139,99 €</td><td class="price-club">118,99 €</td><td><div class="abtns" style="justify-content:center;"><button class="ab e" onclick="openModal('modalRef')">✏️</button><button class="ab d" onclick="toast('Referencia eliminada','err')">🗑️</button></div></td></tr>
-          <tr><td class="td-ref">02351JPD</td><td><span class="badge bd-gy">PCB</span></td><td>HUAWEI</td><td>P8 Lite 2017</td><td>Sub PCB Huawei P8 Lite 2017</td><td class="price">39,99 €</td><td class="price-club">33,99 €</td><td><div class="abtns" style="justify-content:center;"><button class="ab e" onclick="openModal('modalRef')">✏️</button><button class="ab d" onclick="toast('Referencia eliminada','err')">🗑️</button></div></td></tr>
-          <tr><td class="td-ref">02351PRT</td><td><span class="badge bd-gy">PCB</span></td><td>HUAWEI</td><td>Mate 10</td><td>Sub PCB USB Huawei Mate 10</td><td class="price">59,99 €</td><td class="price-club">50,99 €</td><td><div class="abtns" style="justify-content:center;"><button class="ab e" onclick="openModal('modalRef')">✏️</button><button class="ab d" onclick="toast('Referencia eliminada','err')">🗑️</button></div></td></tr>
-        </tbody>
+        <tbody id="tbRepuestos"></tbody>
       </table></div>
-      <div class="tf"><span>Mostrando <strong>1–10</strong> de <strong>2.252</strong> registros</span><div class="pager"><button class="pb">‹</button><button class="pb on">1</button><button class="pb">2</button><button class="pb">3</button><button class="pb">…</button><button class="pb">226</button><button class="pb">›</button></div></div>
+      <div class="tf"><span id="repuestosPager">Cargando…</span><div class="pager" id="repuestosPagerBtns"></div></div>
     </div>
   </section>
 
   <!-- ── TELÉFONOS ── -->
   <section class="page" id="page-telefonos">
-    <div style="display:flex;align-items:center;justify-content:space-between;"><div><h2 style="font-size:20px;font-weight:800;">Teléfonos</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;">348 dispositivos</p></div><button class="btn btn-p">+ Añadir teléfono</button></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;"><div><h2 style="font-size:20px;font-weight:800;">Teléfonos</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;" id="telefonosTotal">Cargando…</p></div></div>
     <div class="card">
-      <div class="tfilters"><input class="fi" placeholder="🔍 Referencia…" style="flex:1;"/><select class="fi"><option>Todas las marcas</option><option>Apple</option><option>Samsung</option><option>Xiaomi</option></select><input class="fi" placeholder="Modelo…"/></div>
-      <div class="tw"><table><thead><tr><th>Referencia</th><th>Marca</th><th>Modelo</th><th>Etiqueta</th><th>PVP</th><th style="text-align:center;">Opciones</th></tr></thead><tbody>
-        <tr><td class="td-ref">132020156</td><td>Apple</td><td>iPhone 12</td><td>TC iPhone 12 64GB</td><td class="price">229,99 €</td><td><div class="abtns" style="justify-content:center;"><button class="ab e">✏️</button><button class="ab d">🗑️</button></div></td></tr>
-        <tr><td class="td-ref">132020449</td><td>Apple</td><td>iPhone 12</td><td>GA+ Apple iPhone 12 128G Verde</td><td class="price">269,99 €</td><td><div class="abtns" style="justify-content:center;"><button class="ab e">✏️</button><button class="ab d">🗑️</button></div></td></tr>
-        <tr><td class="td-ref">132170678</td><td>Samsung</td><td>Tab S6 Lite</td><td>TN Samsung Tab S6 Lite 10.4" 64/4GB</td><td class="price">229,00 €</td><td><div class="abtns" style="justify-content:center;"><button class="ab e">✏️</button><button class="ab d">🗑️</button></div></td></tr>
-      </tbody></table></div>
-      <div class="tf"><span>Mostrando 1–3 de 348</span><div class="pager"><button class="pb on">1</button><button class="pb">›</button></div></div>
+      <div class="tfilters">
+        <input class="fi" id="filtroTelRef" placeholder="🔍 Referencia…" style="flex:1;" oninput="loadTelefonosFromAPI()"/>
+        <input class="fi" id="filtroTelModelo" placeholder="Modelo…" oninput="loadTelefonosFromAPI()"/>
+      </div>
+      <div class="tw"><table><thead><tr><th>Referencia</th><th>Marca</th><th>Modelo</th><th>Etiqueta</th><th>PVP</th></tr></thead><tbody id="tbTelefonos"></tbody></table></div>
+      <div class="tf"><span id="telefonosPager">—</span><div class="pager" id="telefonosPagerBtns"></div></div>
     </div>
   </section>
 
   <!-- ── APPLE / OPPO ── -->
   <section class="page" id="page-apple">
-    <div style="display:flex;align-items:center;justify-content:space-between;"><div><h2 style="font-size:20px;font-weight:800;">Apple Original</h2></div><button class="btn btn-p">+ Añadir</button></div>
-    <div class="card"><div class="empty"><div class="ei">🍎</div><div class="et">Apple Original</div><div class="es">Misma estructura que Repuestos, filtrada por marca Apple con verificación de originalidad.</div></div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;"><div><h2 style="font-size:20px;font-weight:800;">Apple Original</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;" id="appleTotal">Cargando…</p></div></div>
+    <div class="card">
+      <div class="tfilters">
+        <input class="fi" id="filtroAppleRef" placeholder="🔍 Referencia…" style="flex:1;" oninput="loadAppleFromAPI()"/>
+        <input class="fi" id="filtroAppleModelo" placeholder="Modelo…" oninput="loadAppleFromAPI()"/>
+      </div>
+      <div class="tw"><table><thead><tr><th>Referencia</th><th>Categoría</th><th>Modelo</th><th>Etiqueta</th><th>PVP</th><th>Stock</th></tr></thead><tbody id="tbApple"></tbody></table></div>
+      <div class="tf"><span id="applePager">—</span><div class="pager" id="applePagerBtns"></div></div>
+    </div>
   </section>
   <section class="page" id="page-oppo">
-    <div style="display:flex;align-items:center;justify-content:space-between;"><div><h2 style="font-size:20px;font-weight:800;">Oppo Original</h2></div><button class="btn btn-p">+ Añadir</button></div>
-    <div class="card"><div class="empty"><div class="ei">📲</div><div class="et">Oppo Original</div><div class="es">Misma estructura que Repuestos, filtrada por marca Oppo.</div></div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;"><div><h2 style="font-size:20px;font-weight:800;">Oppo Original</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;" id="oppoTotal">Cargando…</p></div></div>
+    <div class="card">
+      <div class="tfilters">
+        <input class="fi" id="filtroOppoRef" placeholder="🔍 Referencia…" style="flex:1;" oninput="loadOppoFromAPI()"/>
+        <input class="fi" id="filtroOppoModelo" placeholder="Modelo…" oninput="loadOppoFromAPI()"/>
+      </div>
+      <div class="tw"><table><thead><tr><th>Referencia</th><th>Categoría</th><th>Modelo</th><th>Etiqueta</th><th>PVP</th><th>Stock</th></tr></thead><tbody id="tbOppo"></tbody></table></div>
+      <div class="tf"><span id="oppoPager">—</span><div class="pager" id="oppoPagerBtns"></div></div>
+    </div>
   </section>
 
   <!-- ── PEDIDOS ── -->
@@ -461,32 +463,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
           <div class="tw">
             <table>
               <thead><tr><th>Referencia</th><th>Proveedor</th><th>Coste</th><th>PVP asignado</th><th>Estado</th><th>Fecha</th></tr></thead>
-              <tbody id="tbMisSolicitudes">
-                <tr>
-                  <td class="td-ref">SAM-S23-OLED</td>
-                  <td>GSMParts</td>
-                  <td>62,00 €</td>
-                  <td class="price-club">89,99 €</td>
-                  <td><span class="badge bd-g">✅ Aprobado</span></td>
-                  <td style="font-size:11px;color:var(--g400)">28/03/2026</td>
-                </tr>
-                <tr>
-                  <td class="td-ref">IOS17-BATT-01</td>
-                  <td>Ecommerce</td>
-                  <td>18,50 €</td>
-                  <td style="color:var(--g400);font-size:12px;">—</td>
-                  <td><span class="pvp-status-pending">⏳ Pendiente</span></td>
-                  <td style="font-size:11px;color:var(--g400)">29/03/2026</td>
-                </tr>
-                <tr>
-                  <td class="td-ref">MOTO-G84-LCD</td>
-                  <td>Esmovil</td>
-                  <td>41,00 €</td>
-                  <td style="color:var(--g400);font-size:12px;">—</td>
-                  <td><span class="pvp-status-pending">⏳ Pendiente</span></td>
-                  <td style="font-size:11px;color:var(--g400)">30/03/2026</td>
-                </tr>
-              </tbody>
+              <tbody id="tbMisSolicitudes"></tbody>
             </table>
           </div>
         </div>
@@ -528,63 +505,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
       <div class="tw">
         <table>
           <thead><tr><th>Referencia</th><th>Descripción</th><th>Proveedor</th><th>Coste</th><th>Solicitado por</th><th>Fecha</th><th>Estado</th><th style="text-align:center;">Acción</th></tr></thead>
-          <tbody id="tbAdminSolicitudes">
-            <tr data-estado="pendiente">
-              <td class="td-ref">IOS17-BATT-01</td>
-              <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Batería iPhone 17</td>
-              <td>Ecommerce</td>
-              <td class="price">18,50 €</td>
-              <td>RChulia</td>
-              <td style="font-size:11px;color:var(--g400)">29/03/2026</td>
-              <td><span class="pvp-status-pending">⏳ Pendiente</span></td>
-              <td>
-                <div class="abtns" style="justify-content:center;">
-                  <button class="btn btn-green" style="font-size:11px;padding:5px 10px;" onclick="openModalPVP('IOS17-BATT-01','Batería iPhone 17','18.50')">✅ Asignar PVP</button>
-                  <button class="ab d" onclick="rechazarSolicitud(this)" title="Rechazar">✕</button>
-                </div>
-              </td>
-            </tr>
-            <tr data-estado="pendiente">
-              <td class="td-ref">MOTO-G84-LCD</td>
-              <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Pantalla Motorola G84</td>
-              <td>Esmovil</td>
-              <td class="price">41,00 €</td>
-              <td>Asoldan</td>
-              <td style="font-size:11px;color:var(--g400)">30/03/2026</td>
-              <td><span class="pvp-status-pending">⏳ Pendiente</span></td>
-              <td>
-                <div class="abtns" style="justify-content:center;">
-                  <button class="btn btn-green" style="font-size:11px;padding:5px 10px;" onclick="openModalPVP('MOTO-G84-LCD','Pantalla Motorola G84','41.00')">✅ Asignar PVP</button>
-                  <button class="ab d" onclick="rechazarSolicitud(this)" title="Rechazar">✕</button>
-                </div>
-              </td>
-            </tr>
-            <tr data-estado="pendiente">
-              <td class="td-ref">XIA-NOTE13-CAM</td>
-              <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Cámara Xiaomi Note 13</td>
-              <td>GSMParts</td>
-              <td class="price">27,00 €</td>
-              <td>ilaville</td>
-              <td style="font-size:11px;color:var(--g400)">30/03/2026</td>
-              <td><span class="pvp-status-pending">⏳ Pendiente</span></td>
-              <td>
-                <div class="abtns" style="justify-content:center;">
-                  <button class="btn btn-green" style="font-size:11px;padding:5px 10px;" onclick="openModalPVP('XIA-NOTE13-CAM','Cámara Xiaomi Note 13','27.00')">✅ Asignar PVP</button>
-                  <button class="ab d" onclick="rechazarSolicitud(this)" title="Rechazar">✕</button>
-                </div>
-              </td>
-            </tr>
-            <tr data-estado="aprobado">
-              <td class="td-ref">SAM-S23-OLED</td>
-              <td>Pantalla Samsung S23</td>
-              <td>GSMParts</td>
-              <td class="price">62,00 €</td>
-              <td>RChulia</td>
-              <td style="font-size:11px;color:var(--g400)">28/03/2026</td>
-              <td><span class="pvp-status-done">✅ Aprobado — 89,99 €</span></td>
-              <td style="text-align:center;color:var(--g400);font-size:11px;">Añadida a BBDD</td>
-            </tr>
-          </tbody>
+          <tbody id="tbAdminSolicitudes"></tbody>
         </table>
       </div>
     </div>
@@ -592,21 +513,12 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
 
   <!-- ── USUARIOS (solo admin) ── -->
   <section class="page" id="page-usuarios">
-    <div style="display:flex;align-items:center;justify-content:space-between;"><div><h2 style="font-size:20px;font-weight:800;">Gestión de Usuarios</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;">12 usuarios registrados</p></div><button class="btn btn-p">+ Nuevo usuario</button></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;"><div><h2 style="font-size:20px;font-weight:800;">Gestión de Usuarios</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;" id="usuariosTotal">Cargando…</p></div></div>
     <div class="card">
       <div class="tw"><table>
-        <thead><tr><th>ID</th><th>Nombre</th><th>Usuario</th><th>Email</th><th>Rol</th><th style="text-align:center;">Opciones</th></tr></thead>
-        <tbody>
-          <tr><td style="color:var(--g400);font-size:12px;">1</td><td><strong>administrador</strong></td><td class="td-ref">admin</td><td style="color:var(--g500);">rdelmoral@savestore.es</td><td><span class="rp rp-adm">★ Administrador</span></td><td><div class="abtns" style="justify-content:center;"><button class="ab e">✏️</button><button class="ab d">🗑️</button></div></td></tr>
-          <tr><td style="color:var(--g400);font-size:12px;">18</td><td><strong>Rafael Senior</strong></td><td class="td-ref">delmo</td><td style="color:var(--g500);">—</td><td><span class="rp rp-adm">★ Administrador</span></td><td><div class="abtns" style="justify-content:center;"><button class="ab e">✏️</button><button class="ab d">🗑️</button></div></td></tr>
-          <tr><td style="color:var(--g400);font-size:12px;">13</td><td>Alberto Soldan</td><td class="td-ref">Asoldan</td><td style="color:var(--g500);">asoldan@savestore.es</td><td><span class="rp rp-sup">◆ Supervisor</span></td><td><div class="abtns" style="justify-content:center;"><button class="ab e">✏️</button><button class="ab d">🗑️</button></div></td></tr>
-          <tr><td style="color:var(--g400);font-size:12px;">14</td><td>Raul Chulia</td><td class="td-ref">RChulia</td><td style="color:var(--g500);">rchulia@savestore.es</td><td><span class="rp rp-sup">◆ Supervisor</span></td><td><div class="abtns" style="justify-content:center;"><button class="ab e">✏️</button><button class="ab d">🗑️</button></div></td></tr>
-          <tr><td style="color:var(--g400);font-size:12px;">20</td><td>Alejandro Alloza</td><td class="td-ref">acarrilero</td><td style="color:var(--g500);">acarrilero@savestore.es</td><td><span class="rp rp-tec">● Técnico</span></td><td><div class="abtns" style="justify-content:center;"><button class="ab e">✏️</button><button class="ab d">🗑️</button></div></td></tr>
-          <tr><td style="color:var(--g400);font-size:12px;">21</td><td>Israel Laville Sala</td><td class="td-ref">ilaville</td><td style="color:var(--g500);">ilaville@savestore.es</td><td><span class="rp rp-tec">● Técnico</span></td><td><div class="abtns" style="justify-content:center;"><button class="ab e">✏️</button><button class="ab d">🗑️</button></div></td></tr>
-          <tr><td style="color:var(--g400);font-size:12px;">22</td><td>Sheila Biedma Vázquez</td><td class="td-ref">sbiedma</td><td style="color:var(--g500);">sbiedma@savestore.es</td><td><span class="rp rp-tec">● Técnico</span></td><td><div class="abtns" style="justify-content:center;"><button class="ab e">✏️</button><button class="ab d">🗑️</button></div></td></tr>
-        </tbody>
+        <thead><tr><th>ID</th><th>Nombre</th><th>Usuario</th><th>Email</th><th>Rol</th></tr></thead>
+        <tbody id="tbUsuarios"></tbody>
       </table></div>
-      <div class="tf"><span>Mostrando <strong>1–7</strong> de <strong>12</strong></span><div class="pager"><button class="pb on">1</button><button class="pb">2</button><button class="pb">›</button></div></div>
     </div>
   </section>
 
@@ -1061,40 +973,6 @@ async function loadSolicitudesFromAPI() {
   }
 }
 
-/** Carga repuestos desde la API */
-async function loadRepuestosFromAPI(params = {}) {
-  if (!API_AVAILABLE) return;
-  try {
-    const res  = await API.repuestos.listar(params);
-    const tb   = document.getElementById('tbRepuestos');
-    tb.innerHTML = '';
-    res.data.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.setAttribute('data-cat', (r.categoria || '').toLowerCase());
-      const ref = escHTML(r.referencia || '—');
-      const categoria = escHTML(r.categoria || '—');
-      const marca = escHTML(r.marca || '—');
-      const modelo = escHTML(r.modelo || '—');
-      const etiqueta = escHTML(r.etiqueta || '—');
-      tr.innerHTML = `
-        <td class="td-ref">${ref}</td>
-        <td><span class="badge bd-t">${categoria}</span></td>
-        <td>${marca}</td>
-        <td>${modelo}</td>
-        <td>${etiqueta}</td>
-        <td class="price">${r.pvp ? formatMoney(r.pvp)+' €' : '—'}</td>
-        <td class="price-club">${r.pvp_clubsave ? formatMoney(r.pvp_clubsave)+' €' : '—'}</td>
-        <td><div class="abtns" style="justify-content:center;">
-          <button class="ab e" onclick="openModal('modalRef')">✏️</button>
-          <button class="ab d" onclick="eliminarRepuesto('${escJS(r.referencia)}',this)">🗑️</button>
-        </div></td>`;
-      tb.appendChild(tr);
-    });
-    document.querySelector('#page-repuestos p').textContent = `${res.total} referencias en total`;
-  } catch(e) {
-    console.warn('API no disponible:', e.message);
-  }
-}
 
 /** Carga categorías en los selects */
 async function loadCategoriasFromAPI() {
@@ -1298,12 +1176,216 @@ function formatMoney(value) {
   return n.toFixed(2);
 }
 
+// ── PAGINACIÓN HELPERS ─────────────────────────────
+function renderPager(containerId, labelId, page, total, limit, onPageChange) {
+  const totalPages = Math.ceil(total / limit);
+  const from = total === 0 ? 0 : (page - 1) * limit + 1;
+  const to   = Math.min(page * limit, total);
+  document.getElementById(labelId).textContent = `Mostrando ${from}–${to} de ${total}`;
+  const c = document.getElementById(containerId);
+  c.innerHTML = '';
+  for (let i = 1; i <= totalPages; i++) {
+    const b = document.createElement('button');
+    b.className = 'pb' + (i === page ? ' on' : '');
+    b.textContent = i;
+    b.onclick = () => onPageChange(i);
+    c.appendChild(b);
+    if (totalPages > 7 && i === 3 && page > 5) { b.textContent='…'; b.disabled=true; i = page - 2; }
+    if (totalPages > 7 && i === page + 2 && i < totalPages - 1) { const d=document.createElement('button'); d.className='pb'; d.textContent='…'; d.disabled=true; c.appendChild(d); i=totalPages-1; }
+  }
+}
+
+// ── APPLE ORIGINAL ─────────────────────────────────
+let _applePage = 1;
+async function loadAppleFromAPI(page = _applePage) {
+  if (!API_AVAILABLE) return;
+  _applePage = page;
+  try {
+    const ref    = document.getElementById('filtroAppleRef')?.value || '';
+    const modelo = document.getElementById('filtroAppleModelo')?.value || '';
+    const res    = await API.apple.listar({ ref, modelo, page, limit: 50 });
+    const tb     = document.getElementById('tbApple');
+    tb.innerHTML = '';
+    res.data.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="td-ref">${escHTML(r.referencia)}</td>
+        <td><span class="badge bd-t">${escHTML(r.categoria||'—')}</span></td>
+        <td>${escHTML(r.modelo||'—')}</td>
+        <td>${escHTML(r.etiqueta||'—')}</td>
+        <td class="price">${r.pvp ? formatMoney(r.pvp)+' €' : '—'}</td>
+        <td style="text-align:center;">${r.stock ?? '—'}</td>`;
+      tb.appendChild(tr);
+    });
+    document.getElementById('appleTotal').textContent = `${res.total} referencias`;
+    renderPager('applePagerBtns', 'applePager', page, res.total, 50, loadAppleFromAPI);
+  } catch(e) { console.warn('Error cargando Apple:', e.message); }
+}
+
+// ── OPPO ORIGINAL ──────────────────────────────────
+let _oppoPage = 1;
+async function loadOppoFromAPI(page = _oppoPage) {
+  if (!API_AVAILABLE) return;
+  _oppoPage = page;
+  try {
+    const ref    = document.getElementById('filtroOppoRef')?.value || '';
+    const modelo = document.getElementById('filtroOppoModelo')?.value || '';
+    const res    = await API.oppo.listar({ ref, modelo, page, limit: 50 });
+    const tb     = document.getElementById('tbOppo');
+    tb.innerHTML = '';
+    res.data.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="td-ref">${escHTML(r.referencia)}</td>
+        <td><span class="badge bd-t">${escHTML(r.categoria||'—')}</span></td>
+        <td>${escHTML(r.modelo||'—')}</td>
+        <td>${escHTML(r.etiqueta||'—')}</td>
+        <td class="price">${r.pvp ? formatMoney(r.pvp)+' €' : '—'}</td>
+        <td style="text-align:center;">${r.stock ?? '—'}</td>`;
+      tb.appendChild(tr);
+    });
+    document.getElementById('oppoTotal').textContent = `${res.total} referencias`;
+    renderPager('oppoPagerBtns', 'oppoPager', page, res.total, 50, loadOppoFromAPI);
+  } catch(e) { console.warn('Error cargando Oppo:', e.message); }
+}
+
+// ── TELÉFONOS ──────────────────────────────────────
+let _telPage = 1;
+async function loadTelefonosFromAPI(page = _telPage) {
+  if (!API_AVAILABLE) return;
+  _telPage = page;
+  try {
+    const ref    = document.getElementById('filtroTelRef')?.value || '';
+    const modelo = document.getElementById('filtroTelModelo')?.value || '';
+    const res    = await API.telefonos.listar({ ref, modelo, page, limit: 50 });
+    const tb     = document.getElementById('tbTelefonos');
+    tb.innerHTML = '';
+    res.data.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="td-ref">${escHTML(r.referencia)}</td>
+        <td>${escHTML(r.marca||'—')}</td>
+        <td>${escHTML(r.modelo||'—')}</td>
+        <td>${escHTML(r.etiqueta||'—')}</td>
+        <td class="price">${r.pvp ? formatMoney(r.pvp)+' €' : '—'}</td>`;
+      tb.appendChild(tr);
+    });
+    document.getElementById('telefonosTotal').textContent = `${res.total} dispositivos`;
+    renderPager('telefonosPagerBtns', 'telefonosPager', page, res.total, 50, loadTelefonosFromAPI);
+  } catch(e) { console.warn('Error cargando Teléfonos:', e.message); }
+}
+
+// ── USUARIOS ───────────────────────────────────────
+async function loadUsuariosFromAPI() {
+  if (!API_AVAILABLE) return;
+  try {
+    const lista = await API.usuarios.listar();
+    const tb    = document.getElementById('tbUsuarios');
+    tb.innerHTML = '';
+    const ROL_LABEL = { admin:'★ Admin', carrefour:'◆ Carrefour', eci:'● ECI' };
+    const ROL_CLASS = { admin:'rp-adm', carrefour:'rp-sup', eci:'rp-tec' };
+    lista.forEach(u => {
+      const rolNombre = u.rolNombre || u.rol_nombre || '';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="color:var(--g400);font-size:12px;">${u.id || u.id_usuario}</td>
+        <td><strong>${escHTML(u.nombre||'—')}</strong></td>
+        <td class="td-ref">${escHTML(u.username||u.usuario||'—')}</td>
+        <td style="color:var(--g500);">${escHTML(u.email||'—')}</td>
+        <td><span class="rp ${ROL_CLASS[rolNombre]||''}">${ROL_LABEL[rolNombre]||rolNombre}</span></td>`;
+      tb.appendChild(tr);
+    });
+    document.getElementById('usuariosTotal').textContent = `${lista.length} usuarios registrados`;
+  } catch(e) { console.warn('Error cargando usuarios:', e.message); }
+}
+
+// ── MIS SOLICITUDES (usuario actual) ───────────────
+async function loadMisSolicitudesFromAPI() {
+  if (!API_AVAILABLE) return;
+  try {
+    const data = await API.solicitudes.listar();
+    const token = API.getToken();
+    let miId = null;
+    if (token) {
+      try { miId = JSON.parse(atob(token.split('.')[1])).id; } catch(e) {}
+    }
+    const mis = miId ? data.filter(s => s.usuario_id === miId || s.solicitante_id === miId) : data;
+    const tb  = document.getElementById('tbMisSolicitudes');
+    tb.innerHTML = '';
+    mis.forEach(s => {
+      const tr = document.createElement('tr');
+      const estadoBadge =
+        s.estado === 'aprobado'  ? `<span class="badge bd-g">✅ Aprobado</span>` :
+        s.estado === 'rechazado' ? `<span class="badge bd-r">❌ Rechazado</span>` :
+                                   `<span class="pvp-status-pending">⏳ Pendiente</span>`;
+      tr.innerHTML = `
+        <td class="td-ref">${escHTML(s.referencia)}</td>
+        <td>${escHTML(s.proveedor||'—')}</td>
+        <td class="price">${formatMoney(s.coste)} €</td>
+        <td class="price-club">${s.pvp_asignado ? formatMoney(s.pvp_asignado)+' €' : '<span style="color:var(--g400);font-size:12px;">—</span>'}</td>
+        <td>${estadoBadge}</td>
+        <td style="font-size:11px;color:var(--g400)">${new Date(s.created_at).toLocaleDateString('es-ES')}</td>`;
+      tb.appendChild(tr);
+    });
+  } catch(e) { console.warn('Error cargando mis solicitudes:', e.message); }
+}
+
+// ── PAGINACIÓN REPUESTOS ───────────────────────────
+let _repPage = 1;
+const _loadRepuestosOrig = loadRepuestosFromAPI;
+async function loadRepuestosFromAPI(params = {}) {
+  if (!params.page) params.page = _repPage;
+  else _repPage = params.page;
+  if (!API_AVAILABLE) return;
+  try {
+    const res = await API.repuestos.listar(params);
+    const tb  = document.getElementById('tbRepuestos');
+    tb.innerHTML = '';
+    res.data.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.setAttribute('data-cat', (r.categoria || '').toLowerCase());
+      tr.innerHTML = `
+        <td class="td-ref">${escHTML(r.referencia||'—')}</td>
+        <td><span class="badge bd-t">${escHTML(r.categoria||'—')}</span></td>
+        <td>${escHTML(r.marca||'—')}</td>
+        <td>${escHTML(r.modelo||'—')}</td>
+        <td>${escHTML(r.etiqueta||'—')}</td>
+        <td class="price">${r.pvp ? formatMoney(r.pvp)+' €' : '—'}</td>
+        <td class="price-club">${r.pvp_clubsave ? formatMoney(r.pvp_clubsave)+' €' : '—'}</td>
+        <td><div class="abtns" style="justify-content:center;">
+          <button class="ab d" onclick="eliminarRepuesto('${escJS(r.referencia)}',this)">🗑️</button>
+        </div></td>`;
+      tb.appendChild(tr);
+    });
+    // Info y paginación en repuestos
+    const infoEl = document.querySelector('#page-repuestos p');
+    if (infoEl) infoEl.textContent = `${res.total} referencias en total`;
+    // Pager
+    let pagerEl = document.getElementById('repuestosPagerBtns');
+    let pagerLabel = document.getElementById('repuestosPager');
+    if (!pagerEl) {
+      const tf = document.querySelector('#page-repuestos .tf');
+      if (tf) {
+        tf.innerHTML = '<span id="repuestosPager">—</span><div class="pager" id="repuestosPagerBtns"></div>';
+        pagerEl = document.getElementById('repuestosPagerBtns');
+        pagerLabel = document.getElementById('repuestosPager');
+      }
+    }
+    if (pagerEl) renderPager('repuestosPagerBtns', 'repuestosPager', params.page||1, res.total, res.limit||50, p => loadRepuestosFromAPI({page:p}));
+  } catch(e) { console.warn('API no disponible:', e.message); }
+}
+
 // ── CHARTS ────────────────────────────────────────
 window.addEventListener('load', () => {
   checkAuth();
   loadSolicitudesFromAPI();
   loadRepuestosFromAPI();
   loadCategoriasFromAPI();
+  loadAppleFromAPI();
+  loadOppoFromAPI();
+  loadTelefonosFromAPI();
+  loadUsuariosFromAPI();
+  loadMisSolicitudesFromAPI();
   new Chart(document.getElementById('chartCat'), {
     type:'doughnut',
     data: {
