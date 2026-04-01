@@ -320,8 +320,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <div class="gr-sub" id="globalResultsInfo">—</div>
       </div>
       <div class="gr-actions">
-        <button class="btn btn-o" onclick="verResultadosEnCatalogo('repuestos')">Ver Repuestos</button>
-        <button class="btn btn-o" onclick="verResultadosEnCatalogo('telefonos')">Ver Teléfonos</button>
+        <button class="btn btn-o" onclick="openGlobalResultsPage()">Ver resultados completos</button>
       </div>
     </div>
     <div class="gr-grid">
@@ -341,6 +340,34 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <h4><span>Oppo Original</span><span id="grCountOppo">0</span></h4>
         <table><tbody id="grRowsOppo"></tbody></table>
       </div>
+    </div>
+  </section>
+
+  <section class="page" id="page-resultados-globales">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <h2 style="font-size:20px;font-weight:800;">Resultados Globales</h2>
+        <p style="color:var(--g500);font-size:13px;margin-top:3px;" id="globalResultsTableInfo">—</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="tw">
+        <table>
+          <thead>
+            <tr>
+              <th>Referencia</th>
+              <th>Catálogo</th>
+              <th>Marca</th>
+              <th>Categoría</th>
+              <th>Modelo</th>
+              <th>Etiqueta</th>
+              <th>PVP</th>
+            </tr>
+          </thead>
+          <tbody id="tbGlobalAllResults"></tbody>
+        </table>
+      </div>
+      <div class="tf"><span id="globalResultsPager">—</span><div class="pager" id="globalResultsPagerBtns"></div></div>
     </div>
   </section>
 
@@ -702,6 +729,7 @@ let globalSearchTerm = '';
 let globalSearchTimer = null;
 let globalLastSummary = null;
 const globalRowsVisible = { repuestos: 6, telefonos: 6, apple: 6, oppo: 6 };
+let globalFlatResults = [];
 const roleConfig = {
   admin:     { label:'Admin',     avatar:'AD', name:'administrador',       rp:'rp-adm', rpText:'★ Admin' },
   carrefour: { label:'Carrefour', avatar:'CF', name:'Usuario Carrefour',   rp:'rp-sup', rpText:'◆ Carrefour' },
@@ -755,7 +783,8 @@ function nav(id, btn) {
     dashboard:'Dashboard', repuestos:'Repuestos', telefonos:'Teléfonos',
     apple:'Apple Original', oppo:'Oppo Original', pedidos:'Gestión de Pedidos',
     'solicitud-pvp':'Solicitud de PVP', usuarios:'Usuarios',
-    'solicitudes-pvp-admin':'Solicitudes PVP — Admin'
+    'solicitudes-pvp-admin':'Solicitudes PVP — Admin',
+    'resultados-globales':'Resultados Globales'
   };
   document.getElementById('tbTitle').textContent = titles[id] || id;
 }
@@ -769,34 +798,48 @@ function navById(id) {
   if(pg) pg.classList.add('active');
 }
 
-async function verResultadosEnCatalogo(catalogo) {
-  const term = String(globalSearchTerm || document.getElementById('gSearch')?.value || '').trim();
-  ocultarResultadosGlobales();
-
-  if (catalogo === 'repuestos') {
-    navById('repuestos');
-    document.getElementById('tbTitle').textContent = 'Repuestos';
-    const fRef = document.getElementById('fRef');
-    const fCat = document.getElementById('fCat');
-    const fMarca = document.getElementById('fMarca');
-    const fModelo = document.getElementById('fModelo');
-    if (fRef) fRef.value = '';
-    if (fCat) fCat.value = '';
-    if (fMarca) fMarca.value = '';
-    if (fModelo) fModelo.value = '';
-    await loadRepuestosFromAPI({ q: term, page: 1 });
+function openGlobalResultsPage() {
+  if (!globalLastSummary) {
+    toast('Primero realiza una búsqueda global', 'warn');
     return;
   }
+  const mapRows = (rows, catalogo) => (rows || []).map(r => ({ ...r, _catalogo: catalogo }));
+  globalFlatResults = [
+    ...mapRows(globalLastSummary.repuestos, 'Repuestos'),
+    ...mapRows(globalLastSummary.telefonos, 'Teléfonos'),
+    ...mapRows(globalLastSummary.apple, 'Apple Original'),
+    ...mapRows(globalLastSummary.oppo, 'Oppo Original'),
+  ];
+  navById('resultados-globales');
+  document.getElementById('tbTitle').textContent = 'Resultados Globales';
+  renderGlobalResultsPage(1);
+}
 
-  if (catalogo === 'telefonos') {
-    navById('telefonos');
-    document.getElementById('tbTitle').textContent = 'Teléfonos';
-    const fRef = document.getElementById('filtroTelRef');
-    const fModelo = document.getElementById('filtroTelModelo');
-    if (fRef) fRef.value = '';
-    if (fModelo) fModelo.value = '';
-    await loadTelefonosFromAPI(1, { q: term });
+function renderGlobalResultsPage(page = 1) {
+  const perPage = 25;
+  const total = globalFlatResults.length;
+  const from = total === 0 ? 0 : (page - 1) * perPage;
+  const data = globalFlatResults.slice(from, from + perPage);
+  const tb = document.getElementById('tbGlobalAllResults');
+  tb.innerHTML = '';
+  if (!data.length) {
+    tb.innerHTML = '<tr><td colspan="7" style="color:var(--g400);">Sin resultados</td></tr>';
+  } else {
+    data.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="td-ref">${escHTML(r.referencia || '—')}</td>
+        <td>${escHTML(r._catalogo || '—')}</td>
+        <td>${escHTML(r.marca || '—')}</td>
+        <td>${catBadge(r.categoria)}</td>
+        <td>${escHTML(r.modelo || '—')}</td>
+        <td>${escHTML(r.etiqueta || '—')}</td>
+        <td class="price">${r.pvp ? formatMoney(r.pvp) + ' €' : '—'}</td>`;
+      tb.appendChild(tr);
+    });
   }
+  document.getElementById('globalResultsTableInfo').textContent = `Consulta: "${globalLastSummary?.q || ''}" · ${total} coincidencias`;
+  renderPager('globalResultsPagerBtns', 'globalResultsPager', page, total, perPage, renderGlobalResultsPage);
 }
 
 // ── FILTERS ────────────────────────────────────────
