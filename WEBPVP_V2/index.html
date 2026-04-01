@@ -1338,7 +1338,10 @@ async function enviarSolicitudAPI() {
     ['solRef','solCoste','solDesc','solObs'].forEach(id => { document.getElementById(id).value=''; });
     document.getElementById('solProv').value='';
     toast('Solicitud enviada correctamente','ok');
-    loadSolicitudesFromAPI();
+    await Promise.allSettled([
+      loadMisSolicitudesFromAPI(),
+      loadSolicitudesFromAPI(),
+    ]);
   } catch(e) {
     toast('Error: '+e.message,'err');
   }
