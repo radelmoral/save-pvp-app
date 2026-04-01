@@ -780,11 +780,11 @@ async function verResultadosEnCatalogo(catalogo) {
     const fCat = document.getElementById('fCat');
     const fMarca = document.getElementById('fMarca');
     const fModelo = document.getElementById('fModelo');
-    if (fRef) fRef.value = term;
+    if (fRef) fRef.value = '';
     if (fCat) fCat.value = '';
     if (fMarca) fMarca.value = '';
     if (fModelo) fModelo.value = '';
-    await loadRepuestosFromAPI({ q: term, ref: '', categoria: '', marca: '', modelo: '', page: 1 });
+    await loadRepuestosFromAPI({ q: term, page: 1 });
     return;
   }
 
@@ -793,7 +793,7 @@ async function verResultadosEnCatalogo(catalogo) {
     document.getElementById('tbTitle').textContent = 'Teléfonos';
     const fRef = document.getElementById('filtroTelRef');
     const fModelo = document.getElementById('filtroTelModelo');
-    if (fRef) fRef.value = term;
+    if (fRef) fRef.value = '';
     if (fModelo) fModelo.value = '';
     await loadTelefonosFromAPI(1, { q: term });
   }
@@ -1591,8 +1591,9 @@ async function loadAppleFromAPI(page = _applePage, options = {}) {
   if (!API_AVAILABLE) return;
   _applePage = page;
   try {
-    const ref    = document.getElementById('filtroAppleRef')?.value || '';
-    const modelo = document.getElementById('filtroAppleModelo')?.value || '';
+    const usingGlobalQ = Object.prototype.hasOwnProperty.call(options, 'q');
+    const ref    = usingGlobalQ ? '' : (document.getElementById('filtroAppleRef')?.value || '');
+    const modelo = usingGlobalQ ? '' : (document.getElementById('filtroAppleModelo')?.value || '');
     const q = options.q ?? globalSearchTerm;
     const res    = await API.apple.listar({ ref, modelo, q, page, limit: 50 });
     const tb     = document.getElementById('tbApple');
@@ -1625,8 +1626,9 @@ async function loadOppoFromAPI(page = _oppoPage, options = {}) {
   if (!API_AVAILABLE) return;
   _oppoPage = page;
   try {
-    const ref    = document.getElementById('filtroOppoRef')?.value || '';
-    const modelo = document.getElementById('filtroOppoModelo')?.value || '';
+    const usingGlobalQ = Object.prototype.hasOwnProperty.call(options, 'q');
+    const ref    = usingGlobalQ ? '' : (document.getElementById('filtroOppoRef')?.value || '');
+    const modelo = usingGlobalQ ? '' : (document.getElementById('filtroOppoModelo')?.value || '');
     const q = options.q ?? globalSearchTerm;
     const res    = await API.oppo.listar({ ref, modelo, q, page, limit: 50 });
     const tb     = document.getElementById('tbOppo');
@@ -1659,8 +1661,9 @@ async function loadTelefonosFromAPI(page = _telPage, options = {}) {
   if (!API_AVAILABLE) return;
   _telPage = page;
   try {
-    const ref    = document.getElementById('filtroTelRef')?.value || '';
-    const modelo = document.getElementById('filtroTelModelo')?.value || '';
+    const usingGlobalQ = Object.prototype.hasOwnProperty.call(options, 'q');
+    const ref    = usingGlobalQ ? '' : (document.getElementById('filtroTelRef')?.value || '');
+    const modelo = usingGlobalQ ? '' : (document.getElementById('filtroTelModelo')?.value || '');
     const q = options.q ?? globalSearchTerm;
     const res    = await API.telefonos.listar({ ref, modelo, q, page, limit: 50 });
     const tb     = document.getElementById('tbTelefonos');
