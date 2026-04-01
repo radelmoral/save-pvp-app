@@ -141,14 +141,14 @@ async function listarApple(req, res) {
 
 /** PUT /api/apple/:ref  — solo admin */
 async function actualizarApple(req, res) {
-  const { referencia, categoria, modelo, etiqueta, pvp } = req.body;
+  const { referencia, marca, categoria, modelo, etiqueta, pvp } = req.body;
   try {
     const [result] = await db.execute(
       `UPDATE apple_original
        SET referencia=COALESCE(NULLIF(?, ''), referencia),
-           categoria=?, modelo=?, etiqueta=?, pvp=?
+           marca=?, categoria=?, modelo=?, etiqueta=?, pvp=?
        WHERE referencia=?`,
-      [referencia || null, categoria || '', modelo || '', etiqueta || '', pvp || null, req.params.id]
+      [referencia || null, marca || '', categoria || '', modelo || '', etiqueta || '', pvp || null, req.params.id]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Referencia no encontrada' });
     res.json({ message: 'Apple Original actualizado' });
@@ -193,14 +193,14 @@ async function listarOppo(req, res) {
 
 /** PUT /api/oppo/:ref  — solo admin */
 async function actualizarOppo(req, res) {
-  const { referencia, categoria, modelo, etiqueta, pvp } = req.body;
+  const { referencia, marca, categoria, modelo, etiqueta, pvp } = req.body;
   try {
     const [result] = await db.execute(
       `UPDATE oppo_original
        SET referencia=COALESCE(NULLIF(?, ''), referencia),
-           categoria=?, modelo=?, etiqueta=?, pvp=?
+           marca=?, categoria=?, modelo=?, etiqueta=?, pvp=?
        WHERE referencia=?`,
-      [referencia || null, categoria || '', modelo || '', etiqueta || '', pvp || null, req.params.id]
+      [referencia || null, marca || '', categoria || '', modelo || '', etiqueta || '', pvp || null, req.params.id]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Referencia no encontrada' });
     res.json({ message: 'Oppo Original actualizado' });

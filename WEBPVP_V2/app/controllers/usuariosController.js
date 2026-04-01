@@ -50,7 +50,7 @@ async function crear(req, res) {
 
 /** PUT /api/usuarios/:id  — solo admin */
 async function actualizar(req, res) {
-  const { nombre, email, rol, password } = req.body;
+  const { nombre, username, email, rol, password } = req.body;
   const rolNum = rol !== undefined
     ? (typeof rol === 'number' ? rol : (ROL_NUM[rol] || 3))
     : null;
@@ -59,21 +59,22 @@ async function actualizar(req, res) {
     if (password) {
       const hash = await bcrypt.hash(password, 10);
       await db.execute(
-        `UPDATE usuarios SET nombre=?, email=?${rolNum ? ', rol=?' : ''}, clave=? WHERE id_usuario=?`,
+        `UPDATE usuarios SET nombre=?, usuario=?, email=?${rolNum ? ', rol=?' : ''}, clave=? WHERE id_usuario=?`,
         rolNum
-          ? [nombre, email || '', rolNum, hash, req.params.id]
-          : [nombre, email || '', hash, req.params.id]
+          ? [nombre, username, email || '', rolNum, hash, req.params.id]
+          : [nombre, username, email || '', hash, req.params.id]
       );
     } else {
       await db.execute(
-        `UPDATE usuarios SET nombre=?, email=?${rolNum ? ', rol=?' : ''} WHERE id_usuario=?`,
+        `UPDATE usuarios SET nombre=?, usuario=?, email=?${rolNum ? ', rol=?' : ''} WHERE id_usuario=?`,
         rolNum
-          ? [nombre, email || '', rolNum, req.params.id]
-          : [nombre, email || '', req.params.id]
+          ? [nombre, username, email || '', rolNum, req.params.id]
+          : [nombre, username, email || '', req.params.id]
       );
     }
     res.json({ message: 'Usuario actualizado' });
   } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'El username o email ya existe' });
     res.status(500).json({ error: 'Error al actualizar usuario' });
   }
 }
