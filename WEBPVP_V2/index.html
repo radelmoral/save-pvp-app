@@ -309,7 +309,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
           <path fill="#ef4444" d="M13.7 16.3 16 14H5v-2h11l-2.3-2.3 1.4-1.4L20 13l-4.9 4.7-1.4-1.4z"/>
         </svg>
       </div>
-      <button class="btn btn-p" onclick="openModal('modalRef')">+ Nueva referencia</button>
+      <button class="btn btn-p" id="btnTopNuevaRef" onclick="openModal('modalRef')">+ Nueva referencia</button>
     </div>
   </header>
 
@@ -378,7 +378,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
       <div style="display:flex;gap:8px;">
         <button class="btn btn-o">📥 Importar Excel</button>
         <button class="btn btn-o">📤 Exportar</button>
-        <button class="btn btn-p" onclick="openModal('modalRef')">+ Nueva referencia</button>
+        <button class="btn btn-p" id="btnRepuestosNuevaRef" onclick="openModal('modalRef')">+ Nueva referencia</button>
       </div>
     </div>
     <div class="card">
@@ -723,6 +723,10 @@ function setRole(role) {
   document.getElementById('adminSection').style.display = (role === 'admin') ? '' : 'none';
   const notif = document.getElementById('ibNotif');
   if (notif) notif.style.display = (role === 'admin') ? '' : 'none';
+  const topNuevaRef = document.getElementById('btnTopNuevaRef');
+  if (topNuevaRef) topNuevaRef.style.display = (role === 'admin') ? '' : 'none';
+  const repNuevaRef = document.getElementById('btnRepuestosNuevaRef');
+  if (repNuevaRef) repNuevaRef.style.display = (role === 'admin') ? '' : 'none';
   const pedidosAdminEstado = document.getElementById('pedidosAdminEstado');
   if (pedidosAdminEstado) pedidosAdminEstado.style.display = (role === 'admin') ? '' : 'none';
   // If on an admin-only page, redirect to dashboard
@@ -1096,7 +1100,13 @@ function updatePendientes(delta) {
 }
 
 // ── MODAL ──────────────────────────────────────────
-function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function openModal(id)  {
+  if (id === 'modalRef' && currentRole !== 'admin') {
+    toast('Solo administrador puede añadir referencias', 'warn');
+    return;
+  }
+  document.getElementById(id).classList.add('open');
+}
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function closeModalOut(e,id) { if(e.target.id === id) closeModal(id); }
 document.addEventListener('keydown', e => {
