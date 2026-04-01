@@ -813,7 +813,7 @@ async function ejecutarBusquedaGlobal(term) {
 
 function pintarResultadosGlobales(summary) {
   const panel = document.getElementById('globalResultsPanel');
-  panel.style.display = '';
+  panel.style.display = 'block';
   document.getElementById('globalResultsInfo').textContent = `Consulta: "${summary.q}" · ${summary.total} coincidencias`;
   document.getElementById('grCountRep').textContent = summary.repuestos.length;
   document.getElementById('grCountTel').textContent = summary.telefonos.length;
