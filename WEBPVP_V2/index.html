@@ -748,8 +748,6 @@ function setRole(role) {
   if (topNuevaRef) topNuevaRef.style.display = (role === 'admin') ? '' : 'none';
   const repNuevaRef = document.getElementById('btnRepuestosNuevaRef');
   if (repNuevaRef) repNuevaRef.style.display = (role === 'admin') ? '' : 'none';
-  const pedidosAdminEstado = document.getElementById('pedidosAdminEstado');
-  if (pedidosAdminEstado) pedidosAdminEstado.style.display = (role === 'admin') ? '' : 'none';
   // If on an admin-only page, redirect to dashboard
   const adminPages = ['usuarios','solicitudes-pvp-admin'];
   const active = document.querySelector('.page.active');
@@ -759,16 +757,8 @@ function setRole(role) {
   toast(`Rol cambiado a ${cfg.label}`, 'ok');
 }
 
-function openPedidosFormulario() {
-  window.open('https://www.save-pvp.es/sistema/Pedidos.html', '_blank', 'noopener');
-}
-
 // ── NAVIGATION ────────────────────────────────────
 function nav(id, btn) {
-  if (id === 'pedidos' && currentRole !== 'admin') {
-    openPedidosFormulario();
-    return;
-  }
   navById(id);
   document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
   if(btn) btn.classList.add('active');
@@ -782,10 +772,6 @@ function nav(id, btn) {
   document.getElementById('tbTitle').textContent = titles[id] || id;
 }
 function navById(id) {
-  if (id === 'pedidos' && currentRole !== 'admin') {
-    openPedidosFormulario();
-    return;
-  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const pg = document.getElementById('page-'+id);
   if(pg) pg.classList.add('active');
