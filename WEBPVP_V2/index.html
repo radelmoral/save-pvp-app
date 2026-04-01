@@ -516,7 +516,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
     <div style="display:flex;align-items:center;justify-content:space-between;"><div><h2 style="font-size:20px;font-weight:800;">Gestión de Usuarios</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;" id="usuariosTotal">Cargando…</p></div></div>
     <div class="card">
       <div class="tw"><table>
-        <thead><tr><th>ID</th><th>Nombre</th><th>Usuario</th><th>Email</th><th>Rol</th></tr></thead>
+        <thead><tr><th>ID</th><th>Nombre</th><th>Usuario</th><th>Email</th><th>Rol</th><th style="text-align:center;">Opciones</th></tr></thead>
         <tbody id="tbUsuarios"></tbody>
       </table></div>
     </div>
@@ -1250,10 +1250,12 @@ async function editarRepuesto(ref, categoria, marca, modelo, etiqueta, pvp, pvpC
   }
 }
 
-async function editarApple(ref, categoria, modelo, etiqueta, pvp) {
+async function editarApple(ref, marca, categoria, modelo, etiqueta, pvp) {
   if (!isAdminRole()) return toast('Solo admin puede editar', 'warn');
   const referencia = prompt('Referencia', ref || '');
   if (referencia === null) return;
+  const marcaNueva = prompt('Marca', marca || '');
+  if (marcaNueva === null) return;
   const categoriaNueva = prompt('Categoría', categoria || '');
   if (categoriaNueva === null) return;
   const modeloNuevo = prompt('Modelo', modelo || '');
@@ -1263,7 +1265,7 @@ async function editarApple(ref, categoria, modelo, etiqueta, pvp) {
   const pvpNuevo = prompt('PVP', pvp ?? '');
   if (pvpNuevo === null) return;
   try {
-    await API.apple.actualizar(ref, { referencia, categoria: categoriaNueva, modelo: modeloNuevo, etiqueta: etiquetaNueva, pvp: pvpNuevo === '' ? null : Number(pvpNuevo) });
+    await API.apple.actualizar(ref, { referencia, marca: marcaNueva, categoria: categoriaNueva, modelo: modeloNuevo, etiqueta: etiquetaNueva, pvp: pvpNuevo === '' ? null : Number(pvpNuevo) });
     toast('Apple Original actualizado', 'ok');
     loadAppleFromAPI(_applePage);
   } catch (e) {
@@ -1271,10 +1273,12 @@ async function editarApple(ref, categoria, modelo, etiqueta, pvp) {
   }
 }
 
-async function editarOppo(ref, categoria, modelo, etiqueta, pvp) {
+async function editarOppo(ref, marca, categoria, modelo, etiqueta, pvp) {
   if (!isAdminRole()) return toast('Solo admin puede editar', 'warn');
   const referencia = prompt('Referencia', ref || '');
   if (referencia === null) return;
+  const marcaNueva = prompt('Marca', marca || '');
+  if (marcaNueva === null) return;
   const categoriaNueva = prompt('Categoría', categoria || '');
   if (categoriaNueva === null) return;
   const modeloNuevo = prompt('Modelo', modelo || '');
@@ -1284,7 +1288,7 @@ async function editarOppo(ref, categoria, modelo, etiqueta, pvp) {
   const pvpNuevo = prompt('PVP', pvp ?? '');
   if (pvpNuevo === null) return;
   try {
-    await API.oppo.actualizar(ref, { referencia, categoria: categoriaNueva, modelo: modeloNuevo, etiqueta: etiquetaNueva, pvp: pvpNuevo === '' ? null : Number(pvpNuevo) });
+    await API.oppo.actualizar(ref, { referencia, marca: marcaNueva, categoria: categoriaNueva, modelo: modeloNuevo, etiqueta: etiquetaNueva, pvp: pvpNuevo === '' ? null : Number(pvpNuevo) });
     toast('Oppo Original actualizado', 'ok');
     loadOppoFromAPI(_oppoPage);
   } catch (e) {
@@ -1334,6 +1338,36 @@ async function eliminarTelefono(ref) {
   catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 
+async function editarUsuario(id, nombre, username, email, rol) {
+  if (!isAdminRole()) return toast('Solo admin puede editar usuarios', 'warn');
+  const nombreNuevo = prompt('Nombre', nombre || '');
+  if (nombreNuevo === null) return;
+  const usernameNuevo = prompt('Usuario', username || '');
+  if (usernameNuevo === null) return;
+  const emailNuevo = prompt('Email', email || '');
+  if (emailNuevo === null) return;
+  const rolNuevo = prompt('Rol (admin, carrefour, eci)', rol || 'eci');
+  if (rolNuevo === null) return;
+  const passwordNueva = prompt('Nueva contraseña (dejar vacío para no cambiar)');
+  if (passwordNueva === null) return;
+
+  const payload = {
+    nombre: nombreNuevo.trim(),
+    username: usernameNuevo.trim(),
+    email: emailNuevo.trim(),
+    rol: rolNuevo.trim().toLowerCase(),
+  };
+  if (passwordNueva.trim()) payload.password = passwordNueva;
+
+  try {
+    await API.usuarios.actualizar(id, payload);
+    toast('Usuario actualizado', 'ok');
+    loadUsuariosFromAPI();
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
 // ── PAGINACIÓN HELPERS ─────────────────────────────
 function renderPager(containerId, labelId, page, total, limit, onPageChange) {
   const totalPages = Math.ceil(total / limit);
@@ -1369,7 +1403,7 @@ async function loadAppleFromAPI(page = _applePage, options = {}) {
       const tr = document.createElement('tr');
       const actions = isAdminRole()
         ? `<div class="abtns" style="justify-content:center;">
-             <button class="ab e" onclick="editarApple('${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">✏️</button>
+             <button class="ab e" onclick="editarApple('${escJS(r.referencia)}','${escJS(r.marca || '')}','${escJS(r.categoria || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">✏️</button>
              <button class="ab d" onclick="eliminarApple('${escJS(r.referencia)}')">🗑️</button>
            </div>`
         : '<span style="color:var(--g400);">—</span>';
@@ -1403,7 +1437,7 @@ async function loadOppoFromAPI(page = _oppoPage, options = {}) {
       const tr = document.createElement('tr');
       const actions = isAdminRole()
         ? `<div class="abtns" style="justify-content:center;">
-             <button class="ab e" onclick="editarOppo('${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">✏️</button>
+             <button class="ab e" onclick="editarOppo('${escJS(r.referencia)}','${escJS(r.marca || '')}','${escJS(r.categoria || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">✏️</button>
              <button class="ab d" onclick="eliminarOppo('${escJS(r.referencia)}')">🗑️</button>
            </div>`
         : '<span style="color:var(--g400);">—</span>';
@@ -1466,13 +1500,19 @@ async function loadUsuariosFromAPI() {
     const ROL_CLASS = { admin:'rp-adm', carrefour:'rp-sup', eci:'rp-tec' };
     lista.forEach(u => {
       const rolNombre = u.rolNombre || u.rol_nombre || '';
+      const actions = isAdminRole()
+        ? `<div class="abtns" style="justify-content:center;">
+             <button class="ab e" onclick="editarUsuario(${u.id || u.id_usuario},'${escJS(u.nombre || '')}','${escJS(u.username || u.usuario || '')}','${escJS(u.email || '')}','${escJS(rolNombre || 'eci')}')">✏️</button>
+           </div>`
+        : '<span style="color:var(--g400);">—</span>';
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td style="color:var(--g400);font-size:12px;">${u.id || u.id_usuario}</td>
         <td><strong>${escHTML(u.nombre||'—')}</strong></td>
         <td class="td-ref">${escHTML(u.username||u.usuario||'—')}</td>
         <td style="color:var(--g500);">${escHTML(u.email||'—')}</td>
-        <td><span class="rp ${ROL_CLASS[rolNombre]||''}">${ROL_LABEL[rolNombre]||rolNombre}</span></td>`;
+        <td><span class="rp ${ROL_CLASS[rolNombre]||''}">${ROL_LABEL[rolNombre]||rolNombre}</span></td>
+        <td style="text-align:center;">${actions}</td>`;
       tb.appendChild(tr);
     });
     document.getElementById('usuariosTotal').textContent = `${lista.length} usuarios registrados`;
