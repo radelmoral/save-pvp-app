@@ -20,6 +20,7 @@ COPY WEBPVP_V2/app/ .
 # Copia el frontend estático un nivel arriba (server.js sirve desde '..')
 COPY WEBPVP_V2/index.html /srv/
 COPY WEBPVP_V2/login.html /srv/
+COPY WEBPVP_V2/Pedidos.html /srv/
 COPY WEBPVP_V2/save_logo.png /srv/
 
 EXPOSE 3000
