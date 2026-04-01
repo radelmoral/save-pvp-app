@@ -22,15 +22,22 @@ router.get ('/repuestos/:id',    auth, repCtrl.obtener);
 router.post('/repuestos',        auth, role('admin'), repCtrl.crear);
 router.put ('/repuestos/:id',    auth, role('admin'), repCtrl.actualizar);
 router.delete('/repuestos/:id',  auth, role('admin'), repCtrl.eliminar);
+router.get ('/busqueda-global',  auth, repCtrl.busquedaGlobal);
 
 // ── Apple Original ────────────────────────────────────────
 router.get('/apple', auth, repCtrl.listarApple);
+router.put('/apple/:id', auth, role('admin'), repCtrl.actualizarApple);
+router.delete('/apple/:id', auth, role('admin'), repCtrl.eliminarApple);
 
 // ── Oppo Original ─────────────────────────────────────────
 router.get('/oppo', auth, repCtrl.listarOppo);
+router.put('/oppo/:id', auth, role('admin'), repCtrl.actualizarOppo);
+router.delete('/oppo/:id', auth, role('admin'), repCtrl.eliminarOppo);
 
 // ── Teléfonos ─────────────────────────────────────────────
 router.get('/telefonos', auth, repCtrl.listarTelefonos);
+router.put('/telefonos/:id', auth, role('admin'), repCtrl.actualizarTelefono);
+router.delete('/telefonos/:id', auth, role('admin'), repCtrl.eliminarTelefono);
 
 // ── Solicitudes PVP ───────────────────────────────────────
 router.get ('/solicitudes',              auth, solicCtrl.listar);
