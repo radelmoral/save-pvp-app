@@ -13,7 +13,7 @@ const PORT   = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 
 // ── Seguridad ──────────────────────────────────────────────
-app.use(helmet({ contentSecurityPolicy: false }));   // CSP deshabilitado para el prototipo (re-habilitar en prod)
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 
 // Rate limiter — máx 200 req/15 min por IP
@@ -31,6 +31,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // ── API routes ─────────────────────────────────────────────
 app.use('/api', require('./routes/index'));
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Ruta API no encontrada' });
+});
 
 // ── Frontend estático ──────────────────────────────────────
 // En producción (Docker) los estáticos están en la misma carpeta que server.js
@@ -38,13 +41,14 @@ app.use('/api', require('./routes/index'));
 const STATIC_DIR = process.env.STATIC_DIR || path.join(__dirname, '..');
 
 app.use(express.static(STATIC_DIR, {
-  index: 'save-pvp-prototipo.html',
+  index: 'index.html',
 }));
 
 // Cualquier ruta no-API devuelve el frontend
-app.get('*', (req, res) => {
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) return next();
   if (!req.path.startsWith('/api')) {
-    const filePath = path.join(STATIC_DIR, 'save-pvp-prototipo.html');
+    const filePath = path.join(STATIC_DIR, 'index.html');
     console.log(`📄  Sirviendo: ${filePath}`);
     res.sendFile(filePath, err => {
       if (err) console.error(`❌  Error sirviendo HTML: ${err.message}`);
@@ -55,7 +59,10 @@ app.get('*', (req, res) => {
 // ── Error handler global ───────────────────────────────────
 app.use((err, req, res, next) => {
   console.error('❌  Error no controlado:', err.message);
-  res.status(500).json({ error: err.message });
+  const isDev = process.env.NODE_ENV !== 'production';
+  res.status(500).json({
+    error: isDev ? err.message : 'Error interno del servidor'
+  });
 });
 
 // ── Arranque ───────────────────────────────────────────────
