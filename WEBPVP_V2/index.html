@@ -410,7 +410,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
     </div>
     <div class="card">
       <div class="tfilters">
-        <input class="fi" placeholder="🔍 Referencia…" style="flex:1;" id="fRef" oninput="filterR()"/>
+        <input class="fi" placeholder="🔍 Buscar (referencia, categoría, marca, modelo, etiqueta)..." style="flex:1;" id="fRef" oninput="filterR()"/>
         <select class="fi" id="fCat" onchange="filterR()"><option value="">Todas las categorías</option><option>Pantalla</option><option>Tapa</option><option>Carcasa</option><option>PCB</option></select>
         <select class="fi" id="fMarca" onchange="filterR()"><option value="">Todas las marcas</option><option>HUAWEI</option><option>XIAOMI</option><option>MOTOROLA</option><option>SAMSUNG</option></select>
         <input class="fi" placeholder="Modelo…" id="fModelo" oninput="filterR()"/>
@@ -461,21 +461,14 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
   </section>
 
   <!-- ── PEDIDOS ── -->
-  <section class="page" id="page-pedidos">
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div>
-        <h2 style="font-size:20px;font-weight:800;">Gestión de Pedidos</h2>
-        <p style="color:var(--g500);font-size:13px;margin-top:3px;">Conectado con n8n</p>
-      </div>
-      <button class="btn btn-p" onclick="openPedidosFormulario()">Abrir formulario →</button>
-    </div>
-    <div id="pedidosAdminEstado" class="card">
-      <div class="ch"><div class="ct">Estado del sistema</div></div>
-      <div class="cb">
-        <div class="infobox infobox-info" style="margin-bottom:14px;"><span style="font-size:20px;">✅</span><div><div style="font-weight:700;">Webhook n8n activo</div><div style="font-size:12px;margin-top:2px;">Enviando pedidos correctamente</div></div></div>
-        <button class="btn btn-p" style="width:100%;justify-content:center;" onclick="openPedidosFormulario()">Abrir formulario de pedidos →</button>
-      </div>
-    </div>
+  <section class="page" id="page-pedidos" style="padding:0;gap:0;">
+    <iframe
+      id="pedidosIframe"
+      src="Pedidos.html"
+      style="width:100%;flex:1;min-height:calc(100vh - var(--hh));border:none;display:block;"
+      allowfullscreen
+      title="Gestión de Pedidos"
+    ></iframe>
   </section>
 
   <!-- ══════════════════════════════════════════════
@@ -844,11 +837,11 @@ function renderGlobalResultsPage(page = 1) {
 
 // ── FILTERS ────────────────────────────────────────
 function filterR() {
-  const ref      = document.getElementById('fRef').value;
+  const q        = document.getElementById('fRef').value.trim();
   const categoria = document.getElementById('fCat').value;
   const marca    = document.getElementById('fMarca').value;
   const modelo   = document.getElementById('fModelo').value;
-  loadRepuestosFromAPI({ ref, categoria, marca, modelo, page: 1 });
+  loadRepuestosFromAPI({ q, categoria, marca, modelo, page: 1 });
 }
 function onGSearch(v) {
   const term = String(v || '').trim();
