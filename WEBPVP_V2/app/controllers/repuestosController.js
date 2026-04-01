@@ -19,6 +19,20 @@ function addTokenizedSearch(where, params, q, columns) {
       params.push(`%${tkNorm}%`);
     });
   });
+
+  // Ajuste para búsquedas tipo "iphone 7", "redmi 9", etc.
+  // Obliga a que la combinación de los dos últimos términos exista también,
+  // reduciendo falsos positivos de modelos cercanos.
+  if (tokens.length >= 2) {
+    const a = tokens[tokens.length - 2].toLowerCase().replace(/[\s-]+/g, '');
+    const b = tokens[tokens.length - 1].toLowerCase().replace(/[\s-]+/g, '');
+    const combined = `${a}${b}`;
+    if (combined.length >= 3) {
+      const comboExpr = columns.map((c) => `${normalizedExpr(c)} LIKE ?`).join(' OR ');
+      where.push(`(${comboExpr})`);
+      columns.forEach(() => params.push(`%${combined}%`));
+    }
+  }
 }
 
 /**
