@@ -704,6 +704,8 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
 let currentRole = 'eci';
 let globalSearchTerm = '';
 let globalSearchTimer = null;
+let globalLastSummary = null;
+const globalRowsVisible = { repuestos: 6, telefonos: 6, apple: 6, oppo: 6 };
 const roleConfig = {
   admin:     { label:'Admin',     avatar:'AD', name:'administrador',       rp:'rp-adm', rpText:'★ Admin' },
   carrefour: { label:'Carrefour', avatar:'CF', name:'Usuario Carrefour',   rp:'rp-sup', rpText:'◆ Carrefour' },
@@ -772,6 +774,11 @@ async function ejecutarBusquedaGlobal(term) {
   if (!API_AVAILABLE) return;
 
   if (!term) {
+    globalLastSummary = null;
+    globalRowsVisible.repuestos = 6;
+    globalRowsVisible.telefonos = 6;
+    globalRowsVisible.apple = 6;
+    globalRowsVisible.oppo = 6;
     ocultarResultadosGlobales();
     loadRepuestosFromAPI({ page: 1 });
     loadAppleFromAPI(1);
@@ -781,11 +788,15 @@ async function ejecutarBusquedaGlobal(term) {
   }
 
   try {
+    globalRowsVisible.repuestos = 6;
+    globalRowsVisible.telefonos = 6;
+    globalRowsVisible.apple = 6;
+    globalRowsVisible.oppo = 6;
     const [repRes, telRes, appleRes, oppoRes] = await Promise.allSettled([
-      API.repuestos.listar({ q: term, limit: 10, page: 1 }),
-      API.telefonos.listar({ q: term, limit: 10, page: 1 }),
-      API.apple.listar({ q: term, limit: 10, page: 1 }),
-      API.oppo.listar({ q: term, limit: 10, page: 1 }),
+      API.repuestos.listar({ q: term, limit: 50, page: 1 }),
+      API.telefonos.listar({ q: term, limit: 50, page: 1 }),
+      API.apple.listar({ q: term, limit: 50, page: 1 }),
+      API.oppo.listar({ q: term, limit: 50, page: 1 }),
     ]);
 
     const summary = {
@@ -812,6 +823,7 @@ async function ejecutarBusquedaGlobal(term) {
 }
 
 function pintarResultadosGlobales(summary) {
+  globalLastSummary = summary;
   const panel = document.getElementById('globalResultsPanel');
   panel.style.display = 'block';
   document.getElementById('globalResultsInfo').textContent = `Consulta: "${summary.q}" · ${summary.total} coincidencias`;
@@ -820,16 +832,25 @@ function pintarResultadosGlobales(summary) {
   document.getElementById('grCountApple').textContent = summary.apple.length;
   document.getElementById('grCountOppo').textContent = summary.oppo.length;
 
-  renderRows('grRowsRep', summary.repuestos, r => `${escHTML(r.referencia)} · ${escHTML(r.marca || '—')} · ${escHTML(r.modelo || '—')}`);
-  renderRows('grRowsTel', summary.telefonos, r => `${escHTML(r.referencia)} · ${escHTML(r.marca || '—')} · ${escHTML(r.modelo || '—')}`);
-  renderRows('grRowsApple', summary.apple, r => `${escHTML(r.referencia)} · ${escHTML(r.modelo || '—')} · ${escHTML(r.etiqueta || '—')}`);
-  renderRows('grRowsOppo', summary.oppo, r => `${escHTML(r.referencia)} · ${escHTML(r.modelo || '—')} · ${escHTML(r.etiqueta || '—')}`);
+  renderRows('repuestos', 'grRowsRep', summary.repuestos, r => `${escHTML(r.referencia)} · ${escHTML(r.marca || '—')} · ${escHTML(r.modelo || '—')} · PVP: ${r.pvp ? formatMoney(r.pvp) + ' €' : '—'}`);
+  renderRows('telefonos', 'grRowsTel', summary.telefonos, r => `${escHTML(r.referencia)} · ${escHTML(r.marca || '—')} · ${escHTML(r.modelo || '—')} · PVP: ${r.pvp ? formatMoney(r.pvp) + ' €' : '—'}`);
+  renderRows('apple', 'grRowsApple', summary.apple, r => `${escHTML(r.referencia)} · ${escHTML(r.modelo || '—')} · ${escHTML(r.etiqueta || '—')} · PVP: ${r.pvp ? formatMoney(r.pvp) + ' €' : '—'}`);
+  renderRows('oppo', 'grRowsOppo', summary.oppo, r => `${escHTML(r.referencia)} · ${escHTML(r.modelo || '—')} · ${escHTML(r.etiqueta || '—')} · PVP: ${r.pvp ? formatMoney(r.pvp) + ' €' : '—'}`);
 }
 
-function renderRows(targetId, rows, rowTextFn) {
+function toggleGlobalRows(catKey) {
+  if (!globalLastSummary) return;
+  const rows = globalLastSummary[catKey] || [];
+  if (!rows.length) return;
+  globalRowsVisible[catKey] = (globalRowsVisible[catKey] >= rows.length) ? 6 : rows.length;
+  pintarResultadosGlobales(globalLastSummary);
+}
+
+function renderRows(catKey, targetId, rows, rowTextFn) {
   const tb = document.getElementById(targetId);
   tb.innerHTML = '';
-  const data = rows.slice(0, 6);
+  const limit = globalRowsVisible[catKey] || 6;
+  const data = rows.slice(0, limit);
   if (!data.length) {
     tb.innerHTML = '<tr><td style="color:var(--g400);">Sin resultados</td></tr>';
     return;
@@ -839,6 +860,13 @@ function renderRows(targetId, rows, rowTextFn) {
     tr.innerHTML = `<td>${rowTextFn(r)}</td>`;
     tb.appendChild(tr);
   });
+  if (rows.length > 6) {
+    const more = document.createElement('tr');
+    const showingAll = limit >= rows.length;
+    const hiddenCount = Math.max(0, rows.length - limit);
+    more.innerHTML = `<td style="padding-top:6px;"><button class="btn btn-o" style="padding:4px 8px;font-size:12px;" onclick="toggleGlobalRows('${catKey}')">${showingAll ? 'Ver menos' : `Ver más (${hiddenCount})`}</button></td>`;
+    tb.appendChild(more);
+  }
 }
 
 function ocultarResultadosGlobales() {
