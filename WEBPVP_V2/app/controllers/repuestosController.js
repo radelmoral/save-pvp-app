@@ -4,22 +4,21 @@ function addTokenizedSearch(where, params, q, columns) {
   const raw = String(q || '').trim();
   const tokens = raw.split(/\s+/).filter(Boolean);
   if (!tokens.length) return;
+  const normalizedExpr = (c) => `REPLACE(REPLACE(LOWER(${c}), ' ', ''), '-', '')`;
 
-  const parts = [];
-
-  // Coincidencia de frase completa
-  parts.push(`(${columns.map((c) => `${c} LIKE ?`).join(' OR ')})`);
-  columns.forEach(() => params.push(`%${raw}%`));
-
-  // Coincidencia por cualquier término (más flexible)
-  if (tokens.length > 1) {
-    tokens.forEach((tk) => {
-      parts.push(`(${columns.map((c) => `${c} LIKE ?`).join(' OR ')})`);
-      columns.forEach(() => params.push(`%${tk}%`));
+  // Requiere que TODOS los términos estén presentes (AND),
+  // pero cada término puede estar en cualquier columna (OR).
+  tokens.forEach((tk) => {
+    const tkNorm = tk.toLowerCase().replace(/[\s-]+/g, '');
+    const perToken = columns
+      .map((c) => `(${c} LIKE ? OR ${normalizedExpr(c)} LIKE ?)`)
+      .join(' OR ');
+    where.push(`(${perToken})`);
+    columns.forEach(() => {
+      params.push(`%${tk}%`);
+      params.push(`%${tkNorm}%`);
     });
-  }
-
-  where.push(`(${parts.join(' OR ')})`);
+  });
 }
 
 /**
