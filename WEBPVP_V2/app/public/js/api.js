@@ -76,5 +76,20 @@ const API = (() => {
       listar: () => request('GET', '/categorias'),
       crear:  (nombre) => request('POST', '/categorias', { nombre }),
     },
+
+    // ── Apple Original ──────────────────────
+    apple: {
+      listar: (params = {}) => request('GET', '/apple?' + new URLSearchParams(params)),
+    },
+
+    // ── Oppo Original ───────────────────────
+    oppo: {
+      listar: (params = {}) => request('GET', '/oppo?' + new URLSearchParams(params)),
+    },
+
+    // ── Teléfonos ───────────────────────────
+    telefonos: {
+      listar: (params = {}) => request('GET', '/telefonos?' + new URLSearchParams(params)),
+    },
   };
 })();
