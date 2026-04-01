@@ -45,7 +45,7 @@ app.use(express.static(STATIC_DIR, {
 }));
 
 // Archivos HTML específicos servidos directamente
-const STATIC_HTML = ['login.html', 'Pedidos.html'];
+const STATIC_HTML = ['login.html'];
 app.get('/:file.html', (req, res, next) => {
   const file = req.params.file + '.html';
   if (!STATIC_HTML.includes(file)) return next();
