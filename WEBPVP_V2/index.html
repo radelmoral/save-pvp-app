@@ -781,7 +781,22 @@ async function ejecutarBusquedaGlobal(term) {
   }
 
   try {
-    const summary = await API.busquedaGlobal(term);
+    const [repRes, telRes, appleRes, oppoRes] = await Promise.allSettled([
+      API.repuestos.listar({ q: term, limit: 10, page: 1 }),
+      API.telefonos.listar({ q: term, limit: 10, page: 1 }),
+      API.apple.listar({ q: term, limit: 10, page: 1 }),
+      API.oppo.listar({ q: term, limit: 10, page: 1 }),
+    ]);
+
+    const summary = {
+      q: term,
+      repuestos: repRes.status === 'fulfilled' ? (repRes.value.data || []) : [],
+      telefonos: telRes.status === 'fulfilled' ? (telRes.value.data || []) : [],
+      apple: appleRes.status === 'fulfilled' ? (appleRes.value.data || []) : [],
+      oppo: oppoRes.status === 'fulfilled' ? (oppoRes.value.data || []) : [],
+    };
+    summary.total = summary.repuestos.length + summary.telefonos.length + summary.apple.length + summary.oppo.length;
+
     pintarResultadosGlobales(summary);
     await Promise.allSettled([
       loadRepuestosFromAPI({ q: term, page: 1 }),
