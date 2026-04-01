@@ -320,8 +320,8 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <div class="gr-sub" id="globalResultsInfo">—</div>
       </div>
       <div class="gr-actions">
-        <button class="btn btn-o" onclick="navById('repuestos')">Ver Repuestos</button>
-        <button class="btn btn-o" onclick="navById('telefonos')">Ver Teléfonos</button>
+        <button class="btn btn-o" onclick="verResultadosEnCatalogo('repuestos')">Ver Repuestos</button>
+        <button class="btn btn-o" onclick="verResultadosEnCatalogo('telefonos')">Ver Teléfonos</button>
       </div>
     </div>
     <div class="gr-grid">
@@ -767,6 +767,36 @@ function navById(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const pg = document.getElementById('page-'+id);
   if(pg) pg.classList.add('active');
+}
+
+async function verResultadosEnCatalogo(catalogo) {
+  const term = String(globalSearchTerm || document.getElementById('gSearch')?.value || '').trim();
+  ocultarResultadosGlobales();
+
+  if (catalogo === 'repuestos') {
+    navById('repuestos');
+    document.getElementById('tbTitle').textContent = 'Repuestos';
+    const fRef = document.getElementById('fRef');
+    const fCat = document.getElementById('fCat');
+    const fMarca = document.getElementById('fMarca');
+    const fModelo = document.getElementById('fModelo');
+    if (fRef) fRef.value = term;
+    if (fCat) fCat.value = '';
+    if (fMarca) fMarca.value = '';
+    if (fModelo) fModelo.value = '';
+    await loadRepuestosFromAPI({ q: term, ref: '', categoria: '', marca: '', modelo: '', page: 1 });
+    return;
+  }
+
+  if (catalogo === 'telefonos') {
+    navById('telefonos');
+    document.getElementById('tbTitle').textContent = 'Teléfonos';
+    const fRef = document.getElementById('filtroTelRef');
+    const fModelo = document.getElementById('filtroTelModelo');
+    if (fRef) fRef.value = term;
+    if (fModelo) fModelo.value = '';
+    await loadTelefonosFromAPI(1, { q: term });
+  }
 }
 
 // ── FILTERS ────────────────────────────────────────
