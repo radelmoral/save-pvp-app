@@ -60,6 +60,7 @@ const API = (() => {
     // ── Solicitudes PVP ─────────────────────
     solicitudes: {
       listar:   (params = {}) => request('GET', '/solicitudes?' + new URLSearchParams(params)),
+      validarReferencia: (referencia) => request('GET', '/solicitudes/validar-referencia?' + new URLSearchParams({ referencia })),
       crear:    (data)        => request('POST', '/solicitudes', data),
       aprobar:  (id, data)    => request('PUT', `/solicitudes/${id}/aprobar`, data),
       rechazar: (id, motivo)  => request('PUT', `/solicitudes/${id}/rechazar`, { motivo_rechazo: motivo }),
