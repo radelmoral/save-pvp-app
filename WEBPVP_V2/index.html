@@ -751,6 +751,37 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
   </div>
 </div>
 
+<!-- ═══════════════════ MODAL — EDITAR USUARIO ═══════════════════ -->
+<div class="mo" id="modalEditUser" onclick="closeModalOut(event,'modalEditUser')">
+  <div class="md">
+    <div class="mh">
+      <div class="mt">👤 Editar usuario</div>
+      <button class="mc" onclick="closeModal('modalEditUser')">✕</button>
+    </div>
+    <div class="mb">
+      <input type="hidden" id="editUserId"/>
+      <div class="fg">
+        <div class="ff"><label>Nombre</label><input class="finp" id="editUserNombre"/></div>
+        <div class="ff"><label>Usuario</label><input class="finp" id="editUserUsername"/></div>
+        <div class="ff full"><label>Email</label><input class="finp" id="editUserEmail" type="email"/></div>
+        <div class="ff"><label>Rol</label>
+          <select class="finp" id="editUserRol">
+            <option value="admin">Admin</option>
+            <option value="carrefour">Carrefour</option>
+            <option value="eci">ECI</option>
+          </select>
+        </div>
+        <div class="ff"><label>Nueva contraseña (opcional)</label><input class="finp" id="editUserPassword" type="password" placeholder="Dejar vacío para mantener"/></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-danger" onclick="eliminarUsuarioDesdeModal()">Eliminar usuario</button>
+      <button class="btn btn-o" onclick="closeModal('modalEditUser')">Cancelar</button>
+      <button class="btn btn-p" onclick="guardarUsuarioDesdeModal()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOASTS -->
 <div class="tc" id="tc"></div>
 
@@ -1771,28 +1802,55 @@ async function eliminarTelefono(ref) {
 
 async function editarUsuario(id, nombre, username, email, rol) {
   if (!isAdminRole()) return toast('Solo admin puede editar usuarios', 'warn');
-  const nombreNuevo = prompt('Nombre', nombre || '');
-  if (nombreNuevo === null) return;
-  const usernameNuevo = prompt('Usuario', username || '');
-  if (usernameNuevo === null) return;
-  const emailNuevo = prompt('Email', email || '');
-  if (emailNuevo === null) return;
-  const rolNuevo = prompt('Rol (admin, carrefour, eci)', rol || 'eci');
-  if (rolNuevo === null) return;
-  const passwordNueva = prompt('Nueva contraseña (dejar vacío para no cambiar)');
-  if (passwordNueva === null) return;
+  document.getElementById('editUserId').value = id;
+  document.getElementById('editUserNombre').value = nombre || '';
+  document.getElementById('editUserUsername').value = username || '';
+  document.getElementById('editUserEmail').value = email || '';
+  document.getElementById('editUserRol').value = (rol || 'eci').toLowerCase();
+  document.getElementById('editUserPassword').value = '';
+  openModal('modalEditUser');
+}
 
-  const payload = {
-    nombre: nombreNuevo.trim(),
-    username: usernameNuevo.trim(),
-    email: emailNuevo.trim(),
-    rol: rolNuevo.trim().toLowerCase(),
-  };
-  if (passwordNueva.trim()) payload.password = passwordNueva;
+async function guardarUsuarioDesdeModal() {
+  if (!isAdminRole()) return toast('Solo admin puede editar usuarios', 'warn');
+  const id = Number(document.getElementById('editUserId').value);
+  const nombre = (document.getElementById('editUserNombre').value || '').trim();
+  const username = (document.getElementById('editUserUsername').value || '').trim();
+  const email = (document.getElementById('editUserEmail').value || '').trim();
+  const rol = (document.getElementById('editUserRol').value || 'eci').trim().toLowerCase();
+  const password = document.getElementById('editUserPassword').value || '';
+
+  if (!id || !nombre || !username || !rol) {
+    return toast('Nombre, usuario y rol son obligatorios', 'warn');
+  }
+  if (!['admin', 'carrefour', 'eci'].includes(rol)) {
+    return toast('Rol inválido', 'warn');
+  }
+
+  const payload = { nombre, username, email, rol };
+  if (password.trim()) payload.password = password;
 
   try {
     await API.usuarios.actualizar(id, payload);
+    closeModal('modalEditUser');
     toast('Usuario actualizado', 'ok');
+    loadUsuariosFromAPI();
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
+async function eliminarUsuarioDesdeModal() {
+  if (!isAdminRole()) return toast('Solo admin puede eliminar usuarios', 'warn');
+  const id = Number(document.getElementById('editUserId').value);
+  const username = (document.getElementById('editUserUsername').value || '').trim();
+  if (!id) return toast('Usuario inválido', 'warn');
+  if (!confirm(`¿Eliminar usuario ${username || ('#' + id)}? Esta acción no se puede deshacer.`)) return;
+
+  try {
+    await API.usuarios.eliminar(id);
+    closeModal('modalEditUser');
+    toast('Usuario eliminado', 'ok');
     loadUsuariosFromAPI();
   } catch (e) {
     toast('Error: ' + e.message, 'err');
