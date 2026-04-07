@@ -1325,6 +1325,7 @@ async function guardarNuevaReferenciaAPI() {
     });
     const catEl = document.getElementById('newRefCategoria');
     if (catEl) catEl.value = '';
+    await loadDashboard();
     toast(`Referencia creada en ${destino}`, 'ok');
   } catch (e) {
     toast('Error: ' + e.message, 'err');
@@ -2047,7 +2048,7 @@ async function loadDashboard() {
   try {
     // Stats en paralelo
     const [repRes, telRes, solRes, usrRes] = await Promise.allSettled([
-      API.repuestos.listar({ limit: 5, page: 1 }),
+      API.repuestos.listar({ limit: 200, page: 1 }),
       API.telefonos.listar({ limit: 1, page: 1 }),
       API.solicitudes.listar(),
       API.usuarios.listar(),
@@ -2059,7 +2060,10 @@ async function loadDashboard() {
       const tb = document.getElementById('tbDashRepuestos');
       if (tb) {
         tb.innerHTML = '';
-        repRes.value.data.slice(0,5).forEach(r => {
+        const recent = [...(repRes.value.data || [])]
+          .sort((a, b) => String(b.referencia || '').localeCompare(String(a.referencia || '')))
+          .slice(0, 5);
+        recent.forEach(r => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td class="td-ref">${escHTML(r.referencia)}</td>
@@ -2071,6 +2075,49 @@ async function loadDashboard() {
           tb.appendChild(tr);
         });
       }
+
+      // Gráficos reales a partir de repuestos cargados (sin datos de ejemplo)
+      const repRows = repRes.value.data || [];
+      const byCat = {};
+      const byMarca = {};
+      repRows.forEach(r => {
+        const c = (r.categoria || 'Sin categoría').trim() || 'Sin categoría';
+        const m = (r.marca || 'Sin marca').trim() || 'Sin marca';
+        byCat[c] = (byCat[c] || 0) + 1;
+        byMarca[m] = (byMarca[m] || 0) + 1;
+      });
+
+      const catPairs = Object.entries(byCat).sort((a, b) => b[1] - a[1]).slice(0, 6);
+      const marcaPairs = Object.entries(byMarca).sort((a, b) => b[1] - a[1]).slice(0, 6);
+      const catLabels = catPairs.length ? catPairs.map(x => x[0]) : ['Sin datos'];
+      const catData = catPairs.length ? catPairs.map(x => x[1]) : [1];
+      const marcaLabels = marcaPairs.length ? marcaPairs.map(x => x[0]) : ['Sin datos'];
+      const marcaData = marcaPairs.length ? marcaPairs.map(x => x[1]) : [1];
+
+      if (window._chartCatInstance) window._chartCatInstance.destroy();
+      if (window._chartMarcaInstance) window._chartMarcaInstance.destroy();
+
+      window._chartCatInstance = new Chart(document.getElementById('chartCat'), {
+        type:'doughnut',
+        data: {
+          labels: catLabels,
+          datasets:[{ data: catData, backgroundColor:['#00BFB3','#009e92','#007a70','#33cfc4','#66ddd8','#99eceb'], borderWidth:0, hoverOffset:6 }]
+        },
+        options:{ responsive:true, maintainAspectRatio:false, cutout:'62%',
+          plugins:{ legend:{ position:'right', labels:{ font:{size:11}, padding:14, usePointStyle:true } } } }
+      });
+
+      window._chartMarcaInstance = new Chart(document.getElementById('chartMarca'), {
+        type:'bar',
+        data: {
+          labels: marcaLabels,
+          datasets:[{ data: marcaData, backgroundColor:['#00BFB3','#009e92','#007a70','#33cfc4','#66ddd8','#99eceb'], borderRadius:6, borderSkipped:false }]
+        },
+        options:{ responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{display:false} },
+          scales:{ x:{ grid:{display:false}, ticks:{font:{size:10}} }, y:{ grid:{color:'#f0f0f0'}, ticks:{font:{size:10}} } }
+        }
+      });
     }
     if (telRes.status === 'fulfilled') {
       document.getElementById('dashTelefonos').textContent = telRes.value.total ?? '—';
@@ -2100,26 +2147,6 @@ window.addEventListener('load', async () => {
   loadUsuariosFromAPI();
   loadMisSolicitudesFromAPI();
   loadDashboard();
-  new Chart(document.getElementById('chartCat'), {
-    type:'doughnut',
-    data: {
-      labels:['Pantallas','Tapas','Carcasas','PCB','Otros'],
-      datasets:[{ data:[38,27,18,10,7], backgroundColor:['#00BFB3','#009e92','#007a70','#33cfc4','#99eceb'], borderWidth:0, hoverOffset:6 }]
-    },
-    options:{ responsive:true, maintainAspectRatio:false, cutout:'62%',
-      plugins:{ legend:{ position:'right', labels:{ font:{size:11}, padding:14, usePointStyle:true } } } }
-  });
-  new Chart(document.getElementById('chartMarca'), {
-    type:'bar',
-    data: {
-      labels:['HUAWEI','SAMSUNG','XIAOMI','APPLE','MOTOROLA','OPPO'],
-      datasets:[{ data:[624,487,398,310,231,202], backgroundColor:['#00BFB3','#009e92','#007a70','#33cfc4','#66ddd8','#99eceb'], borderRadius:6, borderSkipped:false }]
-    },
-    options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false} },
-      scales:{ x:{ grid:{display:false}, ticks:{font:{size:10}} }, y:{ grid:{color:'#f0f0f0'}, ticks:{font:{size:10}} } }
-    }
-  });
 });
 </script>
 
