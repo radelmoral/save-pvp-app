@@ -504,7 +504,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <div style="display:flex;flex-direction:column;gap:14px;">
           <div class="ff">
             <label>Referencia *</label>
-            <input class="finp" id="solRef" placeholder="Ej: SAM-S24-LCD-01" />
+            <input class="finp" id="solRef" placeholder="Ej: SAM-S24-LCD-01" onblur="validarReferenciaSolicitudUI()" />
           </div>
           <div class="ff">
             <label>Coste (€) *</label>
@@ -1566,6 +1566,14 @@ async function enviarSolicitudAPI() {
   if (!ref || !cost || !marca || !modelo || !prov) { toast('Rellena todos los campos obligatorios','warn'); return; }
 
   try {
+    const check = await API.solicitudes.validarReferencia(ref);
+    if (check?.existe) {
+      const origenTexto = check.tipo === 'solicitud'
+        ? 'ya existe una solicitud pendiente'
+        : `ya existe en ${check.origen}`;
+      toast(`No se puede enviar: la referencia ${ref} ${origenTexto}`, 'warn');
+      return;
+    }
     await API.solicitudes.crear({
       referencia:   ref,
       marca,
@@ -1585,6 +1593,21 @@ async function enviarSolicitudAPI() {
   } catch(e) {
     toast('Error: '+e.message,'err');
   }
+}
+
+async function validarReferenciaSolicitudUI() {
+  if (!API_AVAILABLE) return;
+  const ref = document.getElementById('solRef')?.value?.trim();
+  if (!ref) return;
+  try {
+    const check = await API.solicitudes.validarReferencia(ref);
+    if (check?.existe) {
+      const origenTexto = check.tipo === 'solicitud'
+        ? 'ya tiene una solicitud pendiente'
+        : `ya existe en ${check.origen}`;
+      toast(`La referencia ${ref} ${origenTexto}`, 'warn');
+    }
+  } catch (_) {}
 }
 
 /** Autenticación real: verificar token al cargar la página */
