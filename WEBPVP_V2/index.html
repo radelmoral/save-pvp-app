@@ -2046,23 +2046,23 @@ async function loadRepuestosFromAPI(params = {}) {
 async function loadDashboard() {
   if (!API_AVAILABLE) return;
   try {
-    // Stats en paralelo
-    const [repRes, telRes, solRes, usrRes] = await Promise.allSettled([
-      API.repuestos.listar({ limit: 200, page: 1 }),
-      API.telefonos.listar({ limit: 1, page: 1 }),
+    // Datos reales del dashboard + otros contadores
+    const [dashRes, solRes, usrRes] = await Promise.allSettled([
+      API.dashboard.resumen(),
       API.solicitudes.listar(),
       API.usuarios.listar(),
     ]);
 
-    if (repRes.status === 'fulfilled') {
-      document.getElementById('dashRepuestos').textContent = repRes.value.total ?? '—';
+    if (dashRes.status === 'fulfilled') {
+      const dash = dashRes.value;
+      document.getElementById('dashRepuestos').textContent = dash.totalRepuestos ?? '—';
+      document.getElementById('dashTelefonos').textContent = dash.totalTelefonos ?? '—';
+
       // Últimas referencias en dashboard
       const tb = document.getElementById('tbDashRepuestos');
       if (tb) {
         tb.innerHTML = '';
-        const recent = [...(repRes.value.data || [])]
-          .sort((a, b) => String(b.referencia || '').localeCompare(String(a.referencia || '')))
-          .slice(0, 5);
+        const recent = dash.ultimasReferencias || [];
         recent.forEach(r => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
@@ -2076,23 +2076,12 @@ async function loadDashboard() {
         });
       }
 
-      // Gráficos reales a partir de repuestos cargados (sin datos de ejemplo)
-      const repRows = repRes.value.data || [];
-      const byCat = {};
-      const byMarca = {};
-      repRows.forEach(r => {
-        const c = (r.categoria || 'Sin categoría').trim() || 'Sin categoría';
-        const m = (r.marca || 'Sin marca').trim() || 'Sin marca';
-        byCat[c] = (byCat[c] || 0) + 1;
-        byMarca[m] = (byMarca[m] || 0) + 1;
-      });
-
-      const catPairs = Object.entries(byCat).sort((a, b) => b[1] - a[1]).slice(0, 6);
-      const marcaPairs = Object.entries(byMarca).sort((a, b) => b[1] - a[1]).slice(0, 6);
-      const catLabels = catPairs.length ? catPairs.map(x => x[0]) : ['Sin datos'];
-      const catData = catPairs.length ? catPairs.map(x => x[1]) : [1];
-      const marcaLabels = marcaPairs.length ? marcaPairs.map(x => x[0]) : ['Sin datos'];
-      const marcaData = marcaPairs.length ? marcaPairs.map(x => x[1]) : [1];
+      const topCats = dash.topCategorias || [];
+      const topMarcas = dash.topMarcas || [];
+      const catLabels = topCats.length ? topCats.map(x => x.nombre) : ['Sin datos'];
+      const catData = topCats.length ? topCats.map(x => Number(x.total || 0)) : [1];
+      const marcaLabels = topMarcas.length ? topMarcas.map(x => x.nombre) : ['Sin datos'];
+      const marcaData = topMarcas.length ? topMarcas.map(x => Number(x.total || 0)) : [1];
 
       if (window._chartCatInstance) window._chartCatInstance.destroy();
       if (window._chartMarcaInstance) window._chartMarcaInstance.destroy();
@@ -2118,9 +2107,6 @@ async function loadDashboard() {
           scales:{ x:{ grid:{display:false}, ticks:{font:{size:10}} }, y:{ grid:{color:'#f0f0f0'}, ticks:{font:{size:10}} } }
         }
       });
-    }
-    if (telRes.status === 'fulfilled') {
-      document.getElementById('dashTelefonos').textContent = telRes.value.total ?? '—';
     }
     if (usrRes.status === 'fulfilled') {
       document.getElementById('dashUsuarios').textContent = usrRes.value.length ?? '—';
