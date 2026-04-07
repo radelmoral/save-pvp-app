@@ -1,5 +1,26 @@
 const db = require('../config/db');
 
+let _schemaReady = false;
+async function ensureSolicitudesSchema() {
+  if (_schemaReady) return;
+  const [cols] = await db.execute(
+    `SELECT COLUMN_NAME
+       FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'solicitudes_pvp'
+        AND COLUMN_NAME IN ('marca', 'modelo')`
+  );
+  const hasMarca = cols.some(c => c.COLUMN_NAME === 'marca');
+  const hasModelo = cols.some(c => c.COLUMN_NAME === 'modelo');
+  if (!hasMarca) {
+    await db.execute(`ALTER TABLE solicitudes_pvp ADD COLUMN marca VARCHAR(120) NULL AFTER categoria`);
+  }
+  if (!hasModelo) {
+    await db.execute(`ALTER TABLE solicitudes_pvp ADD COLUMN modelo VARCHAR(160) NULL AFTER marca`);
+  }
+  _schemaReady = true;
+}
+
 /**
  * Tabla: `solicitudes_pvp` (creada con migrate.sql)
  * Usa `categoria` como texto libre (igual que en repuestos)
@@ -9,6 +30,7 @@ const db = require('../config/db');
 /** GET /api/solicitudes */
 async function listar(req, res) {
   try {
+    await ensureSolicitudesSchema();
     const { estado } = req.query;
     let where = [];
     const params = [];
@@ -53,6 +75,7 @@ async function crear(req, res) {
   }
 
   try {
+    await ensureSolicitudesSchema();
     const [result] = await db.execute(
       `INSERT INTO solicitudes_pvp
          (referencia, descripcion, categoria, marca, modelo, coste, proveedor, observaciones, usuario_id)
@@ -77,6 +100,7 @@ async function aprobar(req, res) {
 
   let conn;
   try {
+    await ensureSolicitudesSchema();
     conn = await db.getConnection();
     await conn.beginTransaction();
 
