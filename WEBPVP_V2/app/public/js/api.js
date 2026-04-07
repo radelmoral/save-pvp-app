@@ -55,6 +55,9 @@ const API = (() => {
       actualizar:(id, data)    => request('PUT', `/repuestos/${id}`, data),
       eliminar:  (id)          => request('DELETE', `/repuestos/${id}`),
     },
+    dashboard: {
+      resumen: () => request('GET', '/dashboard/resumen'),
+    },
     busquedaGlobal: (q) => request('GET', '/busqueda-global?' + new URLSearchParams({ q })),
 
     // ── Solicitudes PVP ─────────────────────
