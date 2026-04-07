@@ -1221,10 +1221,9 @@ function confirmarRechazo() {
     const refCell = row.querySelector('.td-ref');
     if(refCell && (refCell.textContent === _currentPVPRef || refCell.textContent === ref)) {
       const cells = row.querySelectorAll('td');
-      cells[6].innerHTML = `<span class="badge bd-r">❌ Rechazado</span>`;
-      // Añadir motivo si hay celda de descripción
-      if(cells[3]) {
-        cells[3].innerHTML += `<div style="margin-top:5px;padding:5px 8px;background:var(--red-100);border-radius:6px;font-size:11px;color:#7f1d1d;"><strong>Motivo:</strong> ${motivoHTML}</div>`;
+      cells[6].innerHTML = `<span class="badge bd-r">❌ Rechazado</span><div style="margin-top:5px;padding:5px 8px;background:var(--red-100);border-radius:6px;font-size:11px;color:#7f1d1d;"><strong>Motivo:</strong> ${motivoHTML}</div>`;
+      if (cells[5]) {
+        cells[5].innerHTML = '<span style="color:var(--g400);font-size:12px;">—</span>';
       }
     }
   });
@@ -1975,6 +1974,9 @@ async function loadMisSolicitudesFromAPI() {
         s.estado === 'aprobado'  ? `<span class="badge bd-g">✅ Aprobado</span>` :
         s.estado === 'rechazado' ? `<span class="badge bd-r">❌ Rechazado</span>` :
                                    `<span class="pvp-status-pending">⏳ Pendiente</span>`;
+      const motivoHTML = s.estado === 'rechazado' && s.motivo_rechazo
+        ? `<div style="margin-top:5px;padding:5px 8px;background:var(--red-100);border-radius:6px;font-size:11px;color:#7f1d1d;"><strong>Motivo:</strong> ${escHTML(s.motivo_rechazo)}</div>`
+        : '';
       tr.innerHTML = `
         <td class="td-ref">${escHTML(s.referencia)}</td>
         <td>${escHTML(s.marca || '—')}</td>
@@ -1982,7 +1984,7 @@ async function loadMisSolicitudesFromAPI() {
         <td>${escHTML(s.proveedor||'—')}</td>
         <td class="price">${formatMoney(s.coste)} €</td>
         <td class="price-club">${s.pvp_asignado ? formatMoney(s.pvp_asignado)+' €' : '<span style="color:var(--g400);font-size:12px;">—</span>'}</td>
-        <td>${estadoBadge}</td>
+        <td>${estadoBadge}${motivoHTML}</td>
         <td style="font-size:11px;color:var(--g400)">${new Date(s.created_at).toLocaleDateString('es-ES')}</td>`;
       tb.appendChild(tr);
     });
