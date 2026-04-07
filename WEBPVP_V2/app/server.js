@@ -40,6 +40,15 @@ app.use('/api', (req, res) => {
 // En desarrollo local están en la carpeta padre (..)
 const STATIC_DIR = process.env.STATIC_DIR || path.join(__dirname, '..');
 
+// Bloquear acceso directo al formulario legado de pedidos.
+// La entrada válida es la sección "Pedidos" integrada en index.html.
+app.use((req, res, next) => {
+  if (req.path.toLowerCase() === '/pedidos.html') {
+    return res.status(404).send('Not Found');
+  }
+  next();
+});
+
 app.use(express.static(STATIC_DIR, {
   index: 'index.html',
 }));
