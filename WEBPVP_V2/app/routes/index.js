@@ -18,6 +18,7 @@ router.post('/categorias',    auth, role('admin'), usuariosCtrl.crearCategoria);
 
 // ── Repuestos ─────────────────────────────────────────────
 router.get ('/repuestos',        auth, repCtrl.listar);
+router.get ('/dashboard/resumen', auth, repCtrl.dashboardResumen);
 router.get ('/repuestos/:id',    auth, repCtrl.obtener);
 router.post('/repuestos',        auth, role('admin'), repCtrl.crear);
 router.put ('/repuestos/:id',    auth, role('admin'), repCtrl.actualizar);
