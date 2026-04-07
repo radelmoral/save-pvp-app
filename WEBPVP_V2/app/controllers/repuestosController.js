@@ -119,6 +119,23 @@ async function crear(req, res) {
   }
 }
 
+/** POST /api/apple — solo admin */
+async function crearApple(req, res) {
+  const { referencia, marca, categoria, modelo, etiqueta, pvp } = req.body;
+  if (!referencia) return res.status(400).json({ error: 'Referencia obligatoria' });
+  try {
+    await db.execute(
+      `INSERT INTO apple_original (referencia, marca, categoria, modelo, etiqueta, pvp)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [referencia, marca || '', categoria || '', modelo || '', etiqueta || referencia, pvp || null]
+    );
+    res.status(201).json({ referencia, message: 'Referencia Apple creada' });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Esa referencia ya existe' });
+    res.status(500).json({ error: 'Error al crear Apple Original' });
+  }
+}
+
 /** PUT /api/repuestos/:ref  — solo admin */
 async function actualizar(req, res) {
   const { referencia, marca, categoria, modelo, etiqueta, sage_act, sage_new, pvp, pvp_clubsave } = req.body;
@@ -246,6 +263,23 @@ async function actualizarOppo(req, res) {
   }
 }
 
+/** POST /api/oppo — solo admin */
+async function crearOppo(req, res) {
+  const { referencia, marca, categoria, modelo, etiqueta, pvp } = req.body;
+  if (!referencia) return res.status(400).json({ error: 'Referencia obligatoria' });
+  try {
+    await db.execute(
+      `INSERT INTO oppo_original (referencia, marca, categoria, modelo, etiqueta, pvp)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [referencia, marca || '', categoria || '', modelo || '', etiqueta || referencia, pvp || null]
+    );
+    res.status(201).json({ referencia, message: 'Referencia Oppo creada' });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Esa referencia ya existe' });
+    res.status(500).json({ error: 'Error al crear Oppo Original' });
+  }
+}
+
 /** DELETE /api/oppo/:ref  — solo admin */
 async function eliminarOppo(req, res) {
   try {
@@ -296,6 +330,23 @@ async function actualizarTelefono(req, res) {
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'La referencia nueva ya existe' });
     res.status(500).json({ error: 'Error al actualizar teléfono' });
+  }
+}
+
+/** POST /api/telefonos — solo admin */
+async function crearTelefono(req, res) {
+  const { referencia, marca, modelo, etiqueta, pvp } = req.body;
+  if (!referencia) return res.status(400).json({ error: 'Referencia obligatoria' });
+  try {
+    await db.execute(
+      `INSERT INTO telefonos (referencia, marca, modelo, etiqueta, pvp)
+       VALUES (?, ?, ?, ?, ?)`,
+      [referencia, marca || '', modelo || '', etiqueta || referencia, pvp || null]
+    );
+    res.status(201).json({ referencia, message: 'Teléfono creado' });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Esa referencia ya existe' });
+    res.status(500).json({ error: 'Error al crear teléfono' });
   }
 }
 
@@ -387,9 +438,9 @@ async function listarCategorias(req, res) {
 
 module.exports = {
   listar, obtener, crear, actualizar, eliminar,
-  listarApple, actualizarApple, eliminarApple,
-  listarOppo, actualizarOppo, eliminarOppo,
-  listarTelefonos, actualizarTelefono, eliminarTelefono,
+  listarApple, crearApple, actualizarApple, eliminarApple,
+  listarOppo, crearOppo, actualizarOppo, eliminarOppo,
+  listarTelefonos, crearTelefono, actualizarTelefono, eliminarTelefono,
   busquedaGlobal,
   listarCategorias,
 };
