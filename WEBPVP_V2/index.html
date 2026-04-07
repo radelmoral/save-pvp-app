@@ -582,13 +582,18 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
     <div class="card">
       <div class="ch">
         <div class="ct">Todas las solicitudes</div>
-        <div style="display:flex;gap:8px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <select class="fi" id="adminFiltroEstado" onchange="filtrarAdminSolicitudes()" style="min-width:140px;">
             <option value="">Todos los estados</option>
             <option value="pendiente">⏳ Pendientes</option>
             <option value="aprobado">✅ Aprobados</option>
             <option value="rechazado">❌ Rechazados</option>
           </select>
+          <select class="fi" id="adminFiltroUsuario" onchange="filtrarAdminSolicitudes()" style="min-width:180px;">
+            <option value="">Todos los usuarios</option>
+          </select>
+          <input class="fi" id="adminFiltroFechaDesde" type="date" onchange="filtrarAdminSolicitudes()" title="Desde"/>
+          <input class="fi" id="adminFiltroFechaHasta" type="date" onchange="filtrarAdminSolicitudes()" title="Hasta"/>
         </div>
       </div>
       <div class="tw">
@@ -975,10 +980,48 @@ function ocultarResultadosGlobales() {
   const panel = document.getElementById('globalResultsPanel');
   if (panel) panel.style.display = 'none';
 }
+function toLocalDateKey(dateLike) {
+  const d = new Date(dateLike);
+  if (Number.isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function normalizeText(v) {
+  return String(v || '').trim().toLowerCase();
+}
+
+function refrescarFiltroUsuariosAdmin(data = []) {
+  const sel = document.getElementById('adminFiltroUsuario');
+  if (!sel) return;
+  const current = sel.value;
+  const users = Array.from(new Set((data || []).map(s => String(s.solicitante || '—').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'));
+  sel.innerHTML = '<option value="">Todos los usuarios</option>';
+  users.forEach(u => {
+    const o = document.createElement('option');
+    o.value = normalizeText(u);
+    o.textContent = u;
+    sel.appendChild(o);
+  });
+  if (current && Array.from(sel.options).some(o => o.value === current)) sel.value = current;
+}
+
 function filtrarAdminSolicitudes() {
   const est = document.getElementById('adminFiltroEstado').value;
+  const usuario = normalizeText(document.getElementById('adminFiltroUsuario')?.value || '');
+  const desde = document.getElementById('adminFiltroFechaDesde')?.value || '';
+  const hasta = document.getElementById('adminFiltroFechaHasta')?.value || '';
   document.querySelectorAll('#tbAdminSolicitudes tr').forEach(row => {
-    row.style.display = (!est || row.dataset.estado === est) ? '' : 'none';
+    const rowEstado = row.dataset.estado || '';
+    const rowUsuario = normalizeText(row.dataset.usuario || '');
+    const rowFecha = row.dataset.fecha || '';
+    const okEstado = !est || rowEstado === est;
+    const okUsuario = !usuario || rowUsuario === usuario;
+    const okDesde = !desde || (rowFecha && rowFecha >= desde);
+    const okHasta = !hasta || (rowFecha && rowFecha <= hasta);
+    row.style.display = (okEstado && okUsuario && okDesde && okHasta) ? '' : 'none';
   });
 }
 
@@ -1019,6 +1062,8 @@ function enviarSolicitud() {
   const tbA = document.getElementById('tbAdminSolicitudes');
   const trA = document.createElement('tr');
   trA.setAttribute('data-estado','pendiente');
+  trA.setAttribute('data-usuario', roleConfig[currentRole].name);
+  trA.setAttribute('data-fecha', toLocalDateKey(new Date()));
   trA.innerHTML = `
     <td class="td-ref">${refHTML}</td>
     <td>${marcaHTML}</td>
@@ -1036,6 +1081,8 @@ function enviarSolicitud() {
       </div>
     </td>`;
   tbA.prepend(trA);
+  refrescarFiltroUsuariosAdmin(Array.from(document.querySelectorAll('#tbAdminSolicitudes tr')).map(r => ({ solicitante: r.dataset.usuario })));
+  filtrarAdminSolicitudes();
   // Update badge & counter
   updatePendientes(+1);
   // Clear form
@@ -1314,6 +1361,8 @@ async function loadSolicitudesFromAPI() {
       const tr = document.createElement('tr');
       tr.setAttribute('data-estado', s.estado);
       tr.setAttribute('data-id', s.id);
+      tr.setAttribute('data-usuario', normalizeText(s.solicitante || '—'));
+      tr.setAttribute('data-fecha', toLocalDateKey(s.created_at));
       const ref = escHTML(s.referencia);
       const marca = escHTML(s.marca || '—');
       const modelo = escHTML(s.modelo || '—');
@@ -1353,6 +1402,8 @@ async function loadSolicitudesFromAPI() {
         <td>${acciones}</td>`;
       tb.appendChild(tr);
     });
+    refrescarFiltroUsuariosAdmin(data);
+    filtrarAdminSolicitudes();
 
     const pendientes = data.filter(s => s.estado === 'pendiente').length;
     document.getElementById('badgePendientes').textContent = pendientes;
