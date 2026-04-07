@@ -25,7 +25,7 @@ async function listar(req, res) {
     const whereSQL = where.length ? 'WHERE ' + where.join(' AND ') : '';
 
     const [rows] = await db.execute(
-      `SELECT s.id, s.referencia, s.descripcion, s.categoria,
+      `SELECT s.id, s.referencia, s.descripcion, s.categoria, s.marca, s.modelo,
               s.coste, s.proveedor, s.observaciones,
               u.nombre AS solicitante, u.rol AS rol_solicitante_num,
               s.estado, s.pvp_asignado, s.pvp_club_asignado,
@@ -46,18 +46,18 @@ async function listar(req, res) {
 
 /** POST /api/solicitudes */
 async function crear(req, res) {
-  const { referencia, descripcion, categoria, coste, proveedor, observaciones } = req.body;
+  const { referencia, descripcion, categoria, marca, modelo, coste, proveedor, observaciones } = req.body;
 
-  if (!referencia || !coste) {
-    return res.status(400).json({ error: 'Referencia y coste son obligatorios' });
+  if (!referencia || !marca || !modelo || !coste) {
+    return res.status(400).json({ error: 'Referencia, marca, modelo y coste son obligatorios' });
   }
 
   try {
     const [result] = await db.execute(
       `INSERT INTO solicitudes_pvp
-         (referencia, descripcion, categoria, coste, proveedor, observaciones, usuario_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [referencia, descripcion || null, categoria || null,
+         (referencia, descripcion, categoria, marca, modelo, coste, proveedor, observaciones, usuario_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [referencia, descripcion || null, categoria || null, marca || null, modelo || null,
        coste, proveedor || null, observaciones || null, req.user.id]
     );
     res.status(201).json({ id: result.insertId, message: 'Solicitud enviada correctamente' });
@@ -69,7 +69,7 @@ async function crear(req, res) {
 
 /** PUT /api/solicitudes/:id/aprobar  — solo admin */
 async function aprobar(req, res) {
-  const { referencia, descripcion, categoria, coste, pvp_asignado, pvp_club_asignado, destino_catalogo } = req.body;
+  const { referencia, descripcion, categoria, marca, modelo, coste, pvp_asignado, pvp_club_asignado, destino_catalogo } = req.body;
 
   if (!pvp_asignado) {
     return res.status(400).json({ error: 'El PVP a asignar es obligatorio' });
@@ -87,12 +87,14 @@ async function aprobar(req, res) {
            referencia       = COALESCE(?, referencia),
            descripcion      = COALESCE(?, descripcion),
            categoria        = COALESCE(?, categoria),
+           marca            = COALESCE(?, marca),
+           modelo           = COALESCE(?, modelo),
            coste            = COALESCE(?, coste),
            pvp_asignado     = ?,
            pvp_club_asignado= ?,
            admin_id         = ?
        WHERE id = ? AND estado = 'pendiente'`,
-      [referencia || null, descripcion || null, categoria || null, coste || null,
+      [referencia || null, descripcion || null, categoria || null, marca || null, modelo || null, coste || null,
        pvp_asignado, pvp_club_asignado || null, req.user.id, req.params.id]
     );
 
@@ -114,47 +116,55 @@ async function aprobar(req, res) {
       await conn.execute(
         `INSERT INTO repuestos
            (referencia, marca, categoria, modelo, etiqueta, sage_new, pvp, pvp_clubsave)
-         VALUES (?, '', ?, '', ?, ?, ?, ?)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
+           marca        = VALUES(marca),
            categoria    = VALUES(categoria),
+           modelo       = VALUES(modelo),
            etiqueta     = VALUES(etiqueta),
            sage_new     = VALUES(sage_new),
            pvp          = VALUES(pvp),
            pvp_clubsave = VALUES(pvp_clubsave)`,
-        [s.referencia, s.categoria || '', s.descripcion || s.referencia,
+        [s.referencia, s.marca || '', s.categoria || '', s.modelo || '', s.descripcion || s.referencia,
          s.coste, pvp_asignado, pvp_club_asignado || null]
       );
     } else if (destino === 'telefonos') {
       await conn.execute(
         `INSERT INTO telefonos
            (referencia, marca, modelo, etiqueta, pvp)
-         VALUES (?, '', '', ?, ?)
+         VALUES (?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
+           marca    = VALUES(marca),
+           modelo   = VALUES(modelo),
            etiqueta = VALUES(etiqueta),
            pvp      = VALUES(pvp)`,
-        [s.referencia, s.descripcion || s.referencia, pvp_asignado]
+        [s.referencia, s.marca || '', s.modelo || '', s.descripcion || s.referencia, pvp_asignado]
       );
     } else if (destino === 'apple') {
       await conn.execute(
         `INSERT INTO apple_original
            (referencia, marca, categoria, modelo, etiqueta, pvp)
-         VALUES (?, '', ?, '', ?, ?)
+         VALUES (?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
+           marca    = VALUES(marca),
            categoria = VALUES(categoria),
+           modelo   = VALUES(modelo),
            etiqueta  = VALUES(etiqueta),
            pvp       = VALUES(pvp)`,
-        [s.referencia, s.categoria || '', s.descripcion || s.referencia, pvp_asignado]
+        [s.referencia, s.marca || '', s.categoria || '', s.modelo || '', s.descripcion || s.referencia, pvp_asignado]
       );
     } else if (destino === 'oppo') {
       await conn.execute(
         `INSERT INTO oppo_original
            (referencia, marca, categoria, modelo, etiqueta, pvp)
-         VALUES (?, '', ?, '', ?, ?)
+         VALUES (?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
+           marca    = VALUES(marca),
            categoria = VALUES(categoria),
+           modelo   = VALUES(modelo),
            etiqueta  = VALUES(etiqueta),
            pvp       = VALUES(pvp)`,
-        [s.referencia, s.categoria || '', s.descripcion || s.referencia, pvp_asignado]
+        [s.referencia, s.marca || '', s.categoria || '', s.modelo || '', s.descripcion || s.referencia, pvp_asignado]
       );
     }
 
