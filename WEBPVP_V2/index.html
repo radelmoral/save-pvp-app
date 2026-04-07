@@ -551,7 +551,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
           <div class="ch"><div><div class="ct">Mis solicitudes enviadas</div><div class="cs">Historial de tus solicitudes de PVP</div></div></div>
           <div class="tw">
             <table>
-              <thead><tr><th>Referencia</th><th>Proveedor</th><th>Coste</th><th>PVP asignado</th><th>Estado</th><th>Fecha</th></tr></thead>
+              <thead><tr><th>Referencia</th><th>Marca</th><th>Modelo</th><th>Proveedor</th><th>Coste</th><th>PVP asignado</th><th>Estado</th><th>Fecha</th></tr></thead>
               <tbody id="tbMisSolicitudes"></tbody>
             </table>
           </div>
@@ -570,7 +570,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <p style="color:var(--g500);font-size:13px;margin-top:3px;">Revisa, asigna PVP y añade a la BBDD</p>
       </div>
       <div style="display:flex;gap:8px;">
-        <span class="pvp-status-pending" style="padding:6px 14px;">⏳ 3 pendientes</span>
+        <span class="pvp-status-pending" style="padding:6px 14px;" id="adminPendBadge">⏳ 0 pendientes</span>
       </div>
     </div>
 
@@ -1003,6 +1003,8 @@ function enviarSolicitud() {
   const tr = document.createElement('tr');
   tr.innerHTML = `
     <td class="td-ref">${refHTML}</td>
+    <td>${marcaHTML}</td>
+    <td>${modeloHTML}</td>
     <td>${provHTML}</td>
     <td>${parseFloat(cost).toFixed(2)} €</td>
     <td style="color:var(--g400);font-size:12px;">—</td>
@@ -1129,8 +1131,8 @@ function aprobarSolicitud() {
     if(refCell && refCell.textContent === _currentPVPRef) {
       refCell.textContent = ref;
       const cells = row.querySelectorAll('td');
-      cells[3].className = 'price-club'; cells[3].textContent = parseFloat(pvp).toFixed(2) + ' €';
-      cells[4].innerHTML = `<span class="pvp-status-done">✅ Aprobado</span>`;
+      cells[5].className = 'price-club'; cells[5].textContent = parseFloat(pvp).toFixed(2) + ' €';
+      cells[6].innerHTML = `<span class="pvp-status-done">✅ Aprobado</span>`;
     }
   });
   updatePendientes(-1);
@@ -1163,8 +1165,8 @@ function confirmarRechazo() {
     if(refCell && refCell.textContent === _currentPVPRef) {
       row.setAttribute('data-estado','rechazado');
       const cells = row.querySelectorAll('td');
-      cells[6].innerHTML = `<span class="badge bd-r">❌ Rechazado</span>`;
-      cells[7].innerHTML = `<button class="btn btn-o" style="font-size:11px;padding:4px 9px;" onclick="alert('Motivo: ${motivoJS}')" title="${motivoHTML}">Ver motivo</button>`;
+      cells[8].innerHTML = `<span class="badge bd-r">❌ Rechazado</span>`;
+      cells[9].innerHTML = `<button class="btn btn-o" style="font-size:11px;padding:4px 9px;" onclick="alert('Motivo: ${motivoJS}')" title="${motivoHTML}">Ver motivo</button>`;
     }
   });
   // Actualizar "mis solicitudes" con motivo visible
@@ -1172,10 +1174,10 @@ function confirmarRechazo() {
     const refCell = row.querySelector('.td-ref');
     if(refCell && (refCell.textContent === _currentPVPRef || refCell.textContent === ref)) {
       const cells = row.querySelectorAll('td');
-      cells[4].innerHTML = `<span class="badge bd-r">❌ Rechazado</span>`;
+      cells[6].innerHTML = `<span class="badge bd-r">❌ Rechazado</span>`;
       // Añadir motivo si hay celda de descripción
-      if(cells[1]) {
-        cells[1].innerHTML += `<div style="margin-top:5px;padding:5px 8px;background:var(--red-100);border-radius:6px;font-size:11px;color:#7f1d1d;"><strong>Motivo:</strong> ${motivoHTML}</div>`;
+      if(cells[3]) {
+        cells[3].innerHTML += `<div style="margin-top:5px;padding:5px 8px;background:var(--red-100);border-radius:6px;font-size:11px;color:#7f1d1d;"><strong>Motivo:</strong> ${motivoHTML}</div>`;
       }
     }
   });
@@ -1355,6 +1357,8 @@ async function loadSolicitudesFromAPI() {
     const pendientes = data.filter(s => s.estado === 'pendiente').length;
     document.getElementById('badgePendientes').textContent = pendientes;
     document.getElementById('dashPend').textContent = pendientes;
+    const adminPend = document.getElementById('adminPendBadge');
+    if (adminPend) adminPend.textContent = `⏳ ${pendientes} pendientes`;
     const dot = document.getElementById('notifDot');
     if (dot) dot.style.display = pendientes > 0 ? '' : 'none';
   } catch(e) {
@@ -1899,6 +1903,8 @@ async function loadMisSolicitudesFromAPI() {
                                    `<span class="pvp-status-pending">⏳ Pendiente</span>`;
       tr.innerHTML = `
         <td class="td-ref">${escHTML(s.referencia)}</td>
+        <td>${escHTML(s.marca || '—')}</td>
+        <td>${escHTML(s.modelo || '—')}</td>
         <td>${escHTML(s.proveedor||'—')}</td>
         <td class="price">${formatMoney(s.coste)} €</td>
         <td class="price-club">${s.pvp_asignado ? formatMoney(s.pvp_asignado)+' €' : '<span style="color:var(--g400);font-size:12px;">—</span>'}</td>
