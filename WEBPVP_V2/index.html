@@ -611,16 +611,24 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
     <div class="mh"><div class="mt">➕ Nueva referencia</div><button class="mc" onclick="closeModal('modalRef')">✕</button></div>
     <div class="mb">
       <div class="fg">
-        <div class="ff full"><label>Referencia</label><input class="finp" placeholder="Ej: 02351BDD"/></div>
-        <div class="ff"><label>Categoría</label><select class="finp"><option>— Selecciona —</option><option>Pantalla</option><option>Tapa</option><option>Carcasa</option><option>PCB</option></select></div>
-        <div class="ff"><label>Marca</label><select class="finp"><option>— Selecciona —</option><option>HUAWEI</option><option>XIAOMI</option><option>MOTOROLA</option><option>SAMSUNG</option><option>APPLE</option></select></div>
-        <div class="ff"><label>Modelo</label><input class="finp" placeholder="Ej: Mate 9"/></div>
-        <div class="ff full"><label>Etiqueta</label><input class="finp" placeholder="Ej: Pantalla Huawei Mate 9 Negro"/></div>
-        <div class="ff"><label>PVP (€)</label><input class="finp" type="number" step="0.01" placeholder="0.00"/></div>
-        <div class="ff"><label>PVP Club SAVE (€)</label><input class="finp" type="number" step="0.01" placeholder="0.00"/></div>
+        <div class="ff"><label>Guardar en catálogo *</label>
+          <select class="finp" id="newRefCatalogo" onchange="onNewRefCatalogoChange()">
+            <option value="repuestos">Repuestos</option>
+            <option value="telefonos">Teléfonos</option>
+            <option value="apple">Apple Original</option>
+            <option value="oppo">Oppo Original</option>
+          </select>
+        </div>
+        <div class="ff full"><label>Referencia *</label><input class="finp" id="newRefReferencia" placeholder="Ej: 02351BDD"/></div>
+        <div class="ff" id="newRefCategoriaWrap"><label>Categoría</label><select class="finp" id="newRefCategoria"><option value="">— Selecciona —</option><option>Pantalla</option><option>Tapa</option><option>Carcasa</option><option>PCB</option></select></div>
+        <div class="ff"><label>Marca</label><input class="finp" id="newRefMarca" placeholder="Ej: HUAWEI"/></div>
+        <div class="ff"><label>Modelo</label><input class="finp" id="newRefModelo" placeholder="Ej: Mate 9"/></div>
+        <div class="ff full"><label>Etiqueta</label><input class="finp" id="newRefEtiqueta" placeholder="Ej: Pantalla Huawei Mate 9 Negro"/></div>
+        <div class="ff"><label>PVP (€)</label><input class="finp" id="newRefPvp" type="number" step="0.01" placeholder="0.00"/></div>
+        <div class="ff" id="newRefPvpClubWrap"><label>PVP Club SAVE (€)</label><input class="finp" id="newRefPvpClub" type="number" step="0.01" placeholder="0.00"/></div>
       </div>
     </div>
-    <div class="mf"><button class="btn btn-o" onclick="closeModal('modalRef')">Cancelar</button><button class="btn btn-p" onclick="closeModal('modalRef');toast('Referencia añadida correctamente','ok')">Guardar referencia</button></div>
+    <div class="mf"><button class="btn btn-o" onclick="closeModal('modalRef')">Cancelar</button><button class="btn btn-p" onclick="guardarNuevaReferenciaAPI()">Guardar referencia</button></div>
   </div>
 </div>
 
@@ -1176,12 +1184,79 @@ function openModal(id)  {
     return;
   }
   document.getElementById(id).classList.add('open');
+  if (id === 'modalRef') onNewRefCatalogoChange();
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function closeModalOut(e,id) { if(e.target.id === id) closeModal(id); }
 document.addEventListener('keydown', e => {
   if(e.key==='Escape') document.querySelectorAll('.mo.open').forEach(m=>m.classList.remove('open'));
 });
+
+function onNewRefCatalogoChange() {
+  const cat = document.getElementById('newRefCatalogo')?.value || 'repuestos';
+  const showCategoria = cat !== 'telefonos';
+  const showPvpClub = cat === 'repuestos';
+  const categoriaWrap = document.getElementById('newRefCategoriaWrap');
+  const pvpClubWrap = document.getElementById('newRefPvpClubWrap');
+  if (categoriaWrap) categoriaWrap.style.display = showCategoria ? '' : 'none';
+  if (pvpClubWrap) pvpClubWrap.style.display = showPvpClub ? '' : 'none';
+}
+
+async function guardarNuevaReferenciaAPI() {
+  if (!isAdminRole()) return toast('Solo administrador puede añadir referencias', 'warn');
+  if (!API_AVAILABLE) return toast('API no disponible', 'err');
+
+  const destino = document.getElementById('newRefCatalogo').value;
+  const referencia = document.getElementById('newRefReferencia').value.trim();
+  const marca = document.getElementById('newRefMarca').value.trim();
+  const categoria = document.getElementById('newRefCategoria').value;
+  const modelo = document.getElementById('newRefModelo').value.trim();
+  const etiqueta = document.getElementById('newRefEtiqueta').value.trim();
+  const pvpVal = document.getElementById('newRefPvp').value;
+  const pvpClubVal = document.getElementById('newRefPvpClub').value;
+
+  if (!referencia) return toast('La referencia es obligatoria', 'warn');
+
+  const pvp = pvpVal === '' ? null : Number(pvpVal);
+  const pvp_clubsave = pvpClubVal === '' ? null : Number(pvpClubVal);
+
+  try {
+    if (destino === 'repuestos') {
+      await API.repuestos.crear({
+        referencia, marca, categoria, modelo, etiqueta, pvp, pvp_clubsave,
+      });
+      await loadRepuestosFromAPI({ page: 1 });
+    } else if (destino === 'telefonos') {
+      await API.telefonos.crear({
+        referencia, marca, modelo, etiqueta, pvp,
+      });
+      await loadTelefonosFromAPI(1);
+    } else if (destino === 'apple') {
+      await API.apple.crear({
+        referencia, marca, categoria, modelo, etiqueta, pvp,
+      });
+      await loadAppleFromAPI(1);
+    } else if (destino === 'oppo') {
+      await API.oppo.crear({
+        referencia, marca, categoria, modelo, etiqueta, pvp,
+      });
+      await loadOppoFromAPI(1);
+    } else {
+      throw new Error('Catálogo no soportado');
+    }
+
+    closeModal('modalRef');
+    ['newRefReferencia', 'newRefMarca', 'newRefModelo', 'newRefEtiqueta', 'newRefPvp', 'newRefPvpClub'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    const catEl = document.getElementById('newRefCategoria');
+    if (catEl) catEl.value = '';
+    toast(`Referencia creada en ${destino}`, 'ok');
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
+}
 
 // ── TOAST ──────────────────────────────────────────
 function toast(msg, type='ok') {
