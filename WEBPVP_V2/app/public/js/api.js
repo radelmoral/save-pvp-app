@@ -81,6 +81,7 @@ const API = (() => {
     // ── Apple Original ──────────────────────
     apple: {
       listar: (params = {}) => request('GET', '/apple?' + new URLSearchParams(params)),
+      crear:     (data)      => request('POST', '/apple', data),
       actualizar:(id, data) => request('PUT', `/apple/${id}`, data),
       eliminar:  (id)       => request('DELETE', `/apple/${id}`),
     },
@@ -88,6 +89,7 @@ const API = (() => {
     // ── Oppo Original ───────────────────────
     oppo: {
       listar: (params = {}) => request('GET', '/oppo?' + new URLSearchParams(params)),
+      crear:     (data)      => request('POST', '/oppo', data),
       actualizar:(id, data) => request('PUT', `/oppo/${id}`, data),
       eliminar:  (id)       => request('DELETE', `/oppo/${id}`),
     },
@@ -95,6 +97,7 @@ const API = (() => {
     // ── Teléfonos ───────────────────────────
     telefonos: {
       listar: (params = {}) => request('GET', '/telefonos?' + new URLSearchParams(params)),
+      crear:     (data)      => request('POST', '/telefonos', data),
       actualizar:(id, data) => request('PUT', `/telefonos/${id}`, data),
       eliminar:  (id)       => request('DELETE', `/telefonos/${id}`),
     },
