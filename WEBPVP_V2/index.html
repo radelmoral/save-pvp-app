@@ -269,16 +269,19 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
     <div class="sb-sec">Catálogo</div>
     <button class="sb-item" onclick="nav('repuestos',this)">
       <span class="ic">🔧</span> Repuestos
-      <span class="sb-badge">2.252</span>
+      <span class="sb-badge" id="sbCountRepuestos">—</span>
     </button>
     <button class="sb-item" onclick="nav('telefonos',this)">
       <span class="ic">📱</span> Teléfonos
+      <span class="sb-badge" id="sbCountTelefonos">—</span>
     </button>
     <button class="sb-item" onclick="nav('apple',this)">
       <span class="ic">🍎</span> Apple Original
+      <span class="sb-badge" id="sbCountApple">—</span>
     </button>
     <button class="sb-item" onclick="nav('oppo',this)">
       <span class="ic">📲</span> Oppo Original
+      <span class="sb-badge" id="sbCountOppo">—</span>
     </button>
 
     <div class="sb-sec">Operaciones</div>
@@ -1357,6 +1360,7 @@ async function guardarNuevaReferenciaAPI() {
     const catEl = document.getElementById('newRefCategoria');
     if (catEl) catEl.value = '';
     await loadDashboard();
+    await refreshSidebarCatalogCounts();
     toast(`Referencia creada en ${destino}`, 'ok');
   } catch (e) {
     toast('Error: ' + e.message, 'err');
@@ -1380,6 +1384,31 @@ function toast(msg, type='ok') {
 // ══════════════════════════════════════════════════
 
 const API_AVAILABLE = typeof API !== 'undefined';
+
+function setSidebarCatalogCount(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const num = Number(value);
+  el.textContent = Number.isFinite(num) ? num.toLocaleString('es-ES') : '—';
+}
+
+async function refreshSidebarCatalogCounts() {
+  if (!API_AVAILABLE) return;
+  try {
+    const [repRes, telRes, appleRes, oppoRes] = await Promise.allSettled([
+      API.repuestos.listar({ page: 1, limit: 1 }),
+      API.telefonos.listar({ page: 1, limit: 1 }),
+      API.apple.listar({ page: 1, limit: 1 }),
+      API.oppo.listar({ page: 1, limit: 1 }),
+    ]);
+    setSidebarCatalogCount('sbCountRepuestos', repRes.status === 'fulfilled' ? repRes.value.total : null);
+    setSidebarCatalogCount('sbCountTelefonos', telRes.status === 'fulfilled' ? telRes.value.total : null);
+    setSidebarCatalogCount('sbCountApple', appleRes.status === 'fulfilled' ? appleRes.value.total : null);
+    setSidebarCatalogCount('sbCountOppo', oppoRes.status === 'fulfilled' ? oppoRes.value.total : null);
+  } catch (e) {
+    console.warn('No se pudieron actualizar contadores del catálogo:', e.message);
+  }
+}
 
 /** Carga las solicitudes PVP desde la API y las renderiza */
 async function loadSolicitudesFromAPI() {
@@ -1542,6 +1571,7 @@ async function aprobarSolicitud() {
     toast(`Referencia ${document.getElementById('pvpRef').value} añadida a la BBDD`, 'ok');
     loadSolicitudesFromAPI();
     loadRepuestosFromAPI();
+    refreshSidebarCatalogCounts();
     _currentSolicitudId = null;
   } catch(e) {
     toast('Error: '+e.message, 'err');
@@ -1579,6 +1609,8 @@ async function eliminarRepuesto(referencia, btn) {
   try {
     await API.repuestos.eliminar(referencia);
     btn.closest('tr').remove();
+    loadRepuestosFromAPI({ page: _repPage });
+    refreshSidebarCatalogCounts();
     toast('Repuesto eliminado','ok');
   } catch(e) {
     toast('Error: '+e.message,'err');
@@ -1782,21 +1814,21 @@ function editarTelefono(ref, marca, modelo, etiqueta, pvp) {
 async function eliminarApple(ref) {
   if (!isAdminRole()) return toast('Solo admin puede eliminar', 'warn');
   if (!confirm(`¿Eliminar referencia Apple ${ref}?`)) return;
-  try { await API.apple.eliminar(ref); toast('Apple eliminado', 'ok'); loadAppleFromAPI(_applePage); }
+  try { await API.apple.eliminar(ref); toast('Apple eliminado', 'ok'); loadAppleFromAPI(_applePage); refreshSidebarCatalogCounts(); }
   catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 
 async function eliminarOppo(ref) {
   if (!isAdminRole()) return toast('Solo admin puede eliminar', 'warn');
   if (!confirm(`¿Eliminar referencia Oppo ${ref}?`)) return;
-  try { await API.oppo.eliminar(ref); toast('Oppo eliminado', 'ok'); loadOppoFromAPI(_oppoPage); }
+  try { await API.oppo.eliminar(ref); toast('Oppo eliminado', 'ok'); loadOppoFromAPI(_oppoPage); refreshSidebarCatalogCounts(); }
   catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 
 async function eliminarTelefono(ref) {
   if (!isAdminRole()) return toast('Solo admin puede eliminar', 'warn');
   if (!confirm(`¿Eliminar teléfono ${ref}?`)) return;
-  try { await API.telefonos.eliminar(ref); toast('Teléfono eliminado', 'ok'); loadTelefonosFromAPI(_telPage); }
+  try { await API.telefonos.eliminar(ref); toast('Teléfono eliminado', 'ok'); loadTelefonosFromAPI(_telPage); refreshSidebarCatalogCounts(); }
   catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 
@@ -2191,6 +2223,7 @@ window.addEventListener('load', async () => {
   loadUsuariosFromAPI();
   loadMisSolicitudesFromAPI();
   loadDashboard();
+  refreshSidebarCatalogCounts();
 });
 </script>
 
