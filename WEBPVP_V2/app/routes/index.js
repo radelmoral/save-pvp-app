@@ -54,5 +54,6 @@ router.put ('/solicitudes/:id/rechazar', auth, role('admin'), solicCtrl.rechazar
 router.get ('/usuarios',      auth, role('admin'), usuariosCtrl.listar);
 router.post('/usuarios',      auth, role('admin'), usuariosCtrl.crear);
 router.put ('/usuarios/:id',  auth, role('admin'), usuariosCtrl.actualizar);
+router.delete('/usuarios/:id',auth, role('admin'), usuariosCtrl.eliminar);
 
 module.exports = router;
