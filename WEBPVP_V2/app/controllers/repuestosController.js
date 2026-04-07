@@ -1,4 +1,5 @@
 const db = require('../config/db');
+let _repuestosColsCache = null;
 
 function addTokenizedSearch(where, params, q, columns) {
   const raw = String(q || '').trim();
@@ -37,6 +38,75 @@ function addTokenizedSearch(where, params, q, columns) {
       params.push(`%${tkNorm}%`);
     });
   });
+}
+
+async function getRepuestosColumns() {
+  if (_repuestosColsCache) return _repuestosColsCache;
+  const [rows] = await db.execute(
+    `SELECT COLUMN_NAME
+       FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'repuestos'`
+  );
+  _repuestosColsCache = new Set(rows.map(r => r.COLUMN_NAME));
+  return _repuestosColsCache;
+}
+
+/** GET /api/dashboard/resumen */
+async function dashboardResumen(req, res) {
+  try {
+    const cols = await getRepuestosColumns();
+    const hasCreatedAt = cols.has('created_at');
+    const hasUpdatedAt = cols.has('updated_at');
+    const hasId = cols.has('id');
+
+    let latestOrder = 'referencia DESC';
+    if (hasCreatedAt) latestOrder = 'created_at DESC, referencia DESC';
+    else if (hasUpdatedAt) latestOrder = 'updated_at DESC, referencia DESC';
+    else if (hasId) latestOrder = 'id DESC';
+
+    const [
+      [[repCount]],
+      [[telCount]],
+      [catRows],
+      [marcaRows],
+      [latestRows],
+    ] = await Promise.all([
+      db.execute(`SELECT COUNT(*) AS total FROM repuestos`),
+      db.execute(`SELECT COUNT(*) AS total FROM telefonos`),
+      db.execute(
+        `SELECT COALESCE(NULLIF(TRIM(categoria), ''), 'Sin categoría') AS nombre, COUNT(*) AS total
+           FROM repuestos
+          GROUP BY COALESCE(NULLIF(TRIM(categoria), ''), 'Sin categoría')
+          ORDER BY total DESC
+          LIMIT 6`
+      ),
+      db.execute(
+        `SELECT COALESCE(NULLIF(TRIM(marca), ''), 'Sin marca') AS nombre, COUNT(*) AS total
+           FROM repuestos
+          GROUP BY COALESCE(NULLIF(TRIM(marca), ''), 'Sin marca')
+          ORDER BY total DESC
+          LIMIT 6`
+      ),
+      db.execute(
+        `SELECT referencia, marca, categoria, modelo, etiqueta, pvp, pvp_clubsave
+           FROM repuestos
+          ORDER BY ${latestOrder}
+          LIMIT 5`
+      ),
+    ]);
+
+    res.json({
+      totalRepuestos: Number(repCount.total || 0),
+      totalTelefonos: Number(telCount.total || 0),
+      topCategorias: catRows,
+      topMarcas: marcaRows,
+      ultimasReferencias: latestRows,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al cargar resumen de dashboard' });
+  }
 }
 
 /**
@@ -441,6 +511,7 @@ module.exports = {
   listarApple, crearApple, actualizarApple, eliminarApple,
   listarOppo, crearOppo, actualizarOppo, eliminarOppo,
   listarTelefonos, crearTelefono, actualizarTelefono, eliminarTelefono,
+  dashboardResumen,
   busquedaGlobal,
   listarCategorias,
 };
