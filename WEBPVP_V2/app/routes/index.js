@@ -26,16 +26,19 @@ router.get ('/busqueda-global',  auth, repCtrl.busquedaGlobal);
 
 // ── Apple Original ────────────────────────────────────────
 router.get('/apple', auth, repCtrl.listarApple);
+router.post('/apple', auth, role('admin'), repCtrl.crearApple);
 router.put('/apple/:id', auth, role('admin'), repCtrl.actualizarApple);
 router.delete('/apple/:id', auth, role('admin'), repCtrl.eliminarApple);
 
 // ── Oppo Original ─────────────────────────────────────────
 router.get('/oppo', auth, repCtrl.listarOppo);
+router.post('/oppo', auth, role('admin'), repCtrl.crearOppo);
 router.put('/oppo/:id', auth, role('admin'), repCtrl.actualizarOppo);
 router.delete('/oppo/:id', auth, role('admin'), repCtrl.eliminarOppo);
 
 // ── Teléfonos ─────────────────────────────────────────────
 router.get('/telefonos', auth, repCtrl.listarTelefonos);
+router.post('/telefonos', auth, role('admin'), repCtrl.crearTelefono);
 router.put('/telefonos/:id', auth, role('admin'), repCtrl.actualizarTelefono);
 router.delete('/telefonos/:id', auth, role('admin'), repCtrl.eliminarTelefono);
 
