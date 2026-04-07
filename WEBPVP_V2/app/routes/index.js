@@ -44,6 +44,7 @@ router.delete('/telefonos/:id', auth, role('admin'), repCtrl.eliminarTelefono);
 
 // ── Solicitudes PVP ───────────────────────────────────────
 router.get ('/solicitudes',              auth, solicCtrl.listar);
+router.get ('/solicitudes/validar-referencia', auth, solicCtrl.validarReferencia);
 router.post('/solicitudes',              auth, solicCtrl.crear);
 router.put ('/solicitudes/:id/aprobar',  auth, role('admin'), solicCtrl.aprobar);
 router.put ('/solicitudes/:id/rechazar', auth, role('admin'), solicCtrl.rechazar);
