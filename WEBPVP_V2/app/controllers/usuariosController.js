@@ -79,6 +79,32 @@ async function actualizar(req, res) {
   }
 }
 
+/** DELETE /api/usuarios/:id  — solo admin */
+async function eliminar(req, res) {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'ID de usuario inválido' });
+  }
+
+  // Evitar borrado del propio usuario admin en sesión.
+  if (req.user?.id === id) {
+    return res.status(400).json({ error: 'No puedes eliminar tu propio usuario en sesión' });
+  }
+
+  try {
+    const [result] = await db.execute(
+      'DELETE FROM usuarios WHERE id_usuario = ?',
+      [id]
+    );
+    if (!result.affectedRows) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    res.json({ message: 'Usuario eliminado correctamente' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al eliminar usuario' });
+  }
+}
+
 /** GET /api/categorias — extraídas dinámicamente de la tabla repuestos */
 async function listarCategorias(req, res) {
   // Delegado al repuestosController para centralizar
@@ -97,4 +123,4 @@ async function crearCategoria(req, res) {
   res.status(201).json({ nombre: nombre.trim(), message: 'Categoría registrada — se aplicará al crear el primer repuesto con este nombre' });
 }
 
-module.exports = { listar, crear, actualizar, listarCategorias, crearCategoria };
+module.exports = { listar, crear, actualizar, eliminar, listarCategorias, crearCategoria };
