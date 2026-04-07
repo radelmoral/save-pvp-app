@@ -74,6 +74,7 @@ const API = (() => {
       listar:    ()           => request('GET', '/usuarios'),
       crear:     (data)       => request('POST', '/usuarios', data),
       actualizar:(id, data)   => request('PUT', `/usuarios/${id}`, data),
+      eliminar:  (id)         => request('DELETE', `/usuarios/${id}`),
     },
 
     // ── Categorías ──────────────────────────
