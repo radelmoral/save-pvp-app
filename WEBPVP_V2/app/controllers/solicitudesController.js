@@ -26,12 +26,40 @@ async function buscarReferenciaExistente(referenciaRaw) {
   if (!referencia) return { existe: false };
 
   const refParam = referencia.toUpperCase();
+  const refNorm = refParam.replace(/[.\s\-_]/g, '');
+  const normExpr = "UPPER(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(referencia), ' ', ''), '-', ''), '.', ''), '_', ''))";
   const checks = await Promise.all([
-    db.execute(`SELECT referencia FROM repuestos WHERE UPPER(referencia) = ? LIMIT 1`, [refParam]),
-    db.execute(`SELECT referencia FROM telefonos WHERE UPPER(referencia) = ? LIMIT 1`, [refParam]),
-    db.execute(`SELECT referencia FROM apple_original WHERE UPPER(referencia) = ? LIMIT 1`, [refParam]),
-    db.execute(`SELECT referencia FROM oppo_original WHERE UPPER(referencia) = ? LIMIT 1`, [refParam]),
-    db.execute(`SELECT id FROM solicitudes_pvp WHERE UPPER(referencia) = ? AND estado = 'pendiente' LIMIT 1`, [refParam]),
+    db.execute(
+      `SELECT referencia FROM repuestos
+       WHERE UPPER(TRIM(referencia)) = ? OR ${normExpr} = ?
+       LIMIT 1`,
+      [refParam, refNorm]
+    ),
+    db.execute(
+      `SELECT referencia FROM telefonos
+       WHERE UPPER(TRIM(referencia)) = ? OR ${normExpr} = ?
+       LIMIT 1`,
+      [refParam, refNorm]
+    ),
+    db.execute(
+      `SELECT referencia FROM apple_original
+       WHERE UPPER(TRIM(referencia)) = ? OR ${normExpr} = ?
+       LIMIT 1`,
+      [refParam, refNorm]
+    ),
+    db.execute(
+      `SELECT referencia FROM oppo_original
+       WHERE UPPER(TRIM(referencia)) = ? OR ${normExpr} = ?
+       LIMIT 1`,
+      [refParam, refNorm]
+    ),
+    db.execute(
+      `SELECT id FROM solicitudes_pvp
+       WHERE (UPPER(TRIM(referencia)) = ? OR ${normExpr} = ?)
+         AND estado = 'pendiente'
+       LIMIT 1`,
+      [refParam, refNorm]
+    ),
   ]);
 
   const [repRows] = checks[0];
