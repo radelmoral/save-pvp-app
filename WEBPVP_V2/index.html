@@ -511,6 +511,14 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
             <input class="finp" id="solCoste" type="number" step="0.01" placeholder="0.00" />
           </div>
           <div class="ff">
+            <label>Marca *</label>
+            <input class="finp" id="solMarca" placeholder="Ej: HUAWEI" />
+          </div>
+          <div class="ff">
+            <label>Modelo *</label>
+            <input class="finp" id="solModelo" placeholder="Ej: P20" />
+          </div>
+          <div class="ff">
             <label>Proveedor *</label>
             <select class="finp" id="solProv">
               <option value="">— Selecciona proveedor —</option>
@@ -585,7 +593,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
       </div>
       <div class="tw">
         <table>
-          <thead><tr><th>Referencia</th><th>Descripción</th><th>Proveedor</th><th>Coste</th><th>Solicitado por</th><th>Fecha</th><th>Estado</th><th style="text-align:center;">Acción</th></tr></thead>
+          <thead><tr><th>Referencia</th><th>Marca</th><th>Modelo</th><th>Descripción</th><th>Proveedor</th><th>Coste</th><th>Solicitado por</th><th>Fecha</th><th>Estado</th><th style="text-align:center;">Acción</th></tr></thead>
           <tbody id="tbAdminSolicitudes"></tbody>
         </table>
       </div>
@@ -646,6 +654,8 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
       <div class="fg">
         <div class="ff"><label>Referencia ✏️</label><input class="finp" id="pvpRef" placeholder="Referencia"/></div>
         <div class="ff"><label>Coste informado (€) ✏️</label><input class="finp" id="pvpCoste" type="number" step="0.01" placeholder="0.00"/></div>
+        <div class="ff"><label>Marca ✏️</label><input class="finp" id="pvpMarca" placeholder="Marca"/></div>
+        <div class="ff"><label>Modelo ✏️</label><input class="finp" id="pvpModelo" placeholder="Modelo"/></div>
         <div class="ff full"><label>Descripción ✏️</label><input class="finp" id="pvpDesc" placeholder="Descripción del artículo"/></div>
         <div class="ff"><label>PVP a asignar (€) *</label><input class="finp" id="pvpValor" type="number" step="0.01" placeholder="0.00" autofocus/></div>
         <div class="ff"><label>PVP Club SAVE (€)</label><input class="finp" id="pvpClub" type="number" step="0.01" placeholder="0.00 (se calcula auto)"/></div>
@@ -976,12 +986,18 @@ function filtrarAdminSolicitudes() {
 function enviarSolicitud() {
   const ref  = document.getElementById('solRef').value.trim();
   const cost = document.getElementById('solCoste').value.trim();
+  const marca = document.getElementById('solMarca').value.trim();
+  const modelo = document.getElementById('solModelo').value.trim();
   const prov = document.getElementById('solProv').value;
-  if(!ref || !cost || !prov) { toast('Rellena todos los campos obligatorios','warn'); return; }
+  if(!ref || !cost || !marca || !modelo || !prov) { toast('Rellena todos los campos obligatorios','warn'); return; }
   const refHTML = escHTML(ref);
+  const marcaHTML = escHTML(marca);
+  const modeloHTML = escHTML(modelo);
   const provHTML = escHTML(prov);
   const refJS = escJS(ref);
   const costJS = escJS(cost);
+  const marcaJS = escJS(marca);
+  const modeloJS = escJS(modelo);
   // Add to mis solicitudes table
   const tb = document.getElementById('tbMisSolicitudes');
   const tr = document.createElement('tr');
@@ -1003,6 +1019,8 @@ function enviarSolicitud() {
   trA.setAttribute('data-estado','pendiente');
   trA.innerHTML = `
     <td class="td-ref">${refHTML}</td>
+    <td>${marcaHTML}</td>
+    <td>${modeloHTML}</td>
     <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${descHTML}</td>
     <td>${provHTML}</td>
     <td class="price">${parseFloat(cost).toFixed(2)} €</td>
@@ -1011,7 +1029,7 @@ function enviarSolicitud() {
     <td><span class="pvp-status-pending">⏳ Pendiente</span></td>
     <td>
       <div class="abtns" style="justify-content:center;">
-        <button class="btn btn-green" style="font-size:11px;padding:5px 10px;" onclick="openModalPVP('${refJS}','${descJS}','${costJS}')">✅ Asignar PVP</button>
+        <button class="btn btn-green" style="font-size:11px;padding:5px 10px;" onclick="openModalPVP('${refJS}','${descJS}','${costJS}','${marcaJS}','${modeloJS}')">✅ Asignar PVP</button>
         <button class="ab d" onclick="rechazarSolicitud(this)" title="Rechazar">✕</button>
       </div>
     </td>`;
@@ -1019,7 +1037,7 @@ function enviarSolicitud() {
   // Update badge & counter
   updatePendientes(+1);
   // Clear form
-  ['solRef','solCoste','solDesc','solObs'].forEach(id => document.getElementById(id).value='');
+  ['solRef','solCoste','solMarca','solModelo','solDesc','solObs'].forEach(id => document.getElementById(id).value='');
   document.getElementById('solProv').value='';
   toast('Solicitud enviada correctamente. El admin recibirá la notificación.','ok');
 }
@@ -1028,11 +1046,13 @@ function enviarSolicitud() {
 let currentPVPRow = null;
 let _currentPVPRef = '';
 
-function openModalPVP(ref, desc, coste) {
+function openModalPVP(ref, desc, coste, marca = '', modelo = '') {
   _currentPVPRef = ref;
   document.getElementById('pvpRef').value   = ref;
   document.getElementById('pvpDesc').value  = desc;
   document.getElementById('pvpCoste').value = parseFloat(coste).toFixed(2);
+  document.getElementById('pvpMarca').value = marca || '';
+  document.getElementById('pvpModelo').value = modelo || '';
   document.getElementById('pvpValor').value = '';
   document.getElementById('pvpClub').value  = '';
   document.getElementById('pvpDestinoCatalogo').value = 'repuestos';
@@ -1059,8 +1079,11 @@ function aprobarSolicitud() {
   // Leer ref desde el campo editable (puede haber sido corregido)
   const ref  = document.getElementById('pvpRef').value.trim() || _currentPVPRef;
   const desc = document.getElementById('pvpDesc').value.trim();
+  const marca = document.getElementById('pvpMarca').value.trim();
+  const modelo = document.getElementById('pvpModelo').value.trim();
   const coste = document.getElementById('pvpCoste').value;
   if(!pvp || isNaN(pvp)) { toast('Introduce un PVP válido','warn'); return; }
+  if(!marca || !modelo) { toast('Marca y modelo son obligatorios','warn'); return; }
 
   // Gestionar nueva categoría
   const catSel = document.getElementById('pvpCat');
@@ -1094,8 +1117,10 @@ function aprobarSolicitud() {
       row.setAttribute('data-estado','aprobado');
       refCell.textContent = ref; // actualizar si fue editado
       const cells = row.querySelectorAll('td');
-      cells[6].innerHTML = `<span class="pvp-status-done">✅ Aprobado — ${parseFloat(pvp).toFixed(2)} €</span>`;
-      cells[7].innerHTML = `<span style="font-size:11px;color:var(--g400)">Añadida a BBDD</span>`;
+      if (cells[1]) cells[1].textContent = marca;
+      if (cells[2]) cells[2].textContent = modelo;
+      cells[8].innerHTML = `<span class="pvp-status-done">✅ Aprobado — ${parseFloat(pvp).toFixed(2)} €</span>`;
+      cells[9].innerHTML = `<span style="font-size:11px;color:var(--g400)">Añadida a BBDD</span>`;
     }
   });
   // Update "mis solicitudes" row
@@ -1288,6 +1313,8 @@ async function loadSolicitudesFromAPI() {
       tr.setAttribute('data-estado', s.estado);
       tr.setAttribute('data-id', s.id);
       const ref = escHTML(s.referencia);
+      const marca = escHTML(s.marca || '—');
+      const modelo = escHTML(s.modelo || '—');
       const desc = escHTML(s.descripcion || '—');
       const proveedor = escHTML(s.proveedor || '—');
       const solicitante = escHTML(s.solicitante || '—');
@@ -1300,7 +1327,7 @@ async function loadSolicitudesFromAPI() {
         s.estado === 'pendiente'
           ? `<div class="abtns" style="justify-content:center;">
                <button class="btn btn-green" style="font-size:11px;padding:5px 10px;"
-                 onclick="openModalPVPById(${s.id},'${escJS(s.referencia)}','${escJS(s.descripcion||'')}',${s.coste})">✅ Asignar PVP</button>
+                 onclick="openModalPVPById(${s.id},'${escJS(s.referencia)}','${escJS(s.descripcion||'')}',${s.coste},'${escJS(s.marca||'')}','${escJS(s.modelo||'')}')">✅ Asignar PVP</button>
                <button class="ab d" onclick="rechazarSolicitudById(${s.id},'${escJS(s.referencia)}')" title="Rechazar">✕</button>
              </div>`
           : s.estado === 'rechazado' && s.motivo_rechazo
@@ -1313,6 +1340,8 @@ async function loadSolicitudesFromAPI() {
 
       tr.innerHTML = `
         <td class="td-ref">${ref}</td>
+        <td>${marca}</td>
+        <td>${modelo}</td>
         <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${desc}${motivoRow}</td>
         <td>${proveedor}</td>
         <td class="price">${formatMoney(s.coste)} €</td>
@@ -1360,12 +1389,14 @@ async function loadCategoriasFromAPI() {
 }
 
 /** Versiones de openModalPVP que trabajan con IDs reales */
-function openModalPVPById(id, ref, desc, coste) {
+function openModalPVPById(id, ref, desc, coste, marca = '', modelo = '') {
   _currentSolicitudId = id;
   _currentPVPRef = ref;
   document.getElementById('pvpRef').value   = ref;
   document.getElementById('pvpDesc').value  = desc;
   document.getElementById('pvpCoste').value = parseFloat(coste).toFixed(2);
+  document.getElementById('pvpMarca').value = marca || '';
+  document.getElementById('pvpModelo').value = modelo || '';
   document.getElementById('pvpValor').value = '';
   document.getElementById('pvpClub').value  = '';
   document.getElementById('pvpDestinoCatalogo').value = 'repuestos';
@@ -1391,7 +1422,10 @@ async function aprobarSolicitud() {
   if (!API_AVAILABLE || !_currentSolicitudId) { _aprobarOriginal(); return; }
 
   const pvp  = parseFloat(document.getElementById('pvpValor').value);
+  const marca = document.getElementById('pvpMarca').value.trim();
+  const modelo = document.getElementById('pvpModelo').value.trim();
   if (!pvp || pvp <= 0) { toast('Introduce un PVP válido','warn'); return; }
+  if (!marca || !modelo) { toast('Marca y modelo son obligatorios','warn'); return; }
 
   const catSel = document.getElementById('pvpCat');
   // Crear nueva categoría en la API si aplica
@@ -1411,6 +1445,8 @@ async function aprobarSolicitud() {
     await API.solicitudes.aprobar(_currentSolicitudId, {
       referencia:       document.getElementById('pvpRef').value.trim(),
       descripcion:      document.getElementById('pvpDesc').value.trim(),
+      marca,
+      modelo,
       coste:            parseFloat(document.getElementById('pvpCoste').value),
       pvp_asignado:     pvp,
       pvp_club_asignado: parseFloat(document.getElementById('pvpClub').value) || null,
@@ -1469,18 +1505,22 @@ async function enviarSolicitudAPI() {
 
   const ref  = document.getElementById('solRef').value.trim();
   const cost = document.getElementById('solCoste').value;
+  const marca = document.getElementById('solMarca').value.trim();
+  const modelo = document.getElementById('solModelo').value.trim();
   const prov = document.getElementById('solProv').value;
-  if (!ref || !cost || !prov) { toast('Rellena todos los campos obligatorios','warn'); return; }
+  if (!ref || !cost || !marca || !modelo || !prov) { toast('Rellena todos los campos obligatorios','warn'); return; }
 
   try {
     await API.solicitudes.crear({
       referencia:   ref,
+      marca,
+      modelo,
       coste:        parseFloat(cost),
       proveedor:    prov,
       descripcion:  document.getElementById('solDesc').value,
       observaciones:document.getElementById('solObs').value,
     });
-    ['solRef','solCoste','solDesc','solObs'].forEach(id => { document.getElementById(id).value=''; });
+    ['solRef','solCoste','solMarca','solModelo','solDesc','solObs'].forEach(id => { document.getElementById(id).value=''; });
     document.getElementById('solProv').value='';
     toast('Solicitud enviada correctamente','ok');
     await Promise.allSettled([
