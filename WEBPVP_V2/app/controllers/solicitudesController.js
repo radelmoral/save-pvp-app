@@ -21,6 +21,47 @@ async function ensureSolicitudesSchema() {
   _schemaReady = true;
 }
 
+async function buscarReferenciaExistente(referenciaRaw) {
+  const referencia = String(referenciaRaw || '').trim();
+  if (!referencia) return { existe: false };
+
+  const refParam = referencia.toUpperCase();
+  const checks = await Promise.all([
+    db.execute(`SELECT referencia FROM repuestos WHERE UPPER(referencia) = ? LIMIT 1`, [refParam]),
+    db.execute(`SELECT referencia FROM telefonos WHERE UPPER(referencia) = ? LIMIT 1`, [refParam]),
+    db.execute(`SELECT referencia FROM apple_original WHERE UPPER(referencia) = ? LIMIT 1`, [refParam]),
+    db.execute(`SELECT referencia FROM oppo_original WHERE UPPER(referencia) = ? LIMIT 1`, [refParam]),
+    db.execute(`SELECT id FROM solicitudes_pvp WHERE UPPER(referencia) = ? AND estado = 'pendiente' LIMIT 1`, [refParam]),
+  ]);
+
+  const [repRows] = checks[0];
+  if (repRows.length) return { existe: true, origen: 'repuestos', tipo: 'catalogo' };
+  const [telRows] = checks[1];
+  if (telRows.length) return { existe: true, origen: 'telefonos', tipo: 'catalogo' };
+  const [appleRows] = checks[2];
+  if (appleRows.length) return { existe: true, origen: 'apple', tipo: 'catalogo' };
+  const [oppoRows] = checks[3];
+  if (oppoRows.length) return { existe: true, origen: 'oppo', tipo: 'catalogo' };
+  const [pendRows] = checks[4];
+  if (pendRows.length) return { existe: true, origen: 'solicitud_pendiente', tipo: 'solicitud' };
+
+  return { existe: false };
+}
+
+/** GET /api/solicitudes/validar-referencia?referencia=... */
+async function validarReferencia(req, res) {
+  try {
+    await ensureSolicitudesSchema();
+    const referencia = String(req.query.referencia || '').trim();
+    if (!referencia) return res.status(400).json({ error: 'referencia es obligatoria' });
+    const result = await buscarReferenciaExistente(referencia);
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error validando referencia' });
+  }
+}
+
 /**
  * Tabla: `solicitudes_pvp` (creada con migrate.sql)
  * Usa `categoria` como texto libre (igual que en repuestos)
@@ -76,6 +117,13 @@ async function crear(req, res) {
 
   try {
     await ensureSolicitudesSchema();
+    const existente = await buscarReferenciaExistente(referencia);
+    if (existente.existe) {
+      const msg = existente.tipo === 'solicitud'
+        ? 'Ya existe una solicitud pendiente para esa referencia'
+        : `La referencia ya existe en el catálogo ${existente.origen}`;
+      return res.status(409).json({ error: msg, ...existente });
+    }
     const [result] = await db.execute(
       `INSERT INTO solicitudes_pvp
          (referencia, descripcion, categoria, marca, modelo, coste, proveedor, observaciones, usuario_id)
@@ -230,4 +278,4 @@ async function rechazar(req, res) {
   }
 }
 
-module.exports = { listar, crear, aprobar, rechazar };
+module.exports = { listar, crear, aprobar, rechazar, validarReferencia };
