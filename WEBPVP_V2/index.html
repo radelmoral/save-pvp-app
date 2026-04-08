@@ -716,7 +716,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <div class="ff"><label>Marca</label><input class="finp" id="newRefMarca" placeholder="Ej: HUAWEI"/></div>
         <div class="ff"><label>Modelo</label><input class="finp" id="newRefModelo" placeholder="Ej: Mate 9"/></div>
         <div class="ff full"><label>Etiqueta</label><input class="finp" id="newRefEtiqueta" placeholder="Ej: Pantalla Huawei Mate 9 Negro"/></div>
-        <div class="ff"><label>PVP (€)</label><input class="finp" id="newRefPvp" type="number" step="0.01" placeholder="0.00"/></div>
+        <div class="ff"><label>PVP (€)</label><input class="finp" id="newRefPvp" type="number" step="0.01" placeholder="0.00" oninput="syncNewRefPvpClubFromPvp()"/></div>
         <div class="ff" id="newRefPvpClubWrap"><label>PVP Club SAVE (€)</label><input class="finp" id="newRefPvpClub" type="number" step="0.01" placeholder="0.00"/></div>
       </div>
     </div>
@@ -1564,6 +1564,20 @@ function onNewRefCatalogoChange() {
   const pvpClubWrap = document.getElementById('newRefPvpClubWrap');
   if (categoriaWrap) categoriaWrap.style.display = showCategoria ? '' : 'none';
   if (pvpClubWrap) pvpClubWrap.style.display = showPvpClub ? '' : 'none';
+  syncNewRefPvpClubFromPvp();
+}
+
+function syncNewRefPvpClubFromPvp() {
+  if (!isAdminRole()) return;
+  const destino = document.getElementById('newRefCatalogo')?.value || 'repuestos';
+  if (destino !== 'repuestos') return;
+  const pvpEl = document.getElementById('newRefPvp');
+  const clubEl = document.getElementById('newRefPvpClub');
+  if (!pvpEl || !clubEl) return;
+  const raw = String(pvpEl.value || '').trim();
+  const pvp = Number(raw);
+  if (!raw || !Number.isFinite(pvp) || pvp < 0) return;
+  clubEl.value = (pvp * 0.85).toFixed(2);
 }
 
 async function guardarNuevaReferenciaAPI() {
