@@ -13,8 +13,9 @@ async function ensureReportesSchema() {
       modelo VARCHAR(160) NULL,
       etiqueta VARCHAR(255) NULL,
       motivo TEXT NOT NULL,
-      estado ENUM('pendiente', 'resuelto') NOT NULL DEFAULT 'pendiente',
+      estado ENUM('pendiente', 'resuelto', 'rechazado') NOT NULL DEFAULT 'pendiente',
       comentario_admin TEXT NULL,
+      motivo_rechazo TEXT NULL,
       usuario_id INT NOT NULL,
       admin_id INT NULL,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -28,10 +29,11 @@ async function ensureReportesSchema() {
        FROM INFORMATION_SCHEMA.COLUMNS
       WHERE TABLE_SCHEMA = DATABASE()
         AND TABLE_NAME = 'reportes_referencias'
-        AND COLUMN_NAME IN ('tipo_reporte', 'pvp_reportado')`
+        AND COLUMN_NAME IN ('tipo_reporte', 'pvp_reportado', 'motivo_rechazo')`
   );
   const hasTipo = cols.some(c => c.COLUMN_NAME === 'tipo_reporte');
   const hasPvp = cols.some(c => c.COLUMN_NAME === 'pvp_reportado');
+  const hasMotivoRechazo = cols.some(c => c.COLUMN_NAME === 'motivo_rechazo');
   if (!hasTipo) {
     await db.execute(
       `ALTER TABLE reportes_referencias
@@ -44,6 +46,16 @@ async function ensureReportesSchema() {
        ADD COLUMN pvp_reportado DECIMAL(10,2) NULL AFTER tipo_reporte`
     );
   }
+  if (!hasMotivoRechazo) {
+    await db.execute(
+      `ALTER TABLE reportes_referencias
+       ADD COLUMN motivo_rechazo TEXT NULL AFTER comentario_admin`
+    );
+  }
+  await db.execute(
+    `ALTER TABLE reportes_referencias
+     MODIFY COLUMN estado ENUM('pendiente','resuelto','rechazado') NOT NULL DEFAULT 'pendiente'`
+  );
   _schemaReady = true;
 }
 
@@ -68,7 +80,7 @@ async function listar(req, res) {
     const [rows] = await db.execute(
       `SELECT r.id, r.referencia, r.catalogo, r.categoria, r.marca, r.modelo, r.etiqueta,
               r.tipo_reporte, r.pvp_reportado,
-              r.motivo, r.estado, r.comentario_admin, r.created_at, r.updated_at,
+              r.motivo, r.estado, r.comentario_admin, r.motivo_rechazo, r.created_at, r.updated_at,
               u.nombre AS solicitante
        FROM reportes_referencias r
        LEFT JOIN usuarios u ON u.id_usuario = r.usuario_id
@@ -140,6 +152,7 @@ async function resolver(req, res) {
       `UPDATE reportes_referencias
        SET estado = 'resuelto',
            comentario_admin = ?,
+           motivo_rechazo = NULL,
            admin_id = ?
        WHERE id = ? AND estado = 'pendiente'`,
       [comentario_admin || null, req.user.id, req.params.id]
@@ -154,4 +167,29 @@ async function resolver(req, res) {
   }
 }
 
-module.exports = { listar, crear, resolver };
+/** PUT /api/reportes-referencias/:id/rechazar  — admin */
+async function rechazar(req, res) {
+  try {
+    await ensureReportesSchema();
+    const motivo = String(req.body?.motivo_rechazo || '').trim();
+    if (!motivo) return res.status(400).json({ error: 'El motivo del rechazo es obligatorio' });
+    const [result] = await db.execute(
+      `UPDATE reportes_referencias
+       SET estado = 'rechazado',
+           motivo_rechazo = ?,
+           comentario_admin = NULL,
+           admin_id = ?
+       WHERE id = ? AND estado = 'pendiente'`,
+      [motivo, req.user.id, req.params.id]
+    );
+    if (!result.affectedRows) {
+      return res.status(404).json({ error: 'Reporte no encontrado o ya procesado' });
+    }
+    res.json({ message: 'Reporte rechazado correctamente' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al rechazar reporte' });
+  }
+}
+
+module.exports = { listar, crear, resolver, rechazar };

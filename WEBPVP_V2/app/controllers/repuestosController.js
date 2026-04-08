@@ -71,6 +71,7 @@ async function dashboardResumen(req, res) {
       [catRows],
       [marcaRows],
       [latestRows],
+      [latestPvpRows],
     ] = await Promise.all([
       db.execute(`SELECT COUNT(*) AS total FROM repuestos`),
       db.execute(`SELECT COUNT(*) AS total FROM telefonos`),
@@ -94,6 +95,13 @@ async function dashboardResumen(req, res) {
           ORDER BY ${latestOrder}
           LIMIT 5`
       ),
+      db.execute(
+        `SELECT referencia, marca, categoria, modelo, etiqueta, pvp, pvp_clubsave
+           FROM repuestos
+          WHERE pvp IS NOT NULL
+          ORDER BY ${latestOrder}
+          LIMIT 5`
+      ),
     ]);
 
     res.json({
@@ -102,6 +110,7 @@ async function dashboardResumen(req, res) {
       topCategorias: catRows,
       topMarcas: marcaRows,
       ultimasReferencias: latestRows,
+      ultimosPvpModificados: latestPvpRows,
     });
   } catch (err) {
     console.error(err);
