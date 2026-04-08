@@ -53,6 +53,7 @@ input:focus { border-color: var(--save); box-shadow: 0 0 0 3px rgba(0,191,179,.1
   font-size: 13px; margin-bottom: 14px; display: none;
 }
 .footer { text-align: center; margin-top: 24px; font-size: 11px; color: var(--g500); }
+.hide { display: none; }
 </style>
 </head>
 <body>
@@ -65,7 +66,7 @@ input:focus { border-color: var(--save); box-shadow: 0 0 0 3px rgba(0,191,179,.1
 
   <div class="error" id="errorMsg"></div>
 
-  <form onsubmit="doLogin(event)">
+  <form id="loginForm" onsubmit="doLogin(event)">
     <div class="ff">
       <label>Usuario</label>
       <input type="text" id="username" placeholder="tu usuario" autocomplete="username" required />
@@ -77,15 +78,46 @@ input:focus { border-color: var(--save); box-shadow: 0 0 0 3px rgba(0,191,179,.1
     <button class="btn" type="submit" id="loginBtn">Entrar</button>
   </form>
 
+  <form id="forcePassForm" class="hide" onsubmit="submitFirstPasswordChange(event)">
+    <p class="subtitle" style="margin-bottom:14px;">Debes cambiar tu contraseña para continuar.</p>
+    <div class="ff">
+      <label>Nueva contraseña</label>
+      <input type="password" id="newPassword" placeholder="mínimo 6 caracteres" autocomplete="new-password" minlength="6" required />
+    </div>
+    <div class="ff">
+      <label>Repetir contraseña</label>
+      <input type="password" id="newPassword2" placeholder="repite la nueva contraseña" autocomplete="new-password" minlength="6" required />
+    </div>
+    <button class="btn" type="submit" id="forceBtn">Guardar nueva contraseña</button>
+  </form>
+
   <div class="footer">SAVE · Sistema interno · v1.0</div>
 </div>
 
 <script src="app/public/js/api.js?v=2"></script>
 <script>
+  function showError(msg) {
+    const err = document.getElementById('errorMsg');
+    err.textContent = msg || 'Error';
+    err.style.display = 'block';
+  }
+
+  function showForcePasswordUI() {
+    document.getElementById('loginForm').classList.add('hide');
+    document.getElementById('forcePassForm').classList.remove('hide');
+    document.getElementById('newPassword').focus();
+  }
+
   // Si ya hay token válido, redirigir al app
   if (API.getToken()) {
     API.me()
-      .then(() => { window.location.href = '/'; })
+      .then((user) => {
+        if (user?.mustChangePassword) {
+          showForcePasswordUI();
+        } else {
+          window.location.href = '/';
+        }
+      })
       .catch(() => API.clearToken());
   }
 
@@ -107,12 +139,37 @@ input:focus { border-color: var(--save); box-shadow: 0 0 0 3px rgba(0,191,179,.1
         throw new Error('No se recibió token. Respuesta: ' + JSON.stringify(res));
       }
       API.setToken(res.token);
-      window.location.href = '/';
+      if (res.forcePasswordChange || res?.user?.mustChangePassword) {
+        showForcePasswordUI();
+      } else {
+        window.location.href = '/';
+      }
     } catch (ex) {
       console.error('Login error:', ex);
-      err.textContent = ex.message || 'Error al iniciar sesión';
-      err.style.display = 'block';
+      showError(ex.message || 'Error al iniciar sesión');
       btn.textContent = 'Entrar';
+      btn.disabled = false;
+    }
+  }
+
+  async function submitFirstPasswordChange(e) {
+    e.preventDefault();
+    const btn = document.getElementById('forceBtn');
+    const p1 = document.getElementById('newPassword').value;
+    const p2 = document.getElementById('newPassword2').value;
+    document.getElementById('errorMsg').style.display = 'none';
+
+    if (!p1 || p1.length < 6) return showError('La nueva contraseña debe tener al menos 6 caracteres');
+    if (p1 !== p2) return showError('Las contraseñas no coinciden');
+
+    btn.textContent = 'Guardando…';
+    btn.disabled = true;
+    try {
+      await API.changePasswordFirstLogin(p1);
+      window.location.href = '/';
+    } catch (ex) {
+      showError(ex.message || 'No se pudo cambiar la contraseña');
+      btn.textContent = 'Guardar nueva contraseña';
       btn.disabled = false;
     }
   }

@@ -1712,6 +1712,10 @@ async function checkAuth() {
   if (!token) { window.location.href = '/login.html'; return false; }
   try {
     const user = await API.me();
+    if (user?.mustChangePassword) {
+      window.location.href = '/login.html?force=1';
+      return false;
+    }
     // Aplicar rol real primero (antes de eliminar los botones)
     setRole(user.rol);
     // Actualizar UI con datos reales del usuario (sobreescribe lo que puso setRole)
