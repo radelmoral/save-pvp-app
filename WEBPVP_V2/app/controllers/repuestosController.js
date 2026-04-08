@@ -1,5 +1,5 @@
 const db = require('../config/db');
-let _repuestosColsCache = null;
+const _tableColsCache = new Map();
 
 function addTokenizedSearch(where, params, q, columns) {
   const raw = String(q || '').trim();
@@ -40,48 +40,63 @@ function addTokenizedSearch(where, params, q, columns) {
   });
 }
 
-async function getRepuestosColumns() {
-  if (_repuestosColsCache) return _repuestosColsCache;
+async function getTableColumns(tableName) {
+  if (_tableColsCache.has(tableName)) return _tableColsCache.get(tableName);
   const [rows] = await db.execute(
     `SELECT COLUMN_NAME
        FROM INFORMATION_SCHEMA.COLUMNS
       WHERE TABLE_SCHEMA = DATABASE()
-        AND TABLE_NAME = 'repuestos'`
+        AND TABLE_NAME = ?`,
+    [tableName]
   );
-  _repuestosColsCache = new Set(rows.map(r => r.COLUMN_NAME));
-  return _repuestosColsCache;
+  const cols = new Set(rows.map(r => r.COLUMN_NAME));
+  _tableColsCache.set(tableName, cols);
+  return cols;
 }
 
 /** GET /api/dashboard/resumen */
 async function dashboardResumen(req, res) {
   try {
-    const cols = await getRepuestosColumns();
-    const hasCreatedAt = cols.has('created_at');
-    const hasUpdatedAt = cols.has('updated_at');
-    const hasId = cols.has('id');
+    const catalogos = [
+      { table: 'repuestos', label: 'Repuestos' },
+      { table: 'telefonos', label: 'Teléfonos' },
+      { table: 'apple_original', label: 'Apple Original' },
+      { table: 'oppo_original', label: 'Oppo Original' },
+    ];
+    const colsByTable = {};
+    for (const c of catalogos) {
+      colsByTable[c.table] = await getTableColumns(c.table);
+    }
 
-    let latestAddedOrder = 'referencia DESC';
-    if (hasCreatedAt) latestAddedOrder = 'created_at DESC, referencia DESC';
-    else if (hasId) latestAddedOrder = 'id DESC';
-    else if (hasUpdatedAt) latestAddedOrder = 'updated_at DESC, referencia DESC';
-
-    let latestPvpOrder = 'referencia DESC';
-    if (hasUpdatedAt) latestPvpOrder = 'updated_at DESC, referencia DESC';
-    else if (hasCreatedAt) latestPvpOrder = 'created_at DESC, referencia DESC';
-    else if (hasId) latestPvpOrder = 'id DESC';
-
-    const pvpModifiedWhere =
-      hasUpdatedAt && hasCreatedAt
+    const getOrderAdded = (cols) => {
+      if (cols.has('created_at')) return 'created_at DESC, referencia DESC';
+      if (cols.has('id')) return 'id DESC';
+      if (cols.has('updated_at')) return 'updated_at DESC, referencia DESC';
+      return 'referencia DESC';
+    };
+    const getOrderPvp = (cols) => {
+      if (cols.has('updated_at')) return 'updated_at DESC, referencia DESC';
+      if (cols.has('created_at')) return 'created_at DESC, referencia DESC';
+      if (cols.has('id')) return 'id DESC';
+      return 'referencia DESC';
+    };
+    const sortExpr = (cols) => {
+      if (cols.has('updated_at')) return 'UNIX_TIMESTAMP(updated_at)';
+      if (cols.has('created_at')) return 'UNIX_TIMESTAMP(created_at)';
+      if (cols.has('id')) return 'CAST(id AS SIGNED)';
+      return '0';
+    };
+    const wherePvp = (cols) => (
+      cols.has('updated_at') && cols.has('created_at')
         ? 'pvp IS NOT NULL AND updated_at > created_at'
-        : 'pvp IS NOT NULL';
+        : 'pvp IS NOT NULL'
+    );
 
     const [
       [[repCount]],
       [[telCount]],
       [catRows],
       [marcaRows],
-      [latestRows],
-      [latestPvpRows],
     ] = await Promise.all([
       db.execute(`SELECT COUNT(*) AS total FROM repuestos`),
       db.execute(`SELECT COUNT(*) AS total FROM telefonos`),
@@ -99,28 +114,59 @@ async function dashboardResumen(req, res) {
           ORDER BY total DESC
           LIMIT 6`
       ),
-      db.execute(
-        `SELECT referencia, marca, categoria, modelo, etiqueta, pvp, pvp_clubsave
-           FROM repuestos
-          ORDER BY ${latestAddedOrder}
-          LIMIT 5`
-      ),
-      db.execute(
-        `SELECT referencia, marca, categoria, modelo, etiqueta, pvp, pvp_clubsave
-           FROM repuestos
-          WHERE ${pvpModifiedWhere}
-          ORDER BY ${latestPvpOrder}
-          LIMIT 5`
-      ),
     ]);
+
+    const latestByCatalogPromises = catalogos.map(({ table, label }) => {
+      const cols = colsByTable[table];
+      const order = getOrderAdded(cols);
+      const sort = sortExpr(cols);
+      const categoriaSel = cols.has('categoria') ? 'categoria' : "'' AS categoria";
+      const pvpClubSel = cols.has('pvp_clubsave') ? 'pvp_clubsave' : 'NULL AS pvp_clubsave';
+      return db.execute(
+        `SELECT referencia, marca, ${categoriaSel}, modelo, etiqueta, pvp, ${pvpClubSel},
+                '${label}' AS catalogo,
+                ${sort} AS __sort
+           FROM ${table}
+          ORDER BY ${order}
+          LIMIT 20`
+      );
+    });
+    const latestPvpByCatalogPromises = catalogos.map(({ table, label }) => {
+      const cols = colsByTable[table];
+      const order = getOrderPvp(cols);
+      const sort = sortExpr(cols);
+      const categoriaSel = cols.has('categoria') ? 'categoria' : "'' AS categoria";
+      const pvpClubSel = cols.has('pvp_clubsave') ? 'pvp_clubsave' : 'NULL AS pvp_clubsave';
+      return db.execute(
+        `SELECT referencia, marca, ${categoriaSel}, modelo, etiqueta, pvp, ${pvpClubSel},
+                '${label}' AS catalogo,
+                ${sort} AS __sort
+           FROM ${table}
+          WHERE ${wherePvp(cols)}
+          ORDER BY ${order}
+          LIMIT 20`
+      );
+    });
+
+    const latestRowsAll = (await Promise.all(latestByCatalogPromises))
+      .flatMap(([rows]) => rows)
+      .sort((a, b) => (Number(b.__sort || 0) - Number(a.__sort || 0)) || String(b.referencia || '').localeCompare(String(a.referencia || '')))
+      .slice(0, 5)
+      .map(({ __sort, ...r }) => r);
+
+    const latestPvpRowsAll = (await Promise.all(latestPvpByCatalogPromises))
+      .flatMap(([rows]) => rows)
+      .sort((a, b) => (Number(b.__sort || 0) - Number(a.__sort || 0)) || String(b.referencia || '').localeCompare(String(a.referencia || '')))
+      .slice(0, 5)
+      .map(({ __sort, ...r }) => r);
 
     res.json({
       totalRepuestos: Number(repCount.total || 0),
       totalTelefonos: Number(telCount.total || 0),
       topCategorias: catRows,
       topMarcas: marcaRows,
-      ultimasReferencias: latestRows,
-      ultimosPvpModificados: latestPvpRows,
+      ultimasReferencias: latestRowsAll,
+      ultimosPvpModificados: latestPvpRowsAll,
     });
   } catch (err) {
     console.error(err);
