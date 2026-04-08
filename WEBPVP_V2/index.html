@@ -1230,10 +1230,10 @@ function pintarResultadosGlobales(summary) {
   document.getElementById('grCountApple').textContent = summary.apple.length;
   document.getElementById('grCountOppo').textContent = summary.oppo.length;
 
-  renderRows('repuestos', 'grRowsRep', summary.repuestos, r => `${escHTML(r.referencia)} · Cat: ${escHTML(r.categoria || '—')} · ${escHTML(r.marca || '—')} · ${escHTML(r.modelo || '—')} · PVP: ${r.pvp ? formatMoney(r.pvp) + ' €' : '—'}`);
-  renderRows('telefonos', 'grRowsTel', summary.telefonos, r => `${escHTML(r.referencia)} · Cat: ${escHTML(r.categoria || '—')} · ${escHTML(r.marca || '—')} · ${escHTML(r.modelo || '—')} · PVP: ${r.pvp ? formatMoney(r.pvp) + ' €' : '—'}`);
-  renderRows('apple', 'grRowsApple', summary.apple, r => `${escHTML(r.referencia)} · Cat: ${escHTML(r.categoria || '—')} · ${escHTML(r.modelo || '—')} · ${escHTML(r.etiqueta || '—')} · PVP: ${r.pvp ? formatMoney(r.pvp) + ' €' : '—'}`);
-  renderRows('oppo', 'grRowsOppo', summary.oppo, r => `${escHTML(r.referencia)} · Cat: ${escHTML(r.categoria || '—')} · ${escHTML(r.modelo || '—')} · ${escHTML(r.etiqueta || '—')} · PVP: ${r.pvp ? formatMoney(r.pvp) + ' €' : '—'}`);
+  renderRows('repuestos', 'grRowsRep', summary.repuestos, r => `${escHTML(r.referencia)} · ${escHTML(r.categoria || '—')} · ${escHTML(r.marca || '—')} · ${escHTML(r.modelo || '—')} · PVP: ${r.pvp ? formatMoney(r.pvp) + ' €' : '—'}`);
+  renderRows('telefonos', 'grRowsTel', summary.telefonos, r => `${escHTML(r.referencia)} · ${escHTML(r.categoria || '—')} · ${escHTML(r.marca || '—')} · ${escHTML(r.modelo || '—')} · PVP: ${r.pvp ? formatMoney(r.pvp) + ' €' : '—'}`);
+  renderRows('apple', 'grRowsApple', summary.apple, r => `${escHTML(r.referencia)} · ${escHTML(r.categoria || '—')} · ${escHTML(r.modelo || '—')} · ${escHTML(r.etiqueta || '—')} · PVP: ${r.pvp ? formatMoney(r.pvp) + ' €' : '—'}`);
+  renderRows('oppo', 'grRowsOppo', summary.oppo, r => `${escHTML(r.referencia)} · ${escHTML(r.categoria || '—')} · ${escHTML(r.modelo || '—')} · ${escHTML(r.etiqueta || '—')} · PVP: ${r.pvp ? formatMoney(r.pvp) + ' €' : '—'}`);
 }
 
 function toggleGlobalRows(catKey) {
