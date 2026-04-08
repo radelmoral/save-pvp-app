@@ -819,7 +819,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <div class="ff" id="editCategoriaWrap"><label>Categoría</label><input class="finp" id="editCategoria"/></div>
         <div class="ff"><label>Modelo</label><input class="finp" id="editModelo"/></div>
         <div class="ff full"><label>Etiqueta</label><input class="finp" id="editEtiqueta"/></div>
-        <div class="ff"><label>PVP (€)</label><input class="finp" id="editPvp" type="number" step="0.01"/></div>
+        <div class="ff"><label>PVP (€)</label><input class="finp" id="editPvp" type="number" step="0.01" oninput="syncEditPvpClubFromPvp()"/></div>
         <div class="ff" id="editPvpClubWrap"><label>PVP Club SAVE (€)</label><input class="finp" id="editPvpClub" type="number" step="0.01"/></div>
       </div>
     </div>
@@ -1574,6 +1574,19 @@ function syncNewRefPvpClubFromPvp() {
   if (destino !== 'repuestos') return;
   const pvpEl = document.getElementById('newRefPvp');
   const clubEl = document.getElementById('newRefPvpClub');
+  if (!pvpEl || !clubEl) return;
+  const raw = String(pvpEl.value || '').trim();
+  const pvp = Number(raw);
+  if (!raw || !Number.isFinite(pvp) || pvp < 0) return;
+  clubEl.value = (pvp * 0.85).toFixed(2);
+}
+
+function syncEditPvpClubFromPvp() {
+  if (!isAdminRole()) return;
+  const wrap = document.getElementById('editPvpClubWrap');
+  if (!wrap || wrap.style.display === 'none') return;
+  const pvpEl = document.getElementById('editPvp');
+  const clubEl = document.getElementById('editPvpClub');
   if (!pvpEl || !clubEl) return;
   const raw = String(pvpEl.value || '').trim();
   const pvp = Number(raw);
