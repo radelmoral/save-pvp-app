@@ -23,6 +23,27 @@ async function ensureReportesSchema() {
       INDEX idx_usuario_created (usuario_id, created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
+  const [cols] = await db.execute(
+    `SELECT COLUMN_NAME
+       FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'reportes_referencias'
+        AND COLUMN_NAME IN ('tipo_reporte', 'pvp_reportado')`
+  );
+  const hasTipo = cols.some(c => c.COLUMN_NAME === 'tipo_reporte');
+  const hasPvp = cols.some(c => c.COLUMN_NAME === 'pvp_reportado');
+  if (!hasTipo) {
+    await db.execute(
+      `ALTER TABLE reportes_referencias
+       ADD COLUMN tipo_reporte ENUM('referencia', 'pvp') NOT NULL DEFAULT 'referencia' AFTER etiqueta`
+    );
+  }
+  if (!hasPvp) {
+    await db.execute(
+      `ALTER TABLE reportes_referencias
+       ADD COLUMN pvp_reportado DECIMAL(10,2) NULL AFTER tipo_reporte`
+    );
+  }
   _schemaReady = true;
 }
 
@@ -46,6 +67,7 @@ async function listar(req, res) {
     const whereSQL = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const [rows] = await db.execute(
       `SELECT r.id, r.referencia, r.catalogo, r.categoria, r.marca, r.modelo, r.etiqueta,
+              r.tipo_reporte, r.pvp_reportado,
               r.motivo, r.estado, r.comentario_admin, r.created_at, r.updated_at,
               u.nombre AS solicitante
        FROM reportes_referencias r
@@ -65,7 +87,7 @@ async function listar(req, res) {
 async function crear(req, res) {
   try {
     await ensureReportesSchema();
-    const { referencia, catalogo, categoria, marca, modelo, etiqueta, motivo } = req.body;
+    const { referencia, catalogo, categoria, marca, modelo, etiqueta, motivo, tipo_reporte, pvp_reportado } = req.body;
     if (!referencia || !catalogo || !motivo || !String(motivo).trim()) {
       return res.status(400).json({ error: 'referencia, catalogo y motivo son obligatorios' });
     }
@@ -73,11 +95,21 @@ async function crear(req, res) {
     if (!catalogosValidos.includes(String(catalogo))) {
       return res.status(400).json({ error: 'Catálogo inválido' });
     }
+    const tipo = String(tipo_reporte || 'referencia').toLowerCase();
+    if (!['referencia', 'pvp'].includes(tipo)) {
+      return res.status(400).json({ error: 'Tipo de reporte inválido' });
+    }
+    const pvpNum = tipo === 'pvp'
+      ? Number(pvp_reportado)
+      : null;
+    if (tipo === 'pvp' && (!Number.isFinite(pvpNum) || pvpNum < 0)) {
+      return res.status(400).json({ error: 'Para reportes de PVP debes indicar un PVP válido' });
+    }
 
     const [result] = await db.execute(
       `INSERT INTO reportes_referencias
-       (referencia, catalogo, categoria, marca, modelo, etiqueta, motivo, usuario_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (referencia, catalogo, categoria, marca, modelo, etiqueta, tipo_reporte, pvp_reportado, motivo, usuario_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         String(referencia).trim(),
         String(catalogo).trim(),
@@ -85,6 +117,8 @@ async function crear(req, res) {
         marca || null,
         modelo || null,
         etiqueta || null,
+        tipo,
+        tipo === 'pvp' ? Number(pvpNum.toFixed(2)) : null,
         String(motivo).trim(),
         req.user.id
       ]
@@ -121,4 +155,3 @@ async function resolver(req, res) {
 }
 
 module.exports = { listar, crear, resolver };
-
