@@ -428,8 +428,8 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
       <div><h2 style="font-size:20px;font-weight:800;">Listado de Repuestos</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;" id="repuestosTotal">Cargando…</p></div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-o">📥 Importar Excel</button>
-        <button class="btn btn-o">📤 Exportar</button>
+        <button class="btn btn-o" id="btnRepuestosImportar">📥 Importar Excel</button>
+        <button class="btn btn-o" id="btnRepuestosExportar">📤 Exportar</button>
         <button class="btn btn-p" id="btnRepuestosNuevaRef" onclick="openModal('modalRef')">+ Nueva referencia</button>
       </div>
     </div>
@@ -862,6 +862,10 @@ function setRole(role) {
   if (topNuevaRef) topNuevaRef.style.display = (role === 'admin') ? '' : 'none';
   const repNuevaRef = document.getElementById('btnRepuestosNuevaRef');
   if (repNuevaRef) repNuevaRef.style.display = (role === 'admin') ? '' : 'none';
+  const repImportar = document.getElementById('btnRepuestosImportar');
+  if (repImportar) repImportar.style.display = (role === 'admin') ? '' : 'none';
+  const repExportar = document.getElementById('btnRepuestosExportar');
+  if (repExportar) repExportar.style.display = (role === 'admin') ? '' : 'none';
   // If on an admin-only page, redirect to dashboard
   const adminPages = ['usuarios','solicitudes-pvp-admin'];
   const active = document.querySelector('.page.active');
