@@ -11,6 +11,7 @@ const usuariosCtrl  = require('../controllers/usuariosController');
 // ── Auth ──────────────────────────────────────────────────
 router.post('/auth/login', authCtrl.login);
 router.get ('/auth/me',    auth, authCtrl.me);
+router.post('/auth/change-password-first-login', auth, authCtrl.changePasswordFirstLogin);
 
 // ── Categorías (extraídas de la BBDD real) ────────────────
 router.get ('/categorias',    auth, usuariosCtrl.listarCategorias);
