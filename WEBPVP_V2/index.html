@@ -292,6 +292,9 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
     <button class="sb-item" onclick="nav('solicitud-pvp',this)">
       <span class="ic">💬</span> Solicitud de PVP
     </button>
+    <button class="sb-item" onclick="nav('mis-reportes',this)">
+      <span class="ic">🚩</span> Mis reportes
+    </button>
 
     <!-- Solo Admin -->
     <div id="adminSection">
@@ -584,6 +587,18 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
             </table>
           </div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page" id="page-mis-reportes">
+    <div><h2 style="font-size:20px;font-weight:800;">Mis reportes enviados</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;">Seguimiento de incidencias reportadas (Referencia/PVP)</p></div>
+    <div class="card">
+      <div class="tw">
+        <table>
+          <thead><tr><th>Referencia</th><th>Catálogo</th><th>Tipo</th><th>PVP reportado</th><th>Estado</th><th>Detalle admin</th><th>Fecha</th></tr></thead>
+          <tbody id="tbMisReportesPage"></tbody>
+        </table>
       </div>
     </div>
   </section>
@@ -1013,7 +1028,7 @@ function nav(id, btn) {
   const titles = {
     dashboard:'Dashboard', repuestos:'Repuestos', telefonos:'Teléfonos',
     apple:'Apple Original', oppo:'Oppo Original', pedidos:'Gestión de Pedidos',
-    'solicitud-pvp':'Solicitud de PVP', usuarios:'Usuarios',
+    'solicitud-pvp':'Solicitud de PVP', 'mis-reportes':'Mis reportes', usuarios:'Usuarios',
     'solicitudes-pvp-admin':'Solicitudes PVP — Admin',
     'reportes-referencias-admin':'Reportes referencias — Admin',
     'resultados-globales':'Resultados Globales'
@@ -1024,7 +1039,7 @@ function navById(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const pg = document.getElementById('page-'+id);
   if(pg) pg.classList.add('active');
-  if (id === 'solicitud-pvp') {
+  if (id === 'solicitud-pvp' || id === 'mis-reportes') {
     loadMisSolicitudesFromAPI();
     loadReportesFromAPI();
   }
@@ -2072,6 +2087,7 @@ async function enviarReporteReferencia() {
   try {
     await API.reportes.crear(payload);
     closeModal('modalReportRef');
+    await loadReportesFromAPI();
     toast('Reporte enviado. El administrador ha sido notificado.', 'ok');
   } catch (e) {
     toast('Error: ' + e.message, 'err');
@@ -2188,9 +2204,13 @@ async function loadReportesFromAPI() {
       filtrarReportesAdmin();
     }
 
-    const tbMis = document.getElementById('tbMisReportes');
-    if (tbMis) {
-      tbMis.innerHTML = '';
+    const fillMisReportesTable = (tb) => {
+      if (!tb) return;
+      tb.innerHTML = '';
+      if (!data.length) {
+        tb.innerHTML = '<tr><td colspan="7" style="color:var(--g400);">No hay reportes enviados todavía</td></tr>';
+        return;
+      }
       data.forEach(r => {
         const tr = document.createElement('tr');
         const tipoTxt = r.tipo_reporte === 'pvp' ? 'PVP' : 'Referencia';
@@ -2215,11 +2235,18 @@ async function loadReportesFromAPI() {
           <td>${estadoBadge}</td>
           <td style="max-width:220px;white-space:normal;">${detalleAdmin}</td>
           <td style="font-size:11px;color:var(--g400)">${new Date(r.created_at).toLocaleDateString('es-ES')}</td>`;
-        tbMis.appendChild(tr);
+        tb.appendChild(tr);
       });
-    }
+    };
+    fillMisReportesTable(document.getElementById('tbMisReportes'));
+    fillMisReportesTable(document.getElementById('tbMisReportesPage'));
   } catch (e) {
     console.warn('Error cargando reportes:', e.message);
+    const errRow = '<tr><td colspan="7" style="color:#b91c1c;">No se pudieron cargar tus reportes</td></tr>';
+    const t1 = document.getElementById('tbMisReportes');
+    const t2 = document.getElementById('tbMisReportesPage');
+    if (t1) t1.innerHTML = errRow;
+    if (t2) t2.innerHTML = errRow;
   }
 }
 
