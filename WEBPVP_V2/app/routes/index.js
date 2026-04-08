@@ -56,6 +56,7 @@ router.put ('/solicitudes/:id/rechazar', auth, role('admin'), solicCtrl.rechazar
 router.get('/reportes-referencias', auth, reportesCtrl.listar);
 router.post('/reportes-referencias', auth, reportesCtrl.crear);
 router.put('/reportes-referencias/:id/resolver', auth, role('admin'), reportesCtrl.resolver);
+router.put('/reportes-referencias/:id/rechazar', auth, role('admin'), reportesCtrl.rechazar);
 
 // ── Usuarios (admin only) ─────────────────────────────────
 router.get ('/usuarios',      auth, role('admin'), usuariosCtrl.listar);
