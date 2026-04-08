@@ -966,6 +966,7 @@ let adminReportesCache = [];
 let adminRealtimeTimer = null;
 let adminRealtimeBusy = false;
 const ADMIN_REALTIME_MS = 8000;
+let dashboardChartsSignature = '';
 window.__SAVE_CURRENT_ROLE = currentRole;
 const roleConfig = {
   admin:     { label:'Admin',     avatar:'AD', name:'administrador',       rp:'rp-adm', rpText:'★ Admin' },
@@ -2712,31 +2713,34 @@ async function loadDashboard() {
       const catData = topCats.length ? topCats.map(x => Number(x.total || 0)) : [1];
       const marcaLabels = topMarcas.length ? topMarcas.map(x => x.nombre) : ['Sin datos'];
       const marcaData = topMarcas.length ? topMarcas.map(x => Number(x.total || 0)) : [1];
+      const nextSig = JSON.stringify({ catLabels, catData, marcaLabels, marcaData });
+      if (nextSig !== dashboardChartsSignature || !window._chartCatInstance || !window._chartMarcaInstance) {
+        dashboardChartsSignature = nextSig;
+        if (window._chartCatInstance) window._chartCatInstance.destroy();
+        if (window._chartMarcaInstance) window._chartMarcaInstance.destroy();
 
-      if (window._chartCatInstance) window._chartCatInstance.destroy();
-      if (window._chartMarcaInstance) window._chartMarcaInstance.destroy();
+        window._chartCatInstance = new Chart(document.getElementById('chartCat'), {
+          type:'doughnut',
+          data: {
+            labels: catLabels,
+            datasets:[{ data: catData, backgroundColor:['#00BFB3','#009e92','#007a70','#33cfc4','#66ddd8','#99eceb'], borderWidth:0, hoverOffset:6 }]
+          },
+          options:{ responsive:true, maintainAspectRatio:false, cutout:'62%',
+            plugins:{ legend:{ position:'right', labels:{ font:{size:11}, padding:14, usePointStyle:true } } } }
+        });
 
-      window._chartCatInstance = new Chart(document.getElementById('chartCat'), {
-        type:'doughnut',
-        data: {
-          labels: catLabels,
-          datasets:[{ data: catData, backgroundColor:['#00BFB3','#009e92','#007a70','#33cfc4','#66ddd8','#99eceb'], borderWidth:0, hoverOffset:6 }]
-        },
-        options:{ responsive:true, maintainAspectRatio:false, cutout:'62%',
-          plugins:{ legend:{ position:'right', labels:{ font:{size:11}, padding:14, usePointStyle:true } } } }
-      });
-
-      window._chartMarcaInstance = new Chart(document.getElementById('chartMarca'), {
-        type:'bar',
-        data: {
-          labels: marcaLabels,
-          datasets:[{ data: marcaData, backgroundColor:['#00BFB3','#009e92','#007a70','#33cfc4','#66ddd8','#99eceb'], borderRadius:6, borderSkipped:false }]
-        },
-        options:{ responsive:true, maintainAspectRatio:false,
-          plugins:{ legend:{display:false} },
-          scales:{ x:{ grid:{display:false}, ticks:{font:{size:10}} }, y:{ grid:{color:'#f0f0f0'}, ticks:{font:{size:10}} } }
-        }
-      });
+        window._chartMarcaInstance = new Chart(document.getElementById('chartMarca'), {
+          type:'bar',
+          data: {
+            labels: marcaLabels,
+            datasets:[{ data: marcaData, backgroundColor:['#00BFB3','#009e92','#007a70','#33cfc4','#66ddd8','#99eceb'], borderRadius:6, borderSkipped:false }]
+          },
+          options:{ responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{display:false} },
+            scales:{ x:{ grid:{display:false}, ticks:{font:{size:10}} }, y:{ grid:{color:'#f0f0f0'}, ticks:{font:{size:10}} } }
+          }
+        });
+      }
     }
     if (usrRes.status === 'fulfilled') {
       document.getElementById('dashUsuarios').textContent = usrRes.value.length ?? '—';
