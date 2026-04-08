@@ -7,6 +7,7 @@ const authCtrl      = require('../controllers/authController');
 const repCtrl       = require('../controllers/repuestosController');
 const solicCtrl     = require('../controllers/solicitudesController');
 const usuariosCtrl  = require('../controllers/usuariosController');
+const reportesCtrl  = require('../controllers/reportesController');
 
 // ── Auth ──────────────────────────────────────────────────
 router.post('/auth/login', authCtrl.login);
@@ -50,6 +51,11 @@ router.get ('/solicitudes/validar-referencia', auth, solicCtrl.validarReferencia
 router.post('/solicitudes',              auth, solicCtrl.crear);
 router.put ('/solicitudes/:id/aprobar',  auth, role('admin'), solicCtrl.aprobar);
 router.put ('/solicitudes/:id/rechazar', auth, role('admin'), solicCtrl.rechazar);
+
+// ── Reportes de referencias ───────────────────────────────
+router.get('/reportes-referencias', auth, reportesCtrl.listar);
+router.post('/reportes-referencias', auth, reportesCtrl.crear);
+router.put('/reportes-referencias/:id/resolver', auth, role('admin'), reportesCtrl.resolver);
 
 // ── Usuarios (admin only) ─────────────────────────────────
 router.get ('/usuarios',      auth, role('admin'), usuariosCtrl.listar);
