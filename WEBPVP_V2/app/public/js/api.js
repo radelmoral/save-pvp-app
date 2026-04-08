@@ -31,7 +31,11 @@ const API = (() => {
     }
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error en la petición');
+    if (!res.ok) {
+      const err = new Error(data.error || 'Error en la petición');
+      if (data?.code) err.code = data.code;
+      throw err;
+    }
     return data;
   }
 
@@ -41,6 +45,8 @@ const API = (() => {
       request('POST', '/auth/login', { username, password }),
     me: () =>
       request('GET', '/auth/me'),
+    changePasswordFirstLogin: (newPassword) =>
+      request('POST', '/auth/change-password-first-login', { newPassword }),
     logout: () => {
       clearToken();
       window.location.href = '/';
