@@ -1986,17 +1986,21 @@ async function checkAuth() {
   }
 }
 
-// Asigna un color de badge consistente por nombre de categoría
-const _catColorMap = {};
-let _catColorIdx = 0;
+// Asigna un color fijo por nombre de categoría (determinista entre recargas)
+function categoryColorIndex(key) {
+  const normalized = String(key || '').toLowerCase().trim();
+  if (!normalized) return 0;
+  let hash = 0;
+  for (let i = 0; i < normalized.length; i++) {
+    hash = ((hash << 5) - hash) + normalized.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash) % 10;
+}
 function catBadge(categoria) {
   const key = (categoria || '').toLowerCase().trim();
   if (!key || key === '—') return `<span class="badge bd-gy">—</span>`;
-  if (!_catColorMap[key]) {
-    _catColorMap[key] = _catColorIdx % 10;
-    _catColorIdx++;
-  }
-  return `<span class="badge bd-cat-${_catColorMap[key]}">${escHTML(categoria)}</span>`;
+  return `<span class="badge bd-cat-${categoryColorIndex(key)}">${escHTML(categoria)}</span>`;
 }
 
 function escJS(str) {
