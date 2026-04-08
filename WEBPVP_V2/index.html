@@ -425,6 +425,13 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <tbody id="tbDashRepuestos"></tbody>
       </table></div>
     </div>
+    <div class="card" style="margin-top:14px;">
+      <div class="ch"><div><div class="ct">Últimos PVP modificados</div></div><button class="btn btn-o" onclick="nav('repuestos',null)">Ver catálogo →</button></div>
+      <div class="tw"><table>
+        <thead><tr><th>Referencia</th><th>Categoría</th><th>Marca</th><th>Modelo</th><th>PVP</th><th class="pvpclub-col">PVP Club</th></tr></thead>
+        <tbody id="tbDashPvpMod"></tbody>
+      </table></div>
+    </div>
   </section>
 
   <!-- ── REPUESTOS ── -->
@@ -568,6 +575,15 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
             </table>
           </div>
         </div>
+        <div class="card" style="margin-top:14px;">
+          <div class="ch"><div><div class="ct">Mis reportes enviados</div><div class="cs">Estado de tus reportes de referencia/PVP</div></div></div>
+          <div class="tw">
+            <table>
+              <thead><tr><th>Referencia</th><th>Catálogo</th><th>Tipo</th><th>PVP reportado</th><th>Estado</th><th>Fecha</th></tr></thead>
+              <tbody id="tbMisReportes"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -635,6 +651,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
             <option value="">Todos los estados</option>
             <option value="pendiente">⏳ Pendientes</option>
             <option value="resuelto">✅ Resueltos</option>
+            <option value="rechazado">❌ Rechazados</option>
           </select>
           <input class="fi" id="reportesFiltroUsuario" placeholder="Usuario…" oninput="filtrarReportesAdmin()" />
           <input class="fi" id="reportesFiltroRef" placeholder="Referencia…" oninput="filtrarReportesAdmin()" />
@@ -829,6 +846,34 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
   </div>
 </div>
 
+<div class="mo" id="modalGestionReporte" onclick="closeModalOut(event,'modalGestionReporte')">
+  <div class="md md-lg">
+    <div class="mh">
+      <div class="mt">🧾 Gestionar reporte</div>
+      <button class="mc" onclick="closeModal('modalGestionReporte')">✕</button>
+    </div>
+    <div class="mb">
+      <input type="hidden" id="gestionReporteId" />
+      <div class="fg">
+        <div class="ff"><label>Referencia</label><input class="finp" id="gestionRef" readonly /></div>
+        <div class="ff"><label>Catálogo</label><input class="finp" id="gestionCatalogo" readonly /></div>
+        <div class="ff"><label>Tipo</label><input class="finp" id="gestionTipo" readonly /></div>
+        <div class="ff"><label>PVP reportado</label><input class="finp" id="gestionPvp" readonly /></div>
+        <div class="ff"><label>Marca</label><input class="finp" id="gestionMarca" readonly /></div>
+        <div class="ff"><label>Modelo</label><input class="finp" id="gestionModelo" readonly /></div>
+        <div class="ff full"><label>Motivo del usuario</label><textarea class="finp" id="gestionMotivo" rows="3" readonly></textarea></div>
+        <div class="ff full"><label>Comentario admin (si resuelves)</label><textarea class="finp" id="gestionComentarioAdmin" rows="2" placeholder="Opcional"></textarea></div>
+        <div class="ff full"><label>Motivo rechazo (si rechazas)</label><textarea class="finp" id="gestionMotivoRechazo" rows="2" placeholder="Obligatorio para rechazo"></textarea></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-o" onclick="closeModal('modalGestionReporte')">Cancelar</button>
+      <button class="btn btn-danger" onclick="aplicarGestionReporte('rechazar')">Rechazar</button>
+      <button class="btn btn-p" onclick="aplicarGestionReporte('resolver')">Resolver</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════════ MODAL — NUEVO USUARIO ═══════════════════ -->
 <div class="mo" id="modalCreateUser" onclick="closeModalOut(event,'modalCreateUser')">
   <div class="md">
@@ -902,6 +947,7 @@ const globalRowsVisible = { repuestos: 6, telefonos: 6, apple: 6, oppo: 6 };
 let globalFlatResults = [];
 let pendingSolicitudesAdmin = 0;
 let pendingReportesAdmin = 0;
+let adminReportesCache = [];
 window.__SAVE_CURRENT_ROLE = currentRole;
 const roleConfig = {
   admin:     { label:'Admin',     avatar:'AD', name:'administrador',       rp:'rp-adm', rpText:'★ Admin' },
@@ -2040,12 +2086,43 @@ function filtrarReportesAdmin() {
   });
 }
 
-async function resolverReporte(id) {
-  if (!isAdminRole()) return toast('Solo admin puede resolver reportes', 'warn');
-  const comentario = prompt('Comentario de resolución (opcional):', '') ?? '';
+function abrirGestionReporte(id) {
+  if (!isAdminRole()) return toast('Solo admin puede gestionar reportes', 'warn');
+  const r = adminReportesCache.find(x => Number(x.id) === Number(id));
+  if (!r) return toast('No se encontró el reporte', 'warn');
+  document.getElementById('gestionReporteId').value = String(r.id || '');
+  document.getElementById('gestionRef').value = r.referencia || '';
+  document.getElementById('gestionCatalogo').value = catalogLabel(r.catalogo);
+  document.getElementById('gestionTipo').value = (r.tipo_reporte === 'pvp') ? 'PVP' : 'Referencia';
+  document.getElementById('gestionPvp').value = (r.pvp_reportado !== null && r.pvp_reportado !== undefined && r.pvp_reportado !== '')
+    ? `${formatMoney(r.pvp_reportado)} €`
+    : '—';
+  document.getElementById('gestionMarca').value = r.marca || '';
+  document.getElementById('gestionModelo').value = r.modelo || '';
+  document.getElementById('gestionMotivo').value = r.motivo || '';
+  document.getElementById('gestionComentarioAdmin').value = '';
+  document.getElementById('gestionMotivoRechazo').value = '';
+  openModal('modalGestionReporte');
+}
+
+async function aplicarGestionReporte(accion) {
+  if (!isAdminRole()) return toast('Solo admin puede gestionar reportes', 'warn');
+  const id = Number(document.getElementById('gestionReporteId').value);
+  if (!id) return toast('Reporte inválido', 'warn');
   try {
-    await API.reportes.resolver(id, { comentario_admin: comentario.trim() });
-    toast('Reporte resuelto', 'ok');
+    if (accion === 'resolver') {
+      const comentario = (document.getElementById('gestionComentarioAdmin').value || '').trim();
+      await API.reportes.resolver(id, { comentario_admin: comentario });
+      toast('Reporte resuelto', 'ok');
+    } else if (accion === 'rechazar') {
+      const motivo = (document.getElementById('gestionMotivoRechazo').value || '').trim();
+      if (!motivo) return toast('El motivo de rechazo es obligatorio', 'warn');
+      await API.reportes.rechazar(id, motivo);
+      toast('Reporte rechazado', 'ok');
+    } else {
+      return;
+    }
+    closeModal('modalGestionReporte');
     loadReportesFromAPI();
   } catch (e) {
     toast('Error: ' + e.message, 'err');
@@ -2056,6 +2133,7 @@ async function loadReportesFromAPI() {
   if (!API_AVAILABLE) return;
   try {
     const data = await API.reportes.listar();
+    adminReportesCache = data;
     const pending = data.filter(r => r.estado === 'pendiente').length;
     pendingReportesAdmin = pending;
     const badge = document.getElementById('badgeReportesPendientes');
@@ -2065,38 +2143,71 @@ async function loadReportesFromAPI() {
     updateAdminNotificationIndicators();
 
     const tb = document.getElementById('tbAdminReportes');
-    if (!tb) return;
-    tb.innerHTML = '';
-    data.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.dataset.estado = r.estado || '';
-      tr.dataset.usuario = normalizeText(r.solicitante || '');
-      tr.dataset.ref = normalizeText(r.referencia || '');
-      const estadoBadge = r.estado === 'resuelto'
-        ? '<span class="pvp-status-done">✅ Resuelto</span>'
-        : '<span class="pvp-status-pending">⏳ Pendiente</span>';
-      const tipoTxt = r.tipo_reporte === 'pvp' ? 'PVP' : 'Referencia';
-      const pvpTxt = (r.tipo_reporte === 'pvp' && r.pvp_reportado !== null && r.pvp_reportado !== undefined)
-        ? `${formatMoney(r.pvp_reportado)} €`
-        : '—';
-      const accion = r.estado === 'pendiente'
-        ? `<button class="btn btn-green" style="font-size:11px;padding:5px 10px;" onclick="resolverReporte(${Number(r.id)})">✅ Resolver</button>`
-        : `<span style="font-size:11px;color:var(--g400);">${escHTML(r.comentario_admin || 'Sin comentario')}</span>`;
-      tr.innerHTML = `
-        <td class="td-ref">${escHTML(r.referencia || '—')}</td>
-        <td>${escHTML(catalogLabel(r.catalogo))}</td>
-        <td>${escHTML(tipoTxt)}</td>
-        <td class="price">${pvpTxt}</td>
-        <td>${escHTML(r.marca || '—')}</td>
-        <td>${escHTML(r.modelo || '—')}</td>
-        <td style="max-width:240px;white-space:normal;">${escHTML(r.motivo || '—')}</td>
-        <td>${escHTML(r.solicitante || '—')}</td>
-        <td style="font-size:11px;color:var(--g400)">${new Date(r.created_at).toLocaleDateString('es-ES')}</td>
-        <td>${estadoBadge}</td>
-        <td style="text-align:center;">${accion}</td>`;
-      tb.appendChild(tr);
-    });
-    filtrarReportesAdmin();
+    if (tb) {
+      tb.innerHTML = '';
+      data.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.dataset.estado = r.estado || '';
+        tr.dataset.usuario = normalizeText(r.solicitante || '');
+        tr.dataset.ref = normalizeText(r.referencia || '');
+        const estadoBadge = r.estado === 'resuelto'
+          ? '<span class="pvp-status-done">✅ Resuelto</span>'
+          : r.estado === 'rechazado'
+            ? '<span class="badge bd-r">❌ Rechazado</span>'
+            : '<span class="pvp-status-pending">⏳ Pendiente</span>';
+        const tipoTxt = r.tipo_reporte === 'pvp' ? 'PVP' : 'Referencia';
+        const pvpTxt = (r.tipo_reporte === 'pvp' && r.pvp_reportado !== null && r.pvp_reportado !== undefined)
+          ? `${formatMoney(r.pvp_reportado)} €`
+          : '—';
+        const postTxt = r.estado === 'rechazado'
+          ? `<div style="margin-top:4px;color:#7f1d1d;font-size:11px;"><strong>Motivo rechazo:</strong> ${escHTML(r.motivo_rechazo || '—')}</div>`
+          : r.estado === 'resuelto' && r.comentario_admin
+            ? `<div style="margin-top:4px;color:var(--g500);font-size:11px;"><strong>Comentario:</strong> ${escHTML(r.comentario_admin)}</div>`
+            : '';
+        const accion = r.estado === 'pendiente'
+          ? `<button class="btn btn-green" style="font-size:11px;padding:5px 10px;" onclick="abrirGestionReporte(${Number(r.id)})">Gestionar</button>`
+          : '<span style="color:var(--g400);font-size:11px;">—</span>';
+        tr.innerHTML = `
+          <td class="td-ref">${escHTML(r.referencia || '—')}</td>
+          <td>${escHTML(catalogLabel(r.catalogo))}</td>
+          <td>${escHTML(tipoTxt)}</td>
+          <td class="price">${pvpTxt}</td>
+          <td>${escHTML(r.marca || '—')}</td>
+          <td>${escHTML(r.modelo || '—')}</td>
+          <td style="max-width:260px;white-space:normal;">${escHTML(r.motivo || '—')}${postTxt}</td>
+          <td>${escHTML(r.solicitante || '—')}</td>
+          <td style="font-size:11px;color:var(--g400)">${new Date(r.created_at).toLocaleDateString('es-ES')}</td>
+          <td>${estadoBadge}</td>
+          <td style="text-align:center;">${accion}</td>`;
+        tb.appendChild(tr);
+      });
+      filtrarReportesAdmin();
+    }
+
+    const tbMis = document.getElementById('tbMisReportes');
+    if (tbMis) {
+      tbMis.innerHTML = '';
+      data.forEach(r => {
+        const tr = document.createElement('tr');
+        const tipoTxt = r.tipo_reporte === 'pvp' ? 'PVP' : 'Referencia';
+        const pvpTxt = (r.tipo_reporte === 'pvp' && r.pvp_reportado !== null && r.pvp_reportado !== undefined)
+          ? `${formatMoney(r.pvp_reportado)} €`
+          : '—';
+        const estadoBadge = r.estado === 'resuelto'
+          ? '<span class="pvp-status-done">✅ Resuelto</span>'
+          : r.estado === 'rechazado'
+            ? `<span class="badge bd-r">❌ Rechazado</span><div style="margin-top:4px;color:#7f1d1d;font-size:11px;"><strong>Motivo:</strong> ${escHTML(r.motivo_rechazo || '—')}</div>`
+            : '<span class="pvp-status-pending">⏳ Pendiente</span>';
+        tr.innerHTML = `
+          <td class="td-ref">${escHTML(r.referencia || '—')}</td>
+          <td>${escHTML(catalogLabel(r.catalogo))}</td>
+          <td>${escHTML(tipoTxt)}</td>
+          <td class="price">${pvpTxt}</td>
+          <td>${estadoBadge}</td>
+          <td style="font-size:11px;color:var(--g400)">${new Date(r.created_at).toLocaleDateString('es-ES')}</td>`;
+        tbMis.appendChild(tr);
+      });
+    }
   } catch (e) {
     console.warn('Error cargando reportes:', e.message);
   }
@@ -2471,6 +2582,24 @@ async function loadDashboard() {
             <td class="price">${r.pvp ? formatMoney(r.pvp)+' €' : '—'}</td>
             <td class="price-club pvpclub-col">${r.pvp_clubsave ? formatMoney(r.pvp_clubsave)+' €' : '—'}</td>`;
           tb.appendChild(tr);
+        });
+      }
+
+      // Últimos PVP modificados en dashboard
+      const tbPvpMod = document.getElementById('tbDashPvpMod');
+      if (tbPvpMod) {
+        tbPvpMod.innerHTML = '';
+        const recPvp = dash.ultimosPvpModificados || [];
+        recPvp.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="td-ref">${escHTML(r.referencia)}</td>
+            <td>${catBadge(r.categoria)}</td>
+            <td>${escHTML(r.marca||'—')}</td>
+            <td>${escHTML(r.modelo||'—')}</td>
+            <td class="price">${r.pvp ? formatMoney(r.pvp)+' €' : '—'}</td>
+            <td class="price-club pvpclub-col">${r.pvp_clubsave ? formatMoney(r.pvp_clubsave)+' €' : '—'}</td>`;
+          tbPvpMod.appendChild(tr);
         });
       }
 
