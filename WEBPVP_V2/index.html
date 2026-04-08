@@ -995,7 +995,7 @@ async function adminRealtimeTick(force = false) {
   if (adminRealtimeBusy) return;
   adminRealtimeBusy = true;
   try {
-    await Promise.all([loadSolicitudesFromAPI(), loadReportesFromAPI()]);
+    await Promise.all([loadSolicitudesFromAPI(), loadReportesFromAPI(), loadDashboard()]);
   } finally {
     adminRealtimeBusy = false;
   }
@@ -1840,9 +1840,10 @@ async function aprobarSolicitud() {
     });
     closeModal('modalPVP');
     toast(`Referencia ${document.getElementById('pvpRef').value} añadida a la BBDD`, 'ok');
-    loadSolicitudesFromAPI();
-    loadRepuestosFromAPI();
-    refreshSidebarCatalogCounts();
+    await loadSolicitudesFromAPI();
+    await loadRepuestosFromAPI();
+    await refreshSidebarCatalogCounts();
+    await loadDashboard();
     _currentSolicitudId = null;
   } catch(e) {
     toast('Error: '+e.message, 'err');
@@ -2064,6 +2065,7 @@ async function guardarEdicionReferencia() {
       throw new Error('Tipo de catálogo no soportado');
     }
     closeModal('modalEditRef');
+    await loadDashboard();
     toast('Referencia actualizada', 'ok');
   } catch (e) {
     toast('Error: ' + e.message, 'err');
