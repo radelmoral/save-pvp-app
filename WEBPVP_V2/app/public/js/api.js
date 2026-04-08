@@ -74,6 +74,11 @@ const API = (() => {
       aprobar:  (id, data)    => request('PUT', `/solicitudes/${id}/aprobar`, data),
       rechazar: (id, motivo)  => request('PUT', `/solicitudes/${id}/rechazar`, { motivo_rechazo: motivo }),
     },
+    reportes: {
+      listar:   (params = {}) => request('GET', '/reportes-referencias?' + new URLSearchParams(params)),
+      crear:    (data)        => request('POST', '/reportes-referencias', data),
+      resolver: (id, data = {}) => request('PUT', `/reportes-referencias/${id}/resolver`, data),
+    },
 
     // ── Usuarios ────────────────────────────
     usuarios: {
