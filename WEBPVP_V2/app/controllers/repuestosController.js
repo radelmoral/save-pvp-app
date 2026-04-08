@@ -499,9 +499,22 @@ async function busquedaGlobal(req, res) {
 async function listarCategorias(req, res) {
   try {
     const [rows] = await db.execute(
-      `SELECT DISTINCT categoria AS nombre FROM repuestos
-       WHERE categoria IS NOT NULL AND categoria != ''
-       ORDER BY categoria`
+      `SELECT nombre
+       FROM (
+         SELECT DISTINCT categoria AS nombre
+         FROM repuestos
+         WHERE categoria IS NOT NULL AND categoria != ''
+         UNION
+         SELECT DISTINCT categoria AS nombre
+         FROM apple_original
+         WHERE categoria IS NOT NULL AND categoria != ''
+         UNION
+         SELECT DISTINCT categoria AS nombre
+         FROM oppo_original
+         WHERE categoria IS NOT NULL AND categoria != ''
+       ) c
+       WHERE nombre IS NOT NULL AND nombre != ''
+       ORDER BY nombre`
     );
     res.json(rows);
   } catch (err) {
