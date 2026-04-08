@@ -642,7 +642,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
       </div>
       <div class="tw">
         <table>
-          <thead><tr><th>Referencia</th><th>Catálogo</th><th>Marca</th><th>Modelo</th><th>Motivo</th><th>Solicitado por</th><th>Fecha</th><th>Estado</th><th style="text-align:center;">Acción</th></tr></thead>
+          <thead><tr><th>Referencia</th><th>Catálogo</th><th>Tipo</th><th>PVP reportado</th><th>Marca</th><th>Modelo</th><th>Motivo</th><th>Solicitado por</th><th>Fecha</th><th>Estado</th><th style="text-align:center;">Acción</th></tr></thead>
           <tbody id="tbAdminReportes"></tbody>
         </table>
       </div>
@@ -809,6 +809,13 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
       <div class="fg">
         <div class="ff"><label>Referencia</label><input class="finp" id="reportReferencia" readonly /></div>
         <div class="ff"><label>Catálogo</label><input class="finp" id="reportCatalogoText" readonly /></div>
+        <div class="ff"><label>Tipo de reporte *</label>
+          <select class="finp" id="reportTipo" onchange="onReportTipoChange()">
+            <option value="referencia">Referencia</option>
+            <option value="pvp">PVP</option>
+          </select>
+        </div>
+        <div class="ff" id="reportPvpWrap" style="display:none;"><label>PVP detectado *</label><input class="finp" id="reportPvp" type="number" step="0.01" placeholder="0.00" /></div>
         <div class="ff"><label>Marca</label><input class="finp" id="reportMarca" readonly /></div>
         <div class="ff"><label>Modelo</label><input class="finp" id="reportModelo" readonly /></div>
         <div class="ff full"><label>Motivo del reporte *</label><textarea class="finp" id="reportMotivo" rows="4" placeholder="Describe el error detectado (precio, modelo, etiqueta, etc.)"></textarea></div>
@@ -1970,28 +1977,44 @@ async function eliminarTelefono(ref) {
   catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 
-function openReportRefModal(catalogo, ref, categoria = '', marca = '', modelo = '', etiqueta = '') {
+function onReportTipoChange() {
+  const tipo = document.getElementById('reportTipo')?.value || 'referencia';
+  const wrap = document.getElementById('reportPvpWrap');
+  if (wrap) wrap.style.display = tipo === 'pvp' ? '' : 'none';
+}
+
+function openReportRefModal(catalogo, ref, categoria = '', marca = '', modelo = '', etiqueta = '', pvp = '') {
   if (isAdminRole()) return toast('Solo usuarios no-admin pueden reportar referencias', 'warn');
   document.getElementById('reportCatalogo').value = catalogo || '';
   document.getElementById('reportReferencia').value = ref || '';
   document.getElementById('reportCatalogoText').value = catalogLabel(catalogo);
+  document.getElementById('reportTipo').value = 'referencia';
+  document.getElementById('reportPvp').value = pvp === '' || pvp === null || pvp === undefined ? '' : String(pvp);
   document.getElementById('reportMarca').value = marca || '';
   document.getElementById('reportModelo').value = modelo || '';
   document.getElementById('reportMotivo').value = '';
+  onReportTipoChange();
   openModal('modalReportRef');
 }
 
 async function enviarReporteReferencia() {
   if (isAdminRole()) return toast('Solo usuarios no-admin pueden reportar referencias', 'warn');
+  const tipo = (document.getElementById('reportTipo').value || 'referencia').trim().toLowerCase();
+  const pvpInput = document.getElementById('reportPvp').value;
   const payload = {
     referencia: (document.getElementById('reportReferencia').value || '').trim(),
     catalogo: (document.getElementById('reportCatalogo').value || '').trim().toLowerCase(),
+    tipo_reporte: tipo,
+    pvp_reportado: tipo === 'pvp' ? (pvpInput === '' ? null : Number(pvpInput)) : null,
     marca: (document.getElementById('reportMarca').value || '').trim(),
     modelo: (document.getElementById('reportModelo').value || '').trim(),
     motivo: (document.getElementById('reportMotivo').value || '').trim(),
   };
   if (!payload.referencia || !payload.catalogo || !payload.motivo) {
     return toast('Referencia y motivo son obligatorios', 'warn');
+  }
+  if (tipo === 'pvp' && (!Number.isFinite(payload.pvp_reportado) || payload.pvp_reportado < 0)) {
+    return toast('Indica un PVP válido para el reporte', 'warn');
   }
   try {
     await API.reportes.crear(payload);
@@ -2049,12 +2072,18 @@ async function loadReportesFromAPI() {
       const estadoBadge = r.estado === 'resuelto'
         ? '<span class="pvp-status-done">✅ Resuelto</span>'
         : '<span class="pvp-status-pending">⏳ Pendiente</span>';
+      const tipoTxt = r.tipo_reporte === 'pvp' ? 'PVP' : 'Referencia';
+      const pvpTxt = (r.tipo_reporte === 'pvp' && r.pvp_reportado !== null && r.pvp_reportado !== undefined)
+        ? `${formatMoney(r.pvp_reportado)} €`
+        : '—';
       const accion = r.estado === 'pendiente'
         ? `<button class="btn btn-green" style="font-size:11px;padding:5px 10px;" onclick="resolverReporte(${Number(r.id)})">✅ Resolver</button>`
         : `<span style="font-size:11px;color:var(--g400);">${escHTML(r.comentario_admin || 'Sin comentario')}</span>`;
       tr.innerHTML = `
         <td class="td-ref">${escHTML(r.referencia || '—')}</td>
         <td>${escHTML(catalogLabel(r.catalogo))}</td>
+        <td>${escHTML(tipoTxt)}</td>
+        <td class="price">${pvpTxt}</td>
         <td>${escHTML(r.marca || '—')}</td>
         <td>${escHTML(r.modelo || '—')}</td>
         <td style="max-width:240px;white-space:normal;">${escHTML(r.motivo || '—')}</td>
@@ -2203,7 +2232,7 @@ async function loadAppleFromAPI(page = _applePage, options = {}) {
              <button class="ab e" onclick="editarApple('${escJS(r.referencia)}','${escJS(r.marca || '')}','${escJS(r.categoria || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">✏️</button>
              <button class="ab d" onclick="eliminarApple('${escJS(r.referencia)}')">🗑️</button>
            </div>`
-        : `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('apple','${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}')">🚩 Reportar</button>`;
+        : `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('apple','${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">🚩 Reportar</button>`;
       tr.innerHTML = `
         <td class="td-ref">${escHTML(r.referencia)}</td>
         <td>${catBadge(r.categoria)}</td>
@@ -2239,7 +2268,7 @@ async function loadOppoFromAPI(page = _oppoPage, options = {}) {
              <button class="ab e" onclick="editarOppo('${escJS(r.referencia)}','${escJS(r.marca || '')}','${escJS(r.categoria || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">✏️</button>
              <button class="ab d" onclick="eliminarOppo('${escJS(r.referencia)}')">🗑️</button>
            </div>`
-        : `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('oppo','${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}')">🚩 Reportar</button>`;
+        : `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('oppo','${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">🚩 Reportar</button>`;
       tr.innerHTML = `
         <td class="td-ref">${escHTML(r.referencia)}</td>
         <td>${catBadge(r.categoria)}</td>
@@ -2274,7 +2303,7 @@ async function loadTelefonosFromAPI(page = _telPage, options = {}) {
              <button class="ab e" onclick="editarTelefono('${escJS(r.referencia)}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">✏️</button>
              <button class="ab d" onclick="eliminarTelefono('${escJS(r.referencia)}')">🗑️</button>
            </div>`
-        : `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('telefonos','${escJS(r.referencia)}','','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}')">🚩 Reportar</button>`;
+        : `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('telefonos','${escJS(r.referencia)}','','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">🚩 Reportar</button>`;
       tr.innerHTML = `
         <td class="td-ref">${escHTML(r.referencia)}</td>
         <td>${escHTML(r.marca||'—')}</td>
@@ -2378,7 +2407,7 @@ async function loadRepuestosFromAPI(params = {}) {
              <button class="ab e" onclick="editarRepuesto('${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}','${escJS(String(r.pvp_clubsave ?? ''))}')">✏️</button>
              <button class="ab d" onclick="eliminarRepuesto('${escJS(r.referencia)}',this)">🗑️</button>
            </div>`
-        : `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('repuestos','${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}')">🚩 Reportar</button>`;
+        : `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('repuestos','${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">🚩 Reportar</button>`;
       tr.innerHTML = `
         <td class="td-ref">${escHTML(r.referencia||'—')}</td>
         <td>${catBadge(r.categoria)}</td>
