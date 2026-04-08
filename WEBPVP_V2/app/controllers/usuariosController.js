@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const db = require('../config/db');
-const { ROL_MAP, ROL_NUM } = require('./authController');
+const { ROL_MAP, ROL_NUM, ensureMustChangePasswordColumn } = require('./authController');
 
 /**
  * Tabla real: `usuarios`
@@ -35,12 +35,21 @@ async function crear(req, res) {
   const rolNum = typeof rol === 'number' ? rol : (ROL_NUM[rol] || 3);
 
   try {
+    const hasMustChangeCol = await ensureMustChangePasswordColumn();
     // Generar hash compatible con bcryptjs ($2a$) — válido también en PHP
     const hash = await bcrypt.hash(password, 10);
-    const [result] = await db.execute(
-      'INSERT INTO usuarios (nombre, usuario, email, clave, rol) VALUES (?, ?, ?, ?, ?)',
-      [nombre, username, email || '', hash, rolNum]
-    );
+    let result;
+    if (hasMustChangeCol) {
+      [result] = await db.execute(
+        'INSERT INTO usuarios (nombre, usuario, email, clave, rol, must_change_password) VALUES (?, ?, ?, ?, ?, ?)',
+        [nombre, username, email || '', hash, rolNum, rolNum === 1 ? 0 : 1]
+      );
+    } else {
+      [result] = await db.execute(
+        'INSERT INTO usuarios (nombre, usuario, email, clave, rol) VALUES (?, ?, ?, ?, ?)',
+        [nombre, username, email || '', hash, rolNum]
+      );
+    }
     res.status(201).json({ id: result.insertId, message: 'Usuario creado correctamente' });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'El username o email ya existe' });
@@ -56,14 +65,33 @@ async function actualizar(req, res) {
     : null;
 
   try {
+    const hasMustChangeCol = await ensureMustChangePasswordColumn();
+    let effectiveRolNum = rolNum;
+    if (effectiveRolNum === null) {
+      const [rows] = await db.execute(
+        'SELECT rol FROM usuarios WHERE id_usuario = ? LIMIT 1',
+        [req.params.id]
+      );
+      effectiveRolNum = rows[0]?.rol || 3;
+    }
+
     if (password) {
       const hash = await bcrypt.hash(password, 10);
-      await db.execute(
-        `UPDATE usuarios SET nombre=?, usuario=?, email=?${rolNum ? ', rol=?' : ''}, clave=? WHERE id_usuario=?`,
-        rolNum
-          ? [nombre, username, email || '', rolNum, hash, req.params.id]
-          : [nombre, username, email || '', hash, req.params.id]
-      );
+      if (hasMustChangeCol) {
+        await db.execute(
+          `UPDATE usuarios SET nombre=?, usuario=?, email=?${rolNum ? ', rol=?' : ''}, clave=?, must_change_password=? WHERE id_usuario=?`,
+          rolNum
+            ? [nombre, username, email || '', rolNum, hash, effectiveRolNum === 1 ? 0 : 1, req.params.id]
+            : [nombre, username, email || '', hash, effectiveRolNum === 1 ? 0 : 1, req.params.id]
+        );
+      } else {
+        await db.execute(
+          `UPDATE usuarios SET nombre=?, usuario=?, email=?${rolNum ? ', rol=?' : ''}, clave=? WHERE id_usuario=?`,
+          rolNum
+            ? [nombre, username, email || '', rolNum, hash, req.params.id]
+            : [nombre, username, email || '', hash, req.params.id]
+        );
+      }
     } else {
       await db.execute(
         `UPDATE usuarios SET nombre=?, usuario=?, email=?${rolNum ? ', rol=?' : ''} WHERE id_usuario=?`,

@@ -6,6 +6,37 @@ const db     = require('../config/db');
 const ROL_MAP = { 1: 'admin', 2: 'carrefour', 3: 'eci' };
 // Y al revés, para filtros
 const ROL_NUM = { admin: 1, carrefour: 2, eci: 3 };
+let _hasMustChangePasswordCol = null;
+
+async function ensureMustChangePasswordColumn() {
+  if (_hasMustChangePasswordCol !== null) return _hasMustChangePasswordCol;
+  try {
+    const [cols] = await db.execute(
+      `SELECT COUNT(*) AS n
+       FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE()
+         AND TABLE_NAME = 'usuarios'
+         AND COLUMN_NAME = 'must_change_password'`
+    );
+    if (Number(cols[0]?.n || 0) > 0) {
+      _hasMustChangePasswordCol = true;
+      return true;
+    }
+
+    await db.execute(
+      `ALTER TABLE usuarios
+       ADD COLUMN must_change_password TINYINT(1) NOT NULL DEFAULT 0`
+    );
+    // Migración inicial: todos los no-admin deberán cambiarla una vez.
+    await db.execute(`UPDATE usuarios SET must_change_password = 1 WHERE rol <> 1`);
+    _hasMustChangePasswordCol = true;
+    return true;
+  } catch (err) {
+    console.warn('No se pudo habilitar must_change_password:', err.message);
+    _hasMustChangePasswordCol = false;
+    return false;
+  }
+}
 
 /**
  * POST /api/auth/login
@@ -21,8 +52,10 @@ async function login(req, res) {
   }
 
   try {
+    const hasMustChangeCol = await ensureMustChangePasswordColumn();
+    const selectMustChange = hasMustChangeCol ? 'must_change_password' : '0 AS must_change_password';
     const [rows] = await db.execute(
-      `SELECT id_usuario, nombre, usuario, email, clave, rol
+      `SELECT id_usuario, nombre, usuario, email, clave, rol, ${selectMustChange}
        FROM usuarios
        WHERE usuario = ?`,
       [username]
@@ -41,6 +74,7 @@ async function login(req, res) {
     }
 
     const rolNombre = ROL_MAP[user.rol] || 'eci';
+    const forcePasswordChange = rolNombre !== 'admin' && Number(user.must_change_password || 0) === 1;
 
     const token = jwt.sign(
       {
@@ -49,6 +83,7 @@ async function login(req, res) {
         nombre:   user.nombre,
         rol:      rolNombre,       // 'admin' | 'carrefour' | 'eci'
         rolNum:   user.rol,        // 1 | 2 | 3  (por si hace falta)
+        mustChangePassword: forcePasswordChange,
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
@@ -62,7 +97,10 @@ async function login(req, res) {
         username: user.usuario,
         email:    user.email,
         rol:      rolNombre,
+        mustChangePassword: forcePasswordChange,
       }
+      ,
+      forcePasswordChange
     });
 
   } catch (err) {
@@ -76,18 +114,71 @@ async function login(req, res) {
  */
 async function me(req, res) {
   try {
+    const hasMustChangeCol = await ensureMustChangePasswordColumn();
+    const selectMustChange = hasMustChangeCol ? 'must_change_password' : '0 AS must_change_password';
     const [rows] = await db.execute(
-      `SELECT id_usuario AS id, nombre, usuario AS username, email, rol
+      `SELECT id_usuario AS id, nombre, usuario AS username, email, rol, ${selectMustChange}
        FROM usuarios WHERE id_usuario = ?`,
       [req.user.id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Usuario no encontrado' });
 
     const u = rows[0];
-    res.json({ ...u, rol: ROL_MAP[u.rol] || 'eci' });
+    const rolNombre = ROL_MAP[u.rol] || 'eci';
+    const mustChangePassword = rolNombre !== 'admin' && Number(u.must_change_password || 0) === 1;
+    res.json({ ...u, rol: rolNombre, mustChangePassword });
   } catch (err) {
     res.status(500).json({ error: 'Error interno' });
   }
 }
 
-module.exports = { login, me, ROL_MAP, ROL_NUM };
+/**
+ * POST /api/auth/change-password-first-login
+ * Usuario autenticado (no admin): cambia su contraseña inicial y desactiva el bloqueo.
+ */
+async function changePasswordFirstLogin(req, res) {
+  try {
+    const hasMustChangeCol = await ensureMustChangePasswordColumn();
+    if (!hasMustChangeCol) {
+      return res.status(500).json({ error: 'Función de cambio de contraseña no disponible en este entorno' });
+    }
+    if (!req.user?.id) return res.status(401).json({ error: 'Token inválido' });
+
+    const newPassword = String(req.body?.newPassword || '');
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
+    }
+
+    const [rows] = await db.execute(
+      `SELECT id_usuario, rol, must_change_password
+       FROM usuarios
+       WHERE id_usuario = ?
+       LIMIT 1`,
+      [req.user.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const u = rows[0];
+    const rolNombre = ROL_MAP[u.rol] || 'eci';
+    if (rolNombre === 'admin') {
+      return res.status(400).json({ error: 'Este cambio solo aplica a usuarios no administradores' });
+    }
+    if (Number(u.must_change_password || 0) !== 1) {
+      return res.status(400).json({ error: 'Tu usuario no requiere cambio de contraseña inicial' });
+    }
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    await db.execute(
+      `UPDATE usuarios
+       SET clave = ?, must_change_password = 0
+       WHERE id_usuario = ?`,
+      [hash, req.user.id]
+    );
+
+    res.json({ message: 'Contraseña actualizada correctamente' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al actualizar la contraseña' });
+  }
+}
+
+module.exports = { login, me, changePasswordFirstLogin, ensureMustChangePasswordColumn, ROL_MAP, ROL_NUM };
