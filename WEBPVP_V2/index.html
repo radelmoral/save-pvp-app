@@ -963,6 +963,9 @@ let globalFlatResults = [];
 let pendingSolicitudesAdmin = 0;
 let pendingReportesAdmin = 0;
 let adminReportesCache = [];
+let adminRealtimeTimer = null;
+let adminRealtimeBusy = false;
+const ADMIN_REALTIME_MS = 8000;
 window.__SAVE_CURRENT_ROLE = currentRole;
 const roleConfig = {
   admin:     { label:'Admin',     avatar:'AD', name:'administrador',       rp:'rp-adm', rpText:'★ Admin' },
@@ -985,6 +988,40 @@ function applyPvpClubVisibilityByRole() {
   document.body.classList.toggle('hide-pvpclub', currentRole === 'eci');
 }
 applyPvpClubVisibilityByRole();
+
+async function adminRealtimeTick(force = false) {
+  if (!API_AVAILABLE || currentRole !== 'admin') return;
+  if (!force && document.hidden) return;
+  if (adminRealtimeBusy) return;
+  adminRealtimeBusy = true;
+  try {
+    await Promise.all([loadSolicitudesFromAPI(), loadReportesFromAPI()]);
+  } finally {
+    adminRealtimeBusy = false;
+  }
+}
+
+function stopAdminRealtimeSync() {
+  if (adminRealtimeTimer) {
+    clearInterval(adminRealtimeTimer);
+    adminRealtimeTimer = null;
+  }
+}
+
+function startAdminRealtimeSync() {
+  stopAdminRealtimeSync();
+  if (!API_AVAILABLE || currentRole !== 'admin') return;
+  adminRealtimeTick(true);
+  adminRealtimeTimer = setInterval(() => {
+    adminRealtimeTick(false);
+  }, ADMIN_REALTIME_MS);
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (currentRole === 'admin' && !document.hidden) {
+    adminRealtimeTick(true);
+  }
+});
 
 function setRole(role) {
   currentRole = role;
@@ -1017,6 +1054,8 @@ function setRole(role) {
   if (active && adminPages.some(p => active.id === 'page-'+p) && role !== 'admin') {
     navById('dashboard');
   }
+  if (role === 'admin') startAdminRealtimeSync();
+  else stopAdminRealtimeSync();
   toast(`Rol cambiado a ${cfg.label}`, 'ok');
 }
 
