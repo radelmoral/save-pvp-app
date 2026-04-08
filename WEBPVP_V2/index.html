@@ -303,6 +303,10 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <span class="ic">📋</span> Solicitudes PVP
         <span class="sb-badge" id="badgePendientes">3</span>
       </button>
+      <button class="sb-item" onclick="nav('reportes-referencias-admin',this)">
+        <span class="ic">🚩</span> Reportes referencias
+        <span class="sb-badge" id="badgeReportesPendientes">0</span>
+      </button>
     </div>
   </nav>
 
@@ -613,6 +617,38 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
     </div>
   </section>
 
+  <section class="page" id="page-reportes-referencias-admin">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div>
+        <h2 style="font-size:20px;font-weight:800;">Reportes de referencias — Administración</h2>
+        <p style="color:var(--g500);font-size:13px;margin-top:3px;">Revisa incidencias enviadas por usuarios y márcalas como resueltas</p>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <span class="pvp-status-pending" style="padding:6px 14px;" id="adminReportesPendBadge">⏳ 0 pendientes</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch">
+        <div class="ct">Todos los reportes</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <select class="fi" id="reportesFiltroEstado" onchange="filtrarReportesAdmin()" style="min-width:160px;">
+            <option value="">Todos los estados</option>
+            <option value="pendiente">⏳ Pendientes</option>
+            <option value="resuelto">✅ Resueltos</option>
+          </select>
+          <input class="fi" id="reportesFiltroUsuario" placeholder="Usuario…" oninput="filtrarReportesAdmin()" />
+          <input class="fi" id="reportesFiltroRef" placeholder="Referencia…" oninput="filtrarReportesAdmin()" />
+        </div>
+      </div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Referencia</th><th>Catálogo</th><th>Marca</th><th>Modelo</th><th>Motivo</th><th>Solicitado por</th><th>Fecha</th><th>Estado</th><th style="text-align:center;">Acción</th></tr></thead>
+          <tbody id="tbAdminReportes"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
   <!-- ── USUARIOS (solo admin) ── -->
   <section class="page" id="page-usuarios">
     <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -762,6 +798,29 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
   </div>
 </div>
 
+<div class="mo" id="modalReportRef" onclick="closeModalOut(event,'modalReportRef')">
+  <div class="md">
+    <div class="mh">
+      <div class="mt">🚩 Reportar referencia errónea</div>
+      <button class="mc" onclick="closeModal('modalReportRef')">✕</button>
+    </div>
+    <div class="mb">
+      <input type="hidden" id="reportCatalogo" />
+      <div class="fg">
+        <div class="ff"><label>Referencia</label><input class="finp" id="reportReferencia" readonly /></div>
+        <div class="ff"><label>Catálogo</label><input class="finp" id="reportCatalogoText" readonly /></div>
+        <div class="ff"><label>Marca</label><input class="finp" id="reportMarca" readonly /></div>
+        <div class="ff"><label>Modelo</label><input class="finp" id="reportModelo" readonly /></div>
+        <div class="ff full"><label>Motivo del reporte *</label><textarea class="finp" id="reportMotivo" rows="4" placeholder="Describe el error detectado (precio, modelo, etiqueta, etc.)"></textarea></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-o" onclick="closeModal('modalReportRef')">Cancelar</button>
+      <button class="btn btn-p" onclick="enviarReporteReferencia()">Enviar reporte</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════════ MODAL — NUEVO USUARIO ═══════════════════ -->
 <div class="mo" id="modalCreateUser" onclick="closeModalOut(event,'modalCreateUser')">
   <div class="md">
@@ -833,12 +892,25 @@ let globalSearchTimer = null;
 let globalLastSummary = null;
 const globalRowsVisible = { repuestos: 6, telefonos: 6, apple: 6, oppo: 6 };
 let globalFlatResults = [];
+let pendingSolicitudesAdmin = 0;
+let pendingReportesAdmin = 0;
 window.__SAVE_CURRENT_ROLE = currentRole;
 const roleConfig = {
   admin:     { label:'Admin',     avatar:'AD', name:'administrador',       rp:'rp-adm', rpText:'★ Admin' },
   carrefour: { label:'Carrefour', avatar:'CF', name:'Usuario Carrefour',   rp:'rp-sup', rpText:'◆ Carrefour' },
   eci:       { label:'ECI',       avatar:'EC', name:'Usuario ECI',         rp:'rp-tec', rpText:'● ECI' },
 };
+
+function catalogLabel(cat) {
+  const m = { repuestos: 'Repuestos', telefonos: 'Teléfonos', apple: 'Apple Original', oppo: 'Oppo Original' };
+  return m[String(cat || '').toLowerCase()] || (cat || '—');
+}
+
+function updateAdminNotificationIndicators() {
+  const totalPend = Number(pendingSolicitudesAdmin || 0) + Number(pendingReportesAdmin || 0);
+  const dot = document.getElementById('notifDot');
+  if (dot) dot.style.display = totalPend > 0 ? '' : 'none';
+}
 
 function applyPvpClubVisibilityByRole() {
   document.body.classList.toggle('hide-pvpclub', currentRole === 'eci');
@@ -871,7 +943,7 @@ function setRole(role) {
   const repExportar = document.getElementById('btnRepuestosExportar');
   if (repExportar) repExportar.style.display = (role === 'admin') ? '' : 'none';
   // If on an admin-only page, redirect to dashboard
-  const adminPages = ['usuarios','solicitudes-pvp-admin'];
+  const adminPages = ['usuarios','solicitudes-pvp-admin','reportes-referencias-admin'];
   const active = document.querySelector('.page.active');
   if (active && adminPages.some(p => active.id === 'page-'+p) && role !== 'admin') {
     navById('dashboard');
@@ -889,6 +961,7 @@ function nav(id, btn) {
     apple:'Apple Original', oppo:'Oppo Original', pedidos:'Gestión de Pedidos',
     'solicitud-pvp':'Solicitud de PVP', usuarios:'Usuarios',
     'solicitudes-pvp-admin':'Solicitudes PVP — Admin',
+    'reportes-referencias-admin':'Reportes referencias — Admin',
     'resultados-globales':'Resultados Globales'
   };
   document.getElementById('tbTitle').textContent = titles[id] || id;
@@ -1527,12 +1600,12 @@ async function loadSolicitudesFromAPI() {
     filtrarAdminSolicitudes();
 
     const pendientes = data.filter(s => s.estado === 'pendiente').length;
+    pendingSolicitudesAdmin = pendientes;
     document.getElementById('badgePendientes').textContent = pendientes;
     document.getElementById('dashPend').textContent = pendientes;
     const adminPend = document.getElementById('adminPendBadge');
     if (adminPend) adminPend.textContent = `⏳ ${pendientes} pendientes`;
-    const dot = document.getElementById('notifDot');
-    if (dot) dot.style.display = pendientes > 0 ? '' : 'none';
+    updateAdminNotificationIndicators();
   } catch(e) {
     console.warn('Error cargando solicitudes:', e.message);
   }
@@ -1544,15 +1617,15 @@ async function loadCategoriasFromAPI() {
   if (!API_AVAILABLE) return;
   try {
     const cats = await API.categorias.listar();
-    ['pvpCat'].forEach(selId => {
+    ['pvpCat', 'fCat', 'filtroAppleCategoria', 'filtroOppoCategoria', 'newRefCategoria'].forEach(selId => {
       const sel = document.getElementById(selId);
       if (!sel) return;
       const current = sel.value;
-      // Conservar primera opción y la de nueva categoría
+      // Conservar primera opción
       const primera  = sel.options[0];
       const nueva    = sel.querySelector('[value="__nueva__"]');
       sel.innerHTML  = '';
-      sel.appendChild(primera);
+      if (primera) sel.appendChild(primera);
       cats.forEach(c => {
         const o = document.createElement('option');
         o.value = c.nombre; o.textContent = c.nombre;
@@ -1897,6 +1970,106 @@ async function eliminarTelefono(ref) {
   catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 
+function openReportRefModal(catalogo, ref, categoria = '', marca = '', modelo = '', etiqueta = '') {
+  if (isAdminRole()) return toast('Solo usuarios no-admin pueden reportar referencias', 'warn');
+  document.getElementById('reportCatalogo').value = catalogo || '';
+  document.getElementById('reportReferencia').value = ref || '';
+  document.getElementById('reportCatalogoText').value = catalogLabel(catalogo);
+  document.getElementById('reportMarca').value = marca || '';
+  document.getElementById('reportModelo').value = modelo || '';
+  document.getElementById('reportMotivo').value = '';
+  openModal('modalReportRef');
+}
+
+async function enviarReporteReferencia() {
+  if (isAdminRole()) return toast('Solo usuarios no-admin pueden reportar referencias', 'warn');
+  const payload = {
+    referencia: (document.getElementById('reportReferencia').value || '').trim(),
+    catalogo: (document.getElementById('reportCatalogo').value || '').trim().toLowerCase(),
+    marca: (document.getElementById('reportMarca').value || '').trim(),
+    modelo: (document.getElementById('reportModelo').value || '').trim(),
+    motivo: (document.getElementById('reportMotivo').value || '').trim(),
+  };
+  if (!payload.referencia || !payload.catalogo || !payload.motivo) {
+    return toast('Referencia y motivo son obligatorios', 'warn');
+  }
+  try {
+    await API.reportes.crear(payload);
+    closeModal('modalReportRef');
+    toast('Reporte enviado. El administrador ha sido notificado.', 'ok');
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
+function filtrarReportesAdmin() {
+  const estado = document.getElementById('reportesFiltroEstado')?.value || '';
+  const usuario = normalizeText(document.getElementById('reportesFiltroUsuario')?.value || '');
+  const ref = normalizeText(document.getElementById('reportesFiltroRef')?.value || '');
+  document.querySelectorAll('#tbAdminReportes tr').forEach(row => {
+    const okEstado = !estado || row.dataset.estado === estado;
+    const okUsuario = !usuario || (row.dataset.usuario || '').includes(usuario);
+    const okRef = !ref || (row.dataset.ref || '').includes(ref);
+    row.style.display = (okEstado && okUsuario && okRef) ? '' : 'none';
+  });
+}
+
+async function resolverReporte(id) {
+  if (!isAdminRole()) return toast('Solo admin puede resolver reportes', 'warn');
+  const comentario = prompt('Comentario de resolución (opcional):', '') ?? '';
+  try {
+    await API.reportes.resolver(id, { comentario_admin: comentario.trim() });
+    toast('Reporte resuelto', 'ok');
+    loadReportesFromAPI();
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
+async function loadReportesFromAPI() {
+  if (!API_AVAILABLE) return;
+  try {
+    const data = await API.reportes.listar();
+    const pending = data.filter(r => r.estado === 'pendiente').length;
+    pendingReportesAdmin = pending;
+    const badge = document.getElementById('badgeReportesPendientes');
+    if (badge) badge.textContent = pending;
+    const adminPend = document.getElementById('adminReportesPendBadge');
+    if (adminPend) adminPend.textContent = `⏳ ${pending} pendientes`;
+    updateAdminNotificationIndicators();
+
+    const tb = document.getElementById('tbAdminReportes');
+    if (!tb) return;
+    tb.innerHTML = '';
+    data.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.dataset.estado = r.estado || '';
+      tr.dataset.usuario = normalizeText(r.solicitante || '');
+      tr.dataset.ref = normalizeText(r.referencia || '');
+      const estadoBadge = r.estado === 'resuelto'
+        ? '<span class="pvp-status-done">✅ Resuelto</span>'
+        : '<span class="pvp-status-pending">⏳ Pendiente</span>';
+      const accion = r.estado === 'pendiente'
+        ? `<button class="btn btn-green" style="font-size:11px;padding:5px 10px;" onclick="resolverReporte(${Number(r.id)})">✅ Resolver</button>`
+        : `<span style="font-size:11px;color:var(--g400);">${escHTML(r.comentario_admin || 'Sin comentario')}</span>`;
+      tr.innerHTML = `
+        <td class="td-ref">${escHTML(r.referencia || '—')}</td>
+        <td>${escHTML(catalogLabel(r.catalogo))}</td>
+        <td>${escHTML(r.marca || '—')}</td>
+        <td>${escHTML(r.modelo || '—')}</td>
+        <td style="max-width:240px;white-space:normal;">${escHTML(r.motivo || '—')}</td>
+        <td>${escHTML(r.solicitante || '—')}</td>
+        <td style="font-size:11px;color:var(--g400)">${new Date(r.created_at).toLocaleDateString('es-ES')}</td>
+        <td>${estadoBadge}</td>
+        <td style="text-align:center;">${accion}</td>`;
+      tb.appendChild(tr);
+    });
+    filtrarReportesAdmin();
+  } catch (e) {
+    console.warn('Error cargando reportes:', e.message);
+  }
+}
+
 function openCreateUserModal() {
   if (!isAdminRole()) return toast('Solo admin puede crear usuarios', 'warn');
   document.getElementById('createUserNombre').value = '';
@@ -2030,7 +2203,7 @@ async function loadAppleFromAPI(page = _applePage, options = {}) {
              <button class="ab e" onclick="editarApple('${escJS(r.referencia)}','${escJS(r.marca || '')}','${escJS(r.categoria || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">✏️</button>
              <button class="ab d" onclick="eliminarApple('${escJS(r.referencia)}')">🗑️</button>
            </div>`
-        : '<span style="color:var(--g400);">—</span>';
+        : `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('apple','${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}')">🚩 Reportar</button>`;
       tr.innerHTML = `
         <td class="td-ref">${escHTML(r.referencia)}</td>
         <td>${catBadge(r.categoria)}</td>
@@ -2066,7 +2239,7 @@ async function loadOppoFromAPI(page = _oppoPage, options = {}) {
              <button class="ab e" onclick="editarOppo('${escJS(r.referencia)}','${escJS(r.marca || '')}','${escJS(r.categoria || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">✏️</button>
              <button class="ab d" onclick="eliminarOppo('${escJS(r.referencia)}')">🗑️</button>
            </div>`
-        : '<span style="color:var(--g400);">—</span>';
+        : `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('oppo','${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}')">🚩 Reportar</button>`;
       tr.innerHTML = `
         <td class="td-ref">${escHTML(r.referencia)}</td>
         <td>${catBadge(r.categoria)}</td>
@@ -2101,7 +2274,7 @@ async function loadTelefonosFromAPI(page = _telPage, options = {}) {
              <button class="ab e" onclick="editarTelefono('${escJS(r.referencia)}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">✏️</button>
              <button class="ab d" onclick="eliminarTelefono('${escJS(r.referencia)}')">🗑️</button>
            </div>`
-        : '<span style="color:var(--g400);">—</span>';
+        : `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('telefonos','${escJS(r.referencia)}','','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}')">🚩 Reportar</button>`;
       tr.innerHTML = `
         <td class="td-ref">${escHTML(r.referencia)}</td>
         <td>${escHTML(r.marca||'—')}</td>
@@ -2205,7 +2378,7 @@ async function loadRepuestosFromAPI(params = {}) {
              <button class="ab e" onclick="editarRepuesto('${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}','${escJS(String(r.pvp_clubsave ?? ''))}')">✏️</button>
              <button class="ab d" onclick="eliminarRepuesto('${escJS(r.referencia)}',this)">🗑️</button>
            </div>`
-        : '<span style="color:var(--g400);">—</span>';
+        : `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('repuestos','${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}')">🚩 Reportar</button>`;
       tr.innerHTML = `
         <td class="td-ref">${escHTML(r.referencia||'—')}</td>
         <td>${catBadge(r.categoria)}</td>
@@ -2318,6 +2491,7 @@ window.addEventListener('load', async () => {
   const authed = await checkAuth();
   if (!authed) return;
   loadSolicitudesFromAPI();
+  loadReportesFromAPI();
   loadRepuestosFromAPI();
   loadCategoriasFromAPI();
   loadAppleFromAPI();
