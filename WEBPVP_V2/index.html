@@ -466,8 +466,10 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
     <div style="display:flex;align-items:center;justify-content:space-between;"><div><h2 style="font-size:20px;font-weight:800;">Apple Original</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;" id="appleTotal">Cargando…</p></div></div>
     <div class="card">
       <div class="tfilters">
-        <input class="fi" id="filtroAppleRef" placeholder="🔍 Referencia…" style="flex:1;" oninput="loadAppleFromAPI()"/>
-        <input class="fi" id="filtroAppleModelo" placeholder="Modelo…" oninput="loadAppleFromAPI()"/>
+        <input class="fi" id="filtroAppleRef" placeholder="🔍 Buscar (referencia, categoría, marca, modelo, etiqueta)..." style="flex:1;" oninput="filterApple()"/>
+        <select class="fi" id="filtroAppleCategoria" onchange="filterApple()"><option value="">Todas las categorías</option><option>Pantalla</option><option>Tapa</option><option>Carcasa</option><option>PCB</option></select>
+        <select class="fi" id="filtroAppleMarca" onchange="filterApple()"><option value="">Todas las marcas</option><option>HUAWEI</option><option>XIAOMI</option><option>MOTOROLA</option><option>SAMSUNG</option></select>
+        <input class="fi" id="filtroAppleModelo" placeholder="Modelo…" oninput="filterApple()"/>
       </div>
       <div class="tw"><table><thead><tr><th>Referencia</th><th>Categoría</th><th>Modelo</th><th>Etiqueta</th><th>PVP</th><th style="text-align:center;">Opciones</th></tr></thead><tbody id="tbApple"></tbody></table></div>
       <div class="tf"><span id="applePager">—</span><div class="pager" id="applePagerBtns"></div></div>
@@ -477,8 +479,10 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
     <div style="display:flex;align-items:center;justify-content:space-between;"><div><h2 style="font-size:20px;font-weight:800;">Oppo Original</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;" id="oppoTotal">Cargando…</p></div></div>
     <div class="card">
       <div class="tfilters">
-        <input class="fi" id="filtroOppoRef" placeholder="🔍 Referencia…" style="flex:1;" oninput="loadOppoFromAPI()"/>
-        <input class="fi" id="filtroOppoModelo" placeholder="Modelo…" oninput="loadOppoFromAPI()"/>
+        <input class="fi" id="filtroOppoRef" placeholder="🔍 Buscar (referencia, categoría, marca, modelo, etiqueta)..." style="flex:1;" oninput="filterOppo()"/>
+        <select class="fi" id="filtroOppoCategoria" onchange="filterOppo()"><option value="">Todas las categorías</option><option>Pantalla</option><option>Tapa</option><option>Carcasa</option><option>PCB</option></select>
+        <select class="fi" id="filtroOppoMarca" onchange="filterOppo()"><option value="">Todas las marcas</option><option>HUAWEI</option><option>XIAOMI</option><option>MOTOROLA</option><option>SAMSUNG</option></select>
+        <input class="fi" id="filtroOppoModelo" placeholder="Modelo…" oninput="filterOppo()"/>
       </div>
       <div class="tw"><table><thead><tr><th>Referencia</th><th>Categoría</th><th>Modelo</th><th>Etiqueta</th><th>PVP</th><th style="text-align:center;">Opciones</th></tr></thead><tbody id="tbOppo"></tbody></table></div>
       <div class="tf"><span id="oppoPager">—</span><div class="pager" id="oppoPagerBtns"></div></div>
@@ -946,6 +950,20 @@ function filterR() {
   const marca    = document.getElementById('fMarca').value;
   const modelo   = document.getElementById('fModelo').value;
   loadRepuestosFromAPI({ q, categoria, marca, modelo, page: 1 });
+}
+function filterApple() {
+  const q = document.getElementById('filtroAppleRef')?.value?.trim() || '';
+  const categoria = document.getElementById('filtroAppleCategoria')?.value || '';
+  const marca = document.getElementById('filtroAppleMarca')?.value || '';
+  const modelo = document.getElementById('filtroAppleModelo')?.value || '';
+  loadAppleFromAPI(1, { q, categoria, marca, modelo });
+}
+function filterOppo() {
+  const q = document.getElementById('filtroOppoRef')?.value?.trim() || '';
+  const categoria = document.getElementById('filtroOppoCategoria')?.value || '';
+  const marca = document.getElementById('filtroOppoMarca')?.value || '';
+  const modelo = document.getElementById('filtroOppoModelo')?.value || '';
+  loadOppoFromAPI(1, { q, categoria, marca, modelo });
 }
 function onGSearch(v) {
   const term = String(v || '').trim();
@@ -1997,11 +2015,12 @@ async function loadAppleFromAPI(page = _applePage, options = {}) {
   if (!API_AVAILABLE) return;
   _applePage = page;
   try {
-    const usingGlobalQ = Object.prototype.hasOwnProperty.call(options, 'q');
-    const ref    = usingGlobalQ ? '' : (document.getElementById('filtroAppleRef')?.value || '');
-    const modelo = usingGlobalQ ? '' : (document.getElementById('filtroAppleModelo')?.value || '');
     const q = options.q ?? globalSearchTerm;
-    const res    = await API.apple.listar({ ref, modelo, q, page, limit: 50 });
+    const ref = options.ref ?? '';
+    const categoria = options.categoria ?? '';
+    const marca = options.marca ?? '';
+    const modelo = options.modelo ?? '';
+    const res    = await API.apple.listar({ ref, categoria, marca, modelo, q, page, limit: 50 });
     const tb     = document.getElementById('tbApple');
     tb.innerHTML = '';
     res.data.forEach(r => {
@@ -2032,11 +2051,12 @@ async function loadOppoFromAPI(page = _oppoPage, options = {}) {
   if (!API_AVAILABLE) return;
   _oppoPage = page;
   try {
-    const usingGlobalQ = Object.prototype.hasOwnProperty.call(options, 'q');
-    const ref    = usingGlobalQ ? '' : (document.getElementById('filtroOppoRef')?.value || '');
-    const modelo = usingGlobalQ ? '' : (document.getElementById('filtroOppoModelo')?.value || '');
     const q = options.q ?? globalSearchTerm;
-    const res    = await API.oppo.listar({ ref, modelo, q, page, limit: 50 });
+    const ref = options.ref ?? '';
+    const categoria = options.categoria ?? '';
+    const marca = options.marca ?? '';
+    const modelo = options.modelo ?? '';
+    const res    = await API.oppo.listar({ ref, categoria, marca, modelo, q, page, limit: 50 });
     const tb     = document.getElementById('tbOppo');
     tb.innerHTML = '';
     res.data.forEach(r => {
