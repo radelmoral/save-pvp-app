@@ -2694,13 +2694,15 @@ async function loadDashboard() {
         tb.innerHTML = '';
         const recent = dash.ultimasReferencias || [];
         recent.forEach(r => {
+          const etq = String(r.etiqueta || '').trim() ||
+            [r.categoria, r.marca, r.modelo].filter(Boolean).join(' ').trim() || '—';
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td class="td-ref">${escHTML(r.referencia)}</td>
             <td>${catBadge(r.categoria)}</td>
             <td>${escHTML(r.marca||'—')}</td>
             <td>${escHTML(r.modelo||'—')}</td>
-            <td>${escHTML(r.etiqueta||'—')}</td>
+            <td>${escHTML(etq)}</td>
             <td class="price">${r.pvp ? formatMoney(r.pvp)+' €' : '—'}</td>
             <td class="price-club pvpclub-col">${r.pvp_clubsave ? formatMoney(r.pvp_clubsave)+' €' : '—'}</td>`;
           tb.appendChild(tr);
@@ -2713,13 +2715,15 @@ async function loadDashboard() {
         tbPvpMod.innerHTML = '';
         const recPvp = dash.ultimosPvpModificados || [];
         recPvp.forEach(r => {
+          const etq = String(r.etiqueta || '').trim() ||
+            [r.categoria, r.marca, r.modelo].filter(Boolean).join(' ').trim() || '—';
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td class="td-ref">${escHTML(r.referencia)}</td>
             <td>${catBadge(r.categoria)}</td>
             <td>${escHTML(r.marca||'—')}</td>
             <td>${escHTML(r.modelo||'—')}</td>
-            <td>${escHTML(r.etiqueta||'—')}</td>
+            <td>${escHTML(etq)}</td>
             <td class="price">${r.pvp ? formatMoney(r.pvp)+' €' : '—'}</td>
             <td class="price-club pvpclub-col">${r.pvp_clubsave ? formatMoney(r.pvp_clubsave)+' €' : '—'}</td>`;
           tbPvpMod.appendChild(tr);
