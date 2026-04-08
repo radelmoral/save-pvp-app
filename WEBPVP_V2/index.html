@@ -156,6 +156,7 @@ tbody td { padding:12px 14px; color:var(--g700); vertical-align:middle; }
 .bd-cat-9  { background:#f1f5f9; color:#334155; }
 .price     { font-weight:700; color:var(--g900); }
 .price-club{ font-weight:700; color:var(--save-dk); }
+.hide-pvpclub .pvpclub-col { display:none; }
 .tf { padding:12px 16px; display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--g200); font-size:12px; color:var(--g500); }
 .pager { display:flex; gap:3px; }
 .pb { min-width:30px; height:30px; border-radius:6px; border:1px solid var(--g200); background:var(--white); font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0 8px; transition:all var(--tr); color:var(--g700); }
@@ -416,7 +417,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
     <div class="card">
       <div class="ch"><div><div class="ct">Últimas referencias añadidas</div></div><button class="btn btn-o" onclick="nav('repuestos',null)">Ver todas →</button></div>
       <div class="tw"><table>
-        <thead><tr><th>Referencia</th><th>Categoría</th><th>Marca</th><th>Modelo</th><th>PVP</th><th>PVP Club</th></tr></thead>
+        <thead><tr><th>Referencia</th><th>Categoría</th><th>Marca</th><th>Modelo</th><th>PVP</th><th class="pvpclub-col">PVP Club</th></tr></thead>
         <tbody id="tbDashRepuestos"></tbody>
       </table></div>
     </div>
@@ -440,7 +441,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <input class="fi" placeholder="Modelo…" id="fModelo" oninput="filterR()"/>
       </div>
       <div class="tw"><table id="tRepuestos">
-        <thead><tr><th class="sort">Referencia ↕</th><th class="sort">Categoría ↕</th><th class="sort">Marca ↕</th><th class="sort">Modelo ↕</th><th>Etiqueta</th><th class="sort">PVP ↕</th><th class="sort">PVP Club ↕</th><th style="text-align:center;">Opciones</th></tr></thead>
+        <thead><tr><th class="sort">Referencia ↕</th><th class="sort">Categoría ↕</th><th class="sort">Marca ↕</th><th class="sort">Modelo ↕</th><th>Etiqueta</th><th class="sort">PVP ↕</th><th class="sort pvpclub-col">PVP Club ↕</th><th style="text-align:center;">Opciones</th></tr></thead>
         <tbody id="tbRepuestos"></tbody>
       </table></div>
       <div class="tf"><span id="repuestosPager">Cargando…</span><div class="pager" id="repuestosPagerBtns"></div></div>
@@ -835,9 +836,15 @@ const roleConfig = {
   eci:       { label:'ECI',       avatar:'EC', name:'Usuario ECI',         rp:'rp-tec', rpText:'● ECI' },
 };
 
+function applyPvpClubVisibilityByRole() {
+  document.body.classList.toggle('hide-pvpclub', currentRole === 'eci');
+}
+applyPvpClubVisibilityByRole();
+
 function setRole(role) {
   currentRole = role;
   window.__SAVE_CURRENT_ROLE = role;
+  applyPvpClubVisibilityByRole();
   const cfg = roleConfig[role];
   // Update user card
   document.getElementById('uaAvatar').textContent = cfg.avatar;
@@ -2182,7 +2189,7 @@ async function loadRepuestosFromAPI(params = {}) {
         <td>${escHTML(r.modelo||'—')}</td>
         <td>${escHTML(r.etiqueta||'—')}</td>
         <td class="price">${r.pvp ? formatMoney(r.pvp)+' €' : '—'}</td>
-        <td class="price-club">${r.pvp_clubsave ? formatMoney(r.pvp_clubsave)+' €' : '—'}</td>
+        <td class="price-club pvpclub-col">${r.pvp_clubsave ? formatMoney(r.pvp_clubsave)+' €' : '—'}</td>
         <td>${actions}</td>`;
       tb.appendChild(tr);
     });
@@ -2233,7 +2240,7 @@ async function loadDashboard() {
             <td>${escHTML(r.marca||'—')}</td>
             <td>${escHTML(r.modelo||'—')}</td>
             <td class="price">${r.pvp ? formatMoney(r.pvp)+' €' : '—'}</td>
-            <td class="price-club">${r.pvp_clubsave ? formatMoney(r.pvp_clubsave)+' €' : '—'}</td>`;
+            <td class="price-club pvpclub-col">${r.pvp_clubsave ? formatMoney(r.pvp_clubsave)+' €' : '—'}</td>`;
           tb.appendChild(tr);
         });
       }
