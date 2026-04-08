@@ -610,7 +610,10 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
 
   <!-- ── USUARIOS (solo admin) ── -->
   <section class="page" id="page-usuarios">
-    <div style="display:flex;align-items:center;justify-content:space-between;"><div><h2 style="font-size:20px;font-weight:800;">Gestión de Usuarios</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;" id="usuariosTotal">Cargando…</p></div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div><h2 style="font-size:20px;font-weight:800;">Gestión de Usuarios</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;" id="usuariosTotal">Cargando…</p></div>
+      <button class="btn btn-p" onclick="openCreateUserModal()">+ Nuevo usuario</button>
+    </div>
     <div class="card">
       <div class="tw"><table>
         <thead><tr><th>ID</th><th>Nombre</th><th>Usuario</th><th>Email</th><th>Rol</th><th style="text-align:center;">Opciones</th></tr></thead>
@@ -750,6 +753,35 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
     <div class="mf">
       <button class="btn btn-o" onclick="closeModal('modalEditRef')">Cancelar</button>
       <button class="btn btn-p" onclick="guardarEdicionReferencia()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ MODAL — NUEVO USUARIO ═══════════════════ -->
+<div class="mo" id="modalCreateUser" onclick="closeModalOut(event,'modalCreateUser')">
+  <div class="md">
+    <div class="mh">
+      <div class="mt">➕ Crear usuario</div>
+      <button class="mc" onclick="closeModal('modalCreateUser')">✕</button>
+    </div>
+    <div class="mb">
+      <div class="fg">
+        <div class="ff"><label>Nombre *</label><input class="finp" id="createUserNombre"/></div>
+        <div class="ff"><label>Usuario *</label><input class="finp" id="createUserUsername"/></div>
+        <div class="ff full"><label>Email</label><input class="finp" id="createUserEmail" type="email"/></div>
+        <div class="ff"><label>Rol *</label>
+          <select class="finp" id="createUserRol">
+            <option value="eci">ECI</option>
+            <option value="carrefour">Carrefour</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="ff"><label>Contraseña *</label><input class="finp" id="createUserPassword" type="password"/></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-o" onclick="closeModal('modalCreateUser')">Cancelar</button>
+      <button class="btn btn-p" onclick="guardarNuevoUsuario()">Crear usuario</button>
     </div>
   </div>
 </div>
@@ -1830,6 +1862,42 @@ async function eliminarTelefono(ref) {
   if (!confirm(`¿Eliminar teléfono ${ref}?`)) return;
   try { await API.telefonos.eliminar(ref); toast('Teléfono eliminado', 'ok'); loadTelefonosFromAPI(_telPage); refreshSidebarCatalogCounts(); }
   catch (e) { toast('Error: ' + e.message, 'err'); }
+}
+
+function openCreateUserModal() {
+  if (!isAdminRole()) return toast('Solo admin puede crear usuarios', 'warn');
+  document.getElementById('createUserNombre').value = '';
+  document.getElementById('createUserUsername').value = '';
+  document.getElementById('createUserEmail').value = '';
+  document.getElementById('createUserRol').value = 'eci';
+  document.getElementById('createUserPassword').value = '';
+  openModal('modalCreateUser');
+}
+
+async function guardarNuevoUsuario() {
+  if (!isAdminRole()) return toast('Solo admin puede crear usuarios', 'warn');
+  const nombre = (document.getElementById('createUserNombre').value || '').trim();
+  const username = (document.getElementById('createUserUsername').value || '').trim();
+  const email = (document.getElementById('createUserEmail').value || '').trim();
+  const rol = (document.getElementById('createUserRol').value || 'eci').trim().toLowerCase();
+  const password = document.getElementById('createUserPassword').value || '';
+
+  if (!nombre || !username || !password || !rol) {
+    return toast('Nombre, usuario, rol y contraseña son obligatorios', 'warn');
+  }
+  if (!['admin', 'carrefour', 'eci'].includes(rol)) {
+    return toast('Rol inválido', 'warn');
+  }
+
+  try {
+    await API.usuarios.crear({ nombre, username, email, rol, password });
+    closeModal('modalCreateUser');
+    toast('Usuario creado', 'ok');
+    loadUsuariosFromAPI();
+    loadDashboard();
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
 }
 
 async function editarUsuario(id, nombre, username, email, rol) {
