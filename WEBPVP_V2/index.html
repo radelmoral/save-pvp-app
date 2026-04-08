@@ -328,7 +328,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
     <div class="tb-title" id="tbTitle">Dashboard</div>
     <div class="tb-search">
       <span style="color:var(--g500);font-size:13px;">🔍</span>
-      <input type="text" placeholder="Buscar referencia, marca, modelo…" id="gSearch" oninput="onGSearch(this.value)"/>
+      <input type="text" placeholder="Buscar referencia, marca, modelo…" id="gSearch" name="savepvp_global_search" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-autocomplete="none" oninput="onGSearch(this.value)"/>
     </div>
     <div class="tb-actions">
       <div class="ib" title="Solicitudes pendientes" onclick="nav('solicitudes-pvp-admin',this);navById('solicitudes-pvp-admin');" id="ibNotif">🔔<span class="ndot" id="notifDot" style="display:none;"></span></div>
@@ -579,7 +579,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
           <div class="ch"><div><div class="ct">Mis reportes enviados</div><div class="cs">Estado de tus reportes de referencia/PVP</div></div></div>
           <div class="tw">
             <table>
-              <thead><tr><th>Referencia</th><th>Catálogo</th><th>Tipo</th><th>PVP reportado</th><th>Estado</th><th>Fecha</th></tr></thead>
+              <thead><tr><th>Referencia</th><th>Catálogo</th><th>Tipo</th><th>PVP reportado</th><th>Estado</th><th>Detalle admin</th><th>Fecha</th></tr></thead>
               <tbody id="tbMisReportes"></tbody>
             </table>
           </div>
@@ -1024,6 +1024,10 @@ function navById(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const pg = document.getElementById('page-'+id);
   if(pg) pg.classList.add('active');
+  if (id === 'solicitud-pvp') {
+    loadMisSolicitudesFromAPI();
+    loadReportesFromAPI();
+  }
 }
 
 function openGlobalResultsPage() {
@@ -2198,12 +2202,18 @@ async function loadReportesFromAPI() {
           : r.estado === 'rechazado'
             ? `<span class="badge bd-r">❌ Rechazado</span><div style="margin-top:4px;color:#7f1d1d;font-size:11px;"><strong>Motivo:</strong> ${escHTML(r.motivo_rechazo || '—')}</div>`
             : '<span class="pvp-status-pending">⏳ Pendiente</span>';
+        const detalleAdmin = r.estado === 'rechazado'
+          ? escHTML(r.motivo_rechazo || '—')
+          : r.estado === 'resuelto'
+            ? escHTML(r.comentario_admin || '—')
+            : '—';
         tr.innerHTML = `
           <td class="td-ref">${escHTML(r.referencia || '—')}</td>
           <td>${escHTML(catalogLabel(r.catalogo))}</td>
           <td>${escHTML(tipoTxt)}</td>
           <td class="price">${pvpTxt}</td>
           <td>${estadoBadge}</td>
+          <td style="max-width:220px;white-space:normal;">${detalleAdmin}</td>
           <td style="font-size:11px;color:var(--g400)">${new Date(r.created_at).toLocaleDateString('es-ES')}</td>`;
         tbMis.appendChild(tr);
       });
