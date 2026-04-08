@@ -806,6 +806,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
     </div>
     <div class="mb">
       <input type="hidden" id="reportCatalogo" />
+      <input type="hidden" id="reportPvpOriginal" />
       <div class="fg">
         <div class="ff"><label>Referencia</label><input class="finp" id="reportReferencia" readonly /></div>
         <div class="ff"><label>Catálogo</label><input class="finp" id="reportCatalogoText" readonly /></div>
@@ -815,7 +816,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
             <option value="pvp">PVP</option>
           </select>
         </div>
-        <div class="ff" id="reportPvpWrap" style="display:none;"><label>PVP detectado *</label><input class="finp" id="reportPvp" type="number" step="0.01" placeholder="0.00" /></div>
+        <div class="ff" id="reportPvpWrap" style="display:none;"><label>PVP detectado</label><input class="finp" id="reportPvp" type="number" step="0.01" readonly /></div>
         <div class="ff"><label>Marca</label><input class="finp" id="reportMarca" readonly /></div>
         <div class="ff"><label>Modelo</label><input class="finp" id="reportModelo" readonly /></div>
         <div class="ff full"><label>Motivo del reporte *</label><textarea class="finp" id="reportMotivo" rows="4" placeholder="Describe el error detectado (precio, modelo, etiqueta, etc.)"></textarea></div>
@@ -1989,7 +1990,9 @@ function openReportRefModal(catalogo, ref, categoria = '', marca = '', modelo = 
   document.getElementById('reportReferencia').value = ref || '';
   document.getElementById('reportCatalogoText').value = catalogLabel(catalogo);
   document.getElementById('reportTipo').value = 'referencia';
-  document.getElementById('reportPvp').value = pvp === '' || pvp === null || pvp === undefined ? '' : String(pvp);
+  const pvpValue = (pvp === '' || pvp === null || pvp === undefined) ? '' : String(pvp);
+  document.getElementById('reportPvp').value = pvpValue;
+  document.getElementById('reportPvpOriginal').value = pvpValue;
   document.getElementById('reportMarca').value = marca || '';
   document.getElementById('reportModelo').value = modelo || '';
   document.getElementById('reportMotivo').value = '';
@@ -2000,7 +2003,7 @@ function openReportRefModal(catalogo, ref, categoria = '', marca = '', modelo = 
 async function enviarReporteReferencia() {
   if (isAdminRole()) return toast('Solo usuarios no-admin pueden reportar referencias', 'warn');
   const tipo = (document.getElementById('reportTipo').value || 'referencia').trim().toLowerCase();
-  const pvpInput = document.getElementById('reportPvp').value;
+  const pvpInput = document.getElementById('reportPvpOriginal').value;
   const payload = {
     referencia: (document.getElementById('reportReferencia').value || '').trim(),
     catalogo: (document.getElementById('reportCatalogo').value || '').trim().toLowerCase(),
@@ -2014,7 +2017,7 @@ async function enviarReporteReferencia() {
     return toast('Referencia y motivo son obligatorios', 'warn');
   }
   if (tipo === 'pvp' && (!Number.isFinite(payload.pvp_reportado) || payload.pvp_reportado < 0)) {
-    return toast('Indica un PVP válido para el reporte', 'warn');
+    return toast('Esta referencia no tiene un PVP válido para reportar', 'warn');
   }
   try {
     await API.reportes.crear(payload);
