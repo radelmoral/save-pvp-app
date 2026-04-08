@@ -60,10 +60,20 @@ async function dashboardResumen(req, res) {
     const hasUpdatedAt = cols.has('updated_at');
     const hasId = cols.has('id');
 
-    let latestOrder = 'referencia DESC';
-    if (hasCreatedAt) latestOrder = 'created_at DESC, referencia DESC';
-    else if (hasUpdatedAt) latestOrder = 'updated_at DESC, referencia DESC';
-    else if (hasId) latestOrder = 'id DESC';
+    let latestAddedOrder = 'referencia DESC';
+    if (hasCreatedAt) latestAddedOrder = 'created_at DESC, referencia DESC';
+    else if (hasId) latestAddedOrder = 'id DESC';
+    else if (hasUpdatedAt) latestAddedOrder = 'updated_at DESC, referencia DESC';
+
+    let latestPvpOrder = 'referencia DESC';
+    if (hasUpdatedAt) latestPvpOrder = 'updated_at DESC, referencia DESC';
+    else if (hasCreatedAt) latestPvpOrder = 'created_at DESC, referencia DESC';
+    else if (hasId) latestPvpOrder = 'id DESC';
+
+    const pvpModifiedWhere =
+      hasUpdatedAt && hasCreatedAt
+        ? 'pvp IS NOT NULL AND updated_at > created_at'
+        : 'pvp IS NOT NULL';
 
     const [
       [[repCount]],
@@ -92,14 +102,14 @@ async function dashboardResumen(req, res) {
       db.execute(
         `SELECT referencia, marca, categoria, modelo, etiqueta, pvp, pvp_clubsave
            FROM repuestos
-          ORDER BY ${latestOrder}
+          ORDER BY ${latestAddedOrder}
           LIMIT 5`
       ),
       db.execute(
         `SELECT referencia, marca, categoria, modelo, etiqueta, pvp, pvp_clubsave
            FROM repuestos
-          WHERE pvp IS NOT NULL
-          ORDER BY ${latestOrder}
+          WHERE ${pvpModifiedWhere}
+          ORDER BY ${latestPvpOrder}
           LIMIT 5`
       ),
     ]);
