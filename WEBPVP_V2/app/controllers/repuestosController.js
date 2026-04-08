@@ -244,11 +244,12 @@ async function eliminar(req, res) {
 /** GET /api/apple */
 async function listarApple(req, res) {
   try {
-    const { ref, categoria, modelo, q, page = 1, limit = 50 } = req.query;
+    const { ref, categoria, marca, modelo, q, page = 1, limit = 50 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
     let where = []; const params = [];
     if (ref)      { where.push('referencia LIKE ?'); params.push(`%${ref}%`); }
     if (categoria){ where.push('categoria = ?');     params.push(categoria);  }
+    if (marca)    { where.push('marca = ?');         params.push(marca);      }
     if (modelo)   { where.push('modelo LIKE ?');     params.push(`%${modelo}%`); }
     addTokenizedSearch(where, params, q, ['referencia', 'etiqueta', 'modelo', 'categoria', 'marca']);
     const w = where.length ? 'WHERE ' + where.join(' AND ') : '';
@@ -297,10 +298,12 @@ async function eliminarApple(req, res) {
 /** GET /api/oppo */
 async function listarOppo(req, res) {
   try {
-    const { ref, modelo, q, page = 1, limit = 50 } = req.query;
+    const { ref, categoria, marca, modelo, q, page = 1, limit = 50 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
     let where = []; const params = [];
     if (ref)   { where.push('referencia LIKE ?'); params.push(`%${ref}%`); }
+    if (categoria){ where.push('categoria = ?');  params.push(categoria);  }
+    if (marca) { where.push('marca = ?');         params.push(marca);      }
     if (modelo){ where.push('modelo LIKE ?');     params.push(`%${modelo}%`); }
     addTokenizedSearch(where, params, q, ['referencia', 'etiqueta', 'modelo', 'categoria', 'marca']);
     const w = where.length ? 'WHERE ' + where.join(' AND ') : '';
