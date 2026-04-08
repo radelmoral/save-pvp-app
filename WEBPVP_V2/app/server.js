@@ -16,14 +16,27 @@ app.set('trust proxy', 1);
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 
-// Rate limiter — máx 200 req/15 min por IP
-app.use('/api', rateLimit({
+// Rate limiter específico para login (protege credenciales sin bloquear uso normal)
+const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  message: { error: 'Demasiados intentos de login. Inténtalo en unos minutos.' },
+});
+app.use('/api/auth/login', loginLimiter);
+
+// Límite general para escrituras (POST/PUT/PATCH/DELETE).
+// Las lecturas GET no se limitan aquí para no romper refrescos en tiempo real del panel.
+const apiWriteLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 1200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => ['GET', 'HEAD', 'OPTIONS'].includes(req.method),
   message: { error: 'Demasiadas peticiones. Inténtalo en unos minutos.' },
-}));
+});
+app.use('/api', apiWriteLimiter);
 
 // ── Body parser ────────────────────────────────────────────
 app.use(express.json());
