@@ -170,9 +170,16 @@ async function crear(req, res) {
 async function aprobar(req, res) {
   const { referencia, descripcion, categoria, marca, modelo, coste, pvp_asignado, pvp_club_asignado, destino_catalogo } = req.body;
 
-  if (!pvp_asignado) {
+  const pvpAsignadoNum = Number(pvp_asignado);
+  if (!Number.isFinite(pvpAsignadoNum) || pvpAsignadoNum <= 0) {
     return res.status(400).json({ error: 'El PVP a asignar es obligatorio' });
   }
+  const pvpClubRaw = (pvp_club_asignado === '' || pvp_club_asignado === null || typeof pvp_club_asignado === 'undefined')
+    ? null
+    : Number(pvp_club_asignado);
+  const pvpClubAsignadoNum = (Number.isFinite(pvpClubRaw) && pvpClubRaw >= 0)
+    ? Number(pvpClubRaw.toFixed(2))
+    : Number((pvpAsignadoNum * 0.85).toFixed(2));
 
   let conn;
   try {
@@ -195,7 +202,7 @@ async function aprobar(req, res) {
            admin_id         = ?
        WHERE id = ? AND estado = 'pendiente'`,
       [referencia || null, descripcion || null, categoria || null, marca || null, modelo || null, coste || null,
-       pvp_asignado, pvp_club_asignado || null, req.user.id, req.params.id]
+       pvpAsignadoNum, pvpClubAsignadoNum, req.user.id, req.params.id]
     );
 
     if (upd.affectedRows === 0) {
@@ -226,7 +233,7 @@ async function aprobar(req, res) {
            pvp          = VALUES(pvp),
            pvp_clubsave = VALUES(pvp_clubsave)`,
         [s.referencia, s.marca || '', s.categoria || '', s.modelo || '', s.descripcion || s.referencia,
-         s.coste, pvp_asignado, pvp_club_asignado || null]
+         s.coste, pvpAsignadoNum, pvpClubAsignadoNum]
       );
     } else if (destino === 'telefonos') {
       await conn.execute(
@@ -238,7 +245,7 @@ async function aprobar(req, res) {
            modelo   = VALUES(modelo),
            etiqueta = VALUES(etiqueta),
            pvp      = VALUES(pvp)`,
-        [s.referencia, s.marca || '', s.modelo || '', s.descripcion || s.referencia, pvp_asignado]
+        [s.referencia, s.marca || '', s.modelo || '', s.descripcion || s.referencia, pvpAsignadoNum]
       );
     } else if (destino === 'apple') {
       await conn.execute(
@@ -251,7 +258,7 @@ async function aprobar(req, res) {
            modelo   = VALUES(modelo),
            etiqueta  = VALUES(etiqueta),
            pvp       = VALUES(pvp)`,
-        [s.referencia, s.marca || '', s.categoria || '', s.modelo || '', s.descripcion || s.referencia, pvp_asignado]
+        [s.referencia, s.marca || '', s.categoria || '', s.modelo || '', s.descripcion || s.referencia, pvpAsignadoNum]
       );
     } else if (destino === 'oppo') {
       await conn.execute(
@@ -264,7 +271,7 @@ async function aprobar(req, res) {
            modelo   = VALUES(modelo),
            etiqueta  = VALUES(etiqueta),
            pvp       = VALUES(pvp)`,
-        [s.referencia, s.marca || '', s.categoria || '', s.modelo || '', s.descripcion || s.referencia, pvp_asignado]
+        [s.referencia, s.marca || '', s.categoria || '', s.modelo || '', s.descripcion || s.referencia, pvpAsignadoNum]
       );
     }
 
