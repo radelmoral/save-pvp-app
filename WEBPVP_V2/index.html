@@ -331,7 +331,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
     <div class="tb-title" id="tbTitle">Dashboard</div>
     <div class="tb-search">
       <span style="color:var(--g500);font-size:13px;">🔍</span>
-      <input type="text" placeholder="Buscar referencia, marca, modelo…" id="gSearch" name="savepvp_global_search" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-autocomplete="none" oninput="onGSearch(this.value)"/>
+      <input type="search" placeholder="Buscar referencia, marca, modelo…" id="gSearch" name="q_global_search_nofill" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-autocomplete="none" readonly onfocus="this.removeAttribute('readonly');" oninput="onGSearch(this.value)"/>
     </div>
     <div class="tb-actions">
       <div class="ib" title="Solicitudes pendientes" onclick="nav('solicitudes-pvp-admin',this);navById('solicitudes-pvp-admin');" id="ibNotif">🔔<span class="ndot" id="notifDot" style="display:none;"></span></div>
@@ -1115,6 +1115,17 @@ function onGSearch(v) {
   const term = String(v || '').trim();
   clearTimeout(globalSearchTimer);
   globalSearchTimer = setTimeout(() => ejecutarBusquedaGlobal(term), 300);
+}
+
+function hardenGlobalSearchAutofill() {
+  const g = document.getElementById('gSearch');
+  if (!g) return;
+  g.value = '';
+  g.setAttribute('readonly', 'readonly');
+  const unlock = () => g.removeAttribute('readonly');
+  g.addEventListener('focus', unlock, { once: true });
+  g.addEventListener('mousedown', unlock, { once: true });
+  g.addEventListener('touchstart', unlock, { once: true });
 }
 
 async function ejecutarBusquedaGlobal(term) {
@@ -2688,6 +2699,7 @@ async function loadDashboard() {
 window.addEventListener('load', async () => {
   const authed = await checkAuth();
   if (!authed) return;
+  hardenGlobalSearchAutofill();
   loadSolicitudesFromAPI();
   loadReportesFromAPI();
   loadRepuestosFromAPI();
