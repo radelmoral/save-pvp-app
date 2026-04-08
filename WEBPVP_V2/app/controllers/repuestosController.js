@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const _tableColsCache = new Map();
+let _catalogAuditReady = false;
 
 function addTokenizedSearch(where, params, q, columns) {
   const raw = String(q || '').trim();
@@ -54,9 +55,34 @@ async function getTableColumns(tableName) {
   return cols;
 }
 
+async function ensureCatalogAuditColumns() {
+  if (_catalogAuditReady) return;
+  const tables = ['repuestos', 'telefonos', 'apple_original', 'oppo_original'];
+  for (const table of tables) {
+    const cols = await getTableColumns(table);
+    if (!cols.has('created_at')) {
+      await db.execute(
+        `ALTER TABLE ${table}
+         ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP`
+      );
+      _tableColsCache.delete(table);
+    }
+    const colsAfterCreated = await getTableColumns(table);
+    if (!colsAfterCreated.has('updated_at')) {
+      await db.execute(
+        `ALTER TABLE ${table}
+         ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`
+      );
+      _tableColsCache.delete(table);
+    }
+  }
+  _catalogAuditReady = true;
+}
+
 /** GET /api/dashboard/resumen */
 async function dashboardResumen(req, res) {
   try {
+    await ensureCatalogAuditColumns();
     const catalogos = [
       { table: 'repuestos', label: 'Repuestos' },
       { table: 'telefonos', label: 'Teléfonos' },
