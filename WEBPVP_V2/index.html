@@ -424,14 +424,14 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
     <div class="card">
       <div class="ch"><div><div class="ct">Últimas referencias añadidas</div></div><button class="btn btn-o" onclick="nav('repuestos',null)">Ver todas →</button></div>
       <div class="tw"><table>
-        <thead><tr><th>Referencia</th><th>Categoría</th><th>Marca</th><th>Modelo</th><th>PVP</th><th class="pvpclub-col">PVP Club</th></tr></thead>
+        <thead><tr><th>Referencia</th><th>Categoría</th><th>Marca</th><th>Modelo</th><th>Etiqueta</th><th>PVP</th><th class="pvpclub-col">PVP Club</th></tr></thead>
         <tbody id="tbDashRepuestos"></tbody>
       </table></div>
     </div>
     <div class="card" style="margin-top:14px;">
       <div class="ch"><div><div class="ct">Últimos PVP modificados</div></div><button class="btn btn-o" onclick="nav('repuestos',null)">Ver catálogo →</button></div>
       <div class="tw"><table>
-        <thead><tr><th>Referencia</th><th>Categoría</th><th>Marca</th><th>Modelo</th><th>PVP</th><th class="pvpclub-col">PVP Club</th></tr></thead>
+        <thead><tr><th>Referencia</th><th>Categoría</th><th>Marca</th><th>Modelo</th><th>Etiqueta</th><th>PVP</th><th class="pvpclub-col">PVP Club</th></tr></thead>
         <tbody id="tbDashPvpMod"></tbody>
       </table></div>
     </div>
@@ -2700,6 +2700,7 @@ async function loadDashboard() {
             <td>${catBadge(r.categoria)}</td>
             <td>${escHTML(r.marca||'—')}</td>
             <td>${escHTML(r.modelo||'—')}</td>
+            <td>${escHTML(r.etiqueta||'—')}</td>
             <td class="price">${r.pvp ? formatMoney(r.pvp)+' €' : '—'}</td>
             <td class="price-club pvpclub-col">${r.pvp_clubsave ? formatMoney(r.pvp_clubsave)+' €' : '—'}</td>`;
           tb.appendChild(tr);
@@ -2718,6 +2719,7 @@ async function loadDashboard() {
             <td>${catBadge(r.categoria)}</td>
             <td>${escHTML(r.marca||'—')}</td>
             <td>${escHTML(r.modelo||'—')}</td>
+            <td>${escHTML(r.etiqueta||'—')}</td>
             <td class="price">${r.pvp ? formatMoney(r.pvp)+' €' : '—'}</td>
             <td class="price-club pvpclub-col">${r.pvp_clubsave ? formatMoney(r.pvp_clubsave)+' €' : '—'}</td>`;
           tbPvpMod.appendChild(tr);
