@@ -75,6 +75,14 @@ async function ensureCatalogAuditColumns() {
       );
       _tableColsCache.delete(table);
     }
+    const colsAfterUpdated = await getTableColumns(table);
+    if (!colsAfterUpdated.has('pvp_updated_at')) {
+      await db.execute(
+        `ALTER TABLE ${table}
+         ADD COLUMN pvp_updated_at TIMESTAMP NULL DEFAULT NULL`
+      );
+      _tableColsCache.delete(table);
+    }
   }
   _catalogAuditReady = true;
 }
@@ -101,6 +109,7 @@ async function dashboardResumen(req, res) {
       return 'referencia DESC';
     };
     const getOrderPvp = (cols) => {
+      if (cols.has('pvp_updated_at')) return 'pvp_updated_at DESC, referencia DESC';
       if (cols.has('updated_at')) return 'updated_at DESC, referencia DESC';
       if (cols.has('created_at')) return 'created_at DESC, referencia DESC';
       if (cols.has('id')) return 'id DESC';
@@ -113,7 +122,9 @@ async function dashboardResumen(req, res) {
       return '0';
     };
     const wherePvp = (cols) => (
-      cols.has('updated_at') && cols.has('created_at')
+      cols.has('pvp_updated_at')
+        ? 'pvp IS NOT NULL AND pvp_updated_at IS NOT NULL'
+        : cols.has('updated_at') && cols.has('created_at')
         ? 'pvp IS NOT NULL AND updated_at > created_at'
         : 'pvp IS NOT NULL'
     );
@@ -160,7 +171,7 @@ async function dashboardResumen(req, res) {
     const latestPvpByCatalogPromises = catalogos.map(({ table, label }) => {
       const cols = colsByTable[table];
       const order = getOrderPvp(cols);
-      const sort = sortExpr(cols);
+      const sort = cols.has('pvp_updated_at') ? 'UNIX_TIMESTAMP(pvp_updated_at)' : sortExpr(cols);
       const categoriaSel = cols.has('categoria') ? 'categoria' : "'' AS categoria";
       const pvpClubSel = cols.has('pvp_clubsave') ? 'pvp_clubsave' : 'NULL AS pvp_clubsave';
       return db.execute(
@@ -300,15 +311,18 @@ async function crearApple(req, res) {
 /** PUT /api/repuestos/:ref  — solo admin */
 async function actualizar(req, res) {
   const { referencia, marca, categoria, modelo, etiqueta, sage_act, sage_new, pvp, pvp_clubsave } = req.body;
+  const pvpVal = (pvp === '' || pvp === null || typeof pvp === 'undefined' || Number.isNaN(Number(pvp))) ? null : Number(pvp);
+  const pvpClubVal = (pvp_clubsave === '' || pvp_clubsave === null || typeof pvp_clubsave === 'undefined' || Number.isNaN(Number(pvp_clubsave))) ? null : Number(pvp_clubsave);
   try {
     const [result] = await db.execute(
       `UPDATE repuestos
        SET referencia=COALESCE(NULLIF(?, ''), referencia),
            marca=?, categoria=?, modelo=?, etiqueta=?,
-           sage_act=?, sage_new=?, pvp=?, pvp_clubsave=?
+           sage_act=?, sage_new=?, pvp=?, pvp_clubsave=?,
+           pvp_updated_at = IF(NOT (pvp <=> ?), CURRENT_TIMESTAMP, pvp_updated_at)
        WHERE referencia=?`,
       [referencia || null, marca, categoria, modelo, etiqueta,
-       sage_act || null, sage_new || null, pvp || null, pvp_clubsave || null,
+       sage_act || null, sage_new || null, pvpVal, pvpClubVal, pvpVal,
        req.params.id]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Repuesto no encontrado' });
@@ -357,13 +371,15 @@ async function listarApple(req, res) {
 /** PUT /api/apple/:ref  — solo admin */
 async function actualizarApple(req, res) {
   const { referencia, marca, categoria, modelo, etiqueta, pvp } = req.body;
+  const pvpVal = (pvp === '' || pvp === null || typeof pvp === 'undefined' || Number.isNaN(Number(pvp))) ? null : Number(pvp);
   try {
     const [result] = await db.execute(
       `UPDATE apple_original
        SET referencia=COALESCE(NULLIF(?, ''), referencia),
-           marca=?, categoria=?, modelo=?, etiqueta=?, pvp=?
+           marca=?, categoria=?, modelo=?, etiqueta=?, pvp=?,
+           pvp_updated_at = IF(NOT (pvp <=> ?), CURRENT_TIMESTAMP, pvp_updated_at)
        WHERE referencia=?`,
-      [referencia || null, marca || '', categoria || '', modelo || '', etiqueta || '', pvp || null, req.params.id]
+      [referencia || null, marca || '', categoria || '', modelo || '', etiqueta || '', pvpVal, pvpVal, req.params.id]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Referencia no encontrada' });
     res.json({ message: 'Apple Original actualizado' });
@@ -411,13 +427,15 @@ async function listarOppo(req, res) {
 /** PUT /api/oppo/:ref  — solo admin */
 async function actualizarOppo(req, res) {
   const { referencia, marca, categoria, modelo, etiqueta, pvp } = req.body;
+  const pvpVal = (pvp === '' || pvp === null || typeof pvp === 'undefined' || Number.isNaN(Number(pvp))) ? null : Number(pvp);
   try {
     const [result] = await db.execute(
       `UPDATE oppo_original
        SET referencia=COALESCE(NULLIF(?, ''), referencia),
-           marca=?, categoria=?, modelo=?, etiqueta=?, pvp=?
+           marca=?, categoria=?, modelo=?, etiqueta=?, pvp=?,
+           pvp_updated_at = IF(NOT (pvp <=> ?), CURRENT_TIMESTAMP, pvp_updated_at)
        WHERE referencia=?`,
-      [referencia || null, marca || '', categoria || '', modelo || '', etiqueta || '', pvp || null, req.params.id]
+      [referencia || null, marca || '', categoria || '', modelo || '', etiqueta || '', pvpVal, pvpVal, req.params.id]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Referencia no encontrada' });
     res.json({ message: 'Oppo Original actualizado' });
@@ -481,13 +499,15 @@ async function listarTelefonos(req, res) {
 /** PUT /api/telefonos/:ref  — solo admin */
 async function actualizarTelefono(req, res) {
   const { referencia, marca, modelo, etiqueta, pvp } = req.body;
+  const pvpVal = (pvp === '' || pvp === null || typeof pvp === 'undefined' || Number.isNaN(Number(pvp))) ? null : Number(pvp);
   try {
     const [result] = await db.execute(
       `UPDATE telefonos
        SET referencia=COALESCE(NULLIF(?, ''), referencia),
-           marca=?, modelo=?, etiqueta=?, pvp=?
+           marca=?, modelo=?, etiqueta=?, pvp=?,
+           pvp_updated_at = IF(NOT (pvp <=> ?), CURRENT_TIMESTAMP, pvp_updated_at)
        WHERE referencia=?`,
-      [referencia || null, marca || '', modelo || '', etiqueta || '', pvp || null, req.params.id]
+      [referencia || null, marca || '', modelo || '', etiqueta || '', pvpVal, pvpVal, req.params.id]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Referencia no encontrada' });
     res.json({ message: 'Teléfono actualizado' });
