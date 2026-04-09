@@ -1862,6 +1862,7 @@ async function aprobarSolicitud() {
     await API.solicitudes.aprobar(_currentSolicitudId, {
       referencia:       document.getElementById('pvpRef').value.trim(),
       descripcion:      document.getElementById('pvpDesc').value.trim(),
+      categoria:        (document.getElementById('pvpCat').value || '').trim() || null,
       marca,
       modelo,
       coste:            parseFloat(document.getElementById('pvpCoste').value),
