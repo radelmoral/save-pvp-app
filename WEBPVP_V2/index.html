@@ -286,13 +286,13 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
     </button>
 
     <div class="sb-sec">Operaciones</div>
-    <button class="sb-item" onclick="nav('pedidos',this)">
+    <button class="sb-item" id="navPedidosBtn" onclick="nav('pedidos',this)">
       <span class="ic">🛒</span> Pedidos
     </button>
-    <button class="sb-item" onclick="nav('solicitud-pvp',this)">
+    <button class="sb-item" id="navSolicitudPvpBtn" onclick="nav('solicitud-pvp',this)">
       <span class="ic">💬</span> Solicitud de PVP
     </button>
-    <button class="sb-item" onclick="nav('mis-reportes',this)">
+    <button class="sb-item" id="navMisReportesBtn" onclick="nav('mis-reportes',this)">
       <span class="ic">🚩</span> Mis reportes
     </button>
 
@@ -382,7 +382,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <p style="color:var(--g500);font-size:13px;margin-top:3px;" id="globalResultsTableInfo">—</p>
       </div>
     </div>
-    <div class="card">
+    <div class="card" id="dashCardUltimasRefs">
       <div class="tw">
         <table>
           <thead>
@@ -428,7 +428,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <tbody id="tbDashRepuestos"></tbody>
       </table></div>
     </div>
-    <div class="card" style="margin-top:14px;">
+    <div class="card" id="dashCardUltimosPvp" style="margin-top:14px;">
       <div class="ch"><div><div class="ct">Últimos PVP modificados</div></div><button class="btn btn-o" onclick="nav('repuestos',null)">Ver catálogo →</button></div>
       <div class="tw"><table>
         <thead><tr><th>Referencia</th><th>Categoría</th><th>Marca</th><th>Modelo</th><th>Etiqueta</th><th>PVP</th><th class="pvpclub-col">PVP Club</th></tr></thead>
@@ -904,6 +904,8 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <div class="ff"><label>Rol *</label>
           <select class="finp" id="createUserRol">
             <option value="eci">ECI</option>
+            <option value="franquicias">Franquicias</option>
+            <option value="eciclinicas">ECI Clínicas</option>
             <option value="carrefour">Carrefour</option>
             <option value="admin">Admin</option>
           </select>
@@ -936,6 +938,8 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
             <option value="admin">Admin</option>
             <option value="carrefour">Carrefour</option>
             <option value="eci">ECI</option>
+            <option value="franquicias">Franquicias</option>
+            <option value="eciclinicas">ECI Clínicas</option>
           </select>
         </div>
         <div class="ff"><label>Nueva contraseña (opcional)</label><input class="finp" id="editUserPassword" type="password" placeholder="Dejar vacío para mantener"/></div>
@@ -972,7 +976,13 @@ const roleConfig = {
   admin:     { label:'Admin',     avatar:'AD', name:'administrador',       rp:'rp-adm', rpText:'★ Admin' },
   carrefour: { label:'Carrefour', avatar:'CF', name:'Usuario Carrefour',   rp:'rp-sup', rpText:'◆ Carrefour' },
   eci:       { label:'ECI',       avatar:'EC', name:'Usuario ECI',         rp:'rp-tec', rpText:'● ECI' },
+  franquicias: { label:'Franquicias', avatar:'FQ', name:'Usuario Franquicias', rp:'rp-tec', rpText:'● Franquicias' },
+  eciclinicas: { label:'ECI Clínicas', avatar:'CL', name:'Usuario ECI Clínicas', rp:'rp-tec', rpText:'● ECI Clínicas' },
 };
+
+function isReadOnlyCatalogRole(role = currentRole) {
+  return ['franquicias', 'eciclinicas'].includes(String(role || '').toLowerCase());
+}
 
 function catalogLabel(cat) {
   const m = { repuestos: 'Repuestos', telefonos: 'Teléfonos', apple: 'Apple Original', oppo: 'Oppo Original' };
@@ -1028,7 +1038,8 @@ function setRole(role) {
   currentRole = role;
   window.__SAVE_CURRENT_ROLE = role;
   applyPvpClubVisibilityByRole();
-  const cfg = roleConfig[role];
+  const cfg = roleConfig[role] || roleConfig.eci;
+  const readOnlyRole = isReadOnlyCatalogRole(role);
   // Update user card
   document.getElementById('uaAvatar').textContent = cfg.avatar;
   document.getElementById('uaName').textContent   = cfg.name;
@@ -1049,11 +1060,26 @@ function setRole(role) {
   if (repImportar) repImportar.style.display = (role === 'admin') ? '' : 'none';
   const repExportar = document.getElementById('btnRepuestosExportar');
   if (repExportar) repExportar.style.display = (role === 'admin') ? '' : 'none';
+  const navPedidosBtn = document.getElementById('navPedidosBtn');
+  if (navPedidosBtn) navPedidosBtn.style.display = readOnlyRole ? 'none' : '';
+  const navSolicitudPvpBtn = document.getElementById('navSolicitudPvpBtn');
+  if (navSolicitudPvpBtn) navSolicitudPvpBtn.style.display = readOnlyRole ? 'none' : '';
+  const navMisReportesBtn = document.getElementById('navMisReportesBtn');
+  if (navMisReportesBtn) navMisReportesBtn.style.display = readOnlyRole ? 'none' : '';
+  const dashCardUltimasRefs = document.getElementById('dashCardUltimasRefs');
+  if (dashCardUltimasRefs) dashCardUltimasRefs.style.display = readOnlyRole ? 'none' : '';
+  const dashCardUltimosPvp = document.getElementById('dashCardUltimosPvp');
+  if (dashCardUltimosPvp) dashCardUltimosPvp.style.display = readOnlyRole ? 'none' : '';
   // If on an admin-only page, redirect to dashboard
   const adminPages = ['usuarios','solicitudes-pvp-admin','reportes-referencias-admin'];
+  const restrictedPages = ['pedidos', 'solicitud-pvp', 'mis-reportes'];
   const active = document.querySelector('.page.active');
   if (active && adminPages.some(p => active.id === 'page-'+p) && role !== 'admin') {
     navById('dashboard');
+  }
+  if (active && readOnlyRole && restrictedPages.some(p => active.id === 'page-'+p)) {
+    navById('repuestos');
+    document.getElementById('tbTitle').textContent = 'Repuestos';
   }
   if (role === 'admin') startAdminRealtimeSync();
   else stopAdminRealtimeSync();
@@ -1062,6 +1088,10 @@ function setRole(role) {
 
 // ── NAVIGATION ────────────────────────────────────
 function nav(id, btn) {
+  if (isReadOnlyCatalogRole() && ['pedidos', 'solicitud-pvp', 'mis-reportes'].includes(id)) {
+    toast('Tu rol solo tiene acceso de consulta a catálogos', 'warn');
+    return;
+  }
   navById(id);
   document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
   if(btn) btn.classList.add('active');
@@ -2373,7 +2403,7 @@ async function guardarNuevoUsuario() {
   if (!nombre || !username || !password || !rol) {
     return toast('Nombre, usuario, rol y contraseña son obligatorios', 'warn');
   }
-  if (!['admin', 'carrefour', 'eci'].includes(rol)) {
+  if (!['admin', 'carrefour', 'eci', 'franquicias', 'eciclinicas'].includes(rol)) {
     return toast('Rol inválido', 'warn');
   }
 
@@ -2411,7 +2441,7 @@ async function guardarUsuarioDesdeModal() {
   if (!id || !nombre || !username || !rol) {
     return toast('Nombre, usuario y rol son obligatorios', 'warn');
   }
-  if (!['admin', 'carrefour', 'eci'].includes(rol)) {
+  if (!['admin', 'carrefour', 'eci', 'franquicias', 'eciclinicas'].includes(rol)) {
     return toast('Rol inválido', 'warn');
   }
 
@@ -2578,8 +2608,8 @@ async function loadUsuariosFromAPI() {
     const lista = await API.usuarios.listar();
     const tb    = document.getElementById('tbUsuarios');
     tb.innerHTML = '';
-    const ROL_LABEL = { admin:'★ Admin', carrefour:'◆ Carrefour', eci:'● ECI' };
-    const ROL_CLASS = { admin:'rp-adm', carrefour:'rp-sup', eci:'rp-tec' };
+    const ROL_LABEL = { admin:'★ Admin', carrefour:'◆ Carrefour', eci:'● ECI', franquicias:'● Franquicias', eciclinicas:'● ECI Clínicas' };
+    const ROL_CLASS = { admin:'rp-adm', carrefour:'rp-sup', eci:'rp-tec', franquicias:'rp-tec', eciclinicas:'rp-tec' };
     lista.forEach(u => {
       const rolNombre = u.rolNombre || u.rol_nombre || '';
       const actions = isAdminRole()
