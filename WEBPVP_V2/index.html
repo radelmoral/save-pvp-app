@@ -1691,6 +1691,63 @@ function normalizeText(v) {
   return String(v || '').trim().toLowerCase();
 }
 
+function normalizeCategoryList(raw) {
+  const arr = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []);
+  return Array.from(new Set(arr
+    .map(c => (typeof c === 'string' ? c : c?.nombre))
+    .map(v => String(v || '').trim())
+    .filter(Boolean)))
+    .sort((a, b) => a.localeCompare(b, 'es'));
+}
+
+function applyCategoryNamesToSelects(names) {
+  ['pvpCat', 'fCat', 'filtroAppleCategoria', 'filtroOppoCategoria', 'filtroConsolasCategoria', 'newRefCategoria'].forEach(selId => {
+    const sel = document.getElementById(selId);
+    if (!sel || sel.tagName !== 'SELECT') return;
+    const current = sel.value;
+    const primera = sel.options[0];
+    const nueva = sel.querySelector('[value="__nueva__"]');
+    sel.innerHTML = '';
+    if (primera) sel.appendChild(primera);
+    names.forEach(nombre => {
+      const o = document.createElement('option');
+      o.value = nombre;
+      o.textContent = nombre;
+      sel.appendChild(o);
+    });
+    if (nueva) sel.appendChild(nueva);
+    if (current) sel.value = current;
+  });
+}
+
+async function fallbackCategoriasDesdeCatalogos() {
+  if (!API_AVAILABLE) return [];
+  try {
+    const [repRes, appleRes, oppoRes, consolasRes] = await Promise.allSettled([
+      API.repuestos.listar({ page: 1, limit: 500 }),
+      API.apple.listar({ page: 1, limit: 500 }),
+      API.oppo.listar({ page: 1, limit: 500 }),
+      API.consolas.listar({ page: 1, limit: 500 }),
+    ]);
+    const buckets = [
+      repRes.status === 'fulfilled' ? (repRes.value?.data || []) : [],
+      appleRes.status === 'fulfilled' ? (appleRes.value?.data || []) : [],
+      oppoRes.status === 'fulfilled' ? (oppoRes.value?.data || []) : [],
+      consolasRes.status === 'fulfilled' ? (consolasRes.value?.data || []) : [],
+    ];
+    const names = new Set();
+    buckets.forEach(rows => {
+      rows.forEach(r => {
+        const cat = String(r?.categoria || '').trim();
+        if (cat) names.add(cat);
+      });
+    });
+    return Array.from(names).sort((a, b) => a.localeCompare(b, 'es'));
+  } catch (_) {
+    return [];
+  }
+}
+
 function refrescarFiltroUsuariosAdmin(data = []) {
   const sel = document.getElementById('adminFiltroUsuario');
   if (!sel) return;
@@ -2195,31 +2252,16 @@ async function loadCategoriasFromAPI() {
   if (!API_AVAILABLE) return;
   try {
     const raw = await API.categorias.listar();
-    const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []);
-    const names = Array.from(new Set(list
-      .map(c => (typeof c === 'string' ? c : c?.nombre))
-      .map(v => String(v || '').trim())
-      .filter(Boolean)))
-      .sort((a, b) => a.localeCompare(b, 'es'));
-    ['pvpCat', 'fCat', 'filtroAppleCategoria', 'filtroOppoCategoria', 'filtroConsolasCategoria', 'newRefCategoria'].forEach(selId => {
-      const sel = document.getElementById(selId);
-      if (!sel || sel.tagName !== 'SELECT') return;
-      const current = sel.value;
-      // Conservar primera opción
-      const primera  = sel.options[0];
-      const nueva    = sel.querySelector('[value="__nueva__"]');
-      sel.innerHTML  = '';
-      if (primera) sel.appendChild(primera);
-      names.forEach(nombre => {
-        const o = document.createElement('option');
-        o.value = nombre; o.textContent = nombre;
-        sel.appendChild(o);
-      });
-      if (nueva) sel.appendChild(nueva);
-      if (current) sel.value = current;
-    });
+    let names = normalizeCategoryList(raw);
+    if (names.length <= 4) {
+      const fallback = await fallbackCategoriasDesdeCatalogos();
+      if (fallback.length > names.length) names = fallback;
+    }
+    applyCategoryNamesToSelects(names);
   } catch(e) {
-    console.warn('No se pudieron cargar categorías:', e.message);
+    const fallback = await fallbackCategoriasDesdeCatalogos();
+    if (fallback.length) applyCategoryNamesToSelects(fallback);
+    else console.warn('No se pudieron cargar categorías:', e.message);
   }
 }
 
