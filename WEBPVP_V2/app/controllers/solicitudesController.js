@@ -137,7 +137,7 @@ async function listar(req, res) {
 
 /** POST /api/solicitudes */
 async function crear(req, res) {
-  if (['franquicias', 'eciclinicas'].includes(String(req.user?.rol || '').toLowerCase())) {
+  if (['franquicias', 'eciclinicas', 'ecclinicas'].includes(String(req.user?.rol || '').toLowerCase())) {
     return res.status(403).json({ error: 'Tu rol no tiene permiso para solicitar PVP' });
   }
   const { referencia, descripcion, categoria, marca, modelo, coste, proveedor, observaciones } = req.body;

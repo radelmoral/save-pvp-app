@@ -99,6 +99,9 @@ async function listar(req, res) {
 async function crear(req, res) {
   try {
     await ensureReportesSchema();
+    if (['franquicias', 'eciclinicas', 'ecclinicas'].includes(String(req.user?.rol || '').toLowerCase())) {
+      return res.status(403).json({ error: 'Tu rol no tiene permiso para reportar referencias' });
+    }
     const { referencia, catalogo, categoria, marca, modelo, etiqueta, motivo, tipo_reporte, pvp_reportado } = req.body;
     if (!referencia || !catalogo || !motivo || !String(motivo).trim()) {
       return res.status(400).json({ error: 'referencia, catalogo y motivo son obligatorios' });

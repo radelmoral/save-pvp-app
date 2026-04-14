@@ -5,7 +5,7 @@ const db     = require('../config/db');
 // Mapeo numérico de roles de tu BBDD → nombres usados en la app
 const ROL_MAP = { 1: 'admin', 2: 'carrefour', 3: 'eci', 4: 'franquicias', 5: 'eciclinicas' };
 // Y al revés, para filtros
-const ROL_NUM = { admin: 1, carrefour: 2, eci: 3, franquicias: 4, eciclinicas: 5 };
+const ROL_NUM = { admin: 1, carrefour: 2, eci: 3, franquicias: 4, eciclinicas: 5, ecclinicas: 5 };
 let _hasMustChangePasswordCol = null;
 
 async function ensureMustChangePasswordColumn() {
