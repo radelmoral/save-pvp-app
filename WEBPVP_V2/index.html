@@ -688,6 +688,9 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
       <button class="btn btn-p" onclick="openCreateUserModal()">+ Nuevo usuario</button>
     </div>
     <div class="card">
+      <div class="tfilters">
+        <input class="fi" id="filtroUsuarios" placeholder="🔍 Buscar usuario, nombre, email o rol…" style="flex:1;" oninput="filtrarUsuariosAdmin()"/>
+      </div>
       <div class="tw"><table>
         <thead><tr><th>ID</th><th>Nombre</th><th>Usuario</th><th>Email</th><th>Rol</th><th style="text-align:center;">Opciones</th></tr></thead>
         <tbody id="tbUsuarios"></tbody>
@@ -978,10 +981,15 @@ const roleConfig = {
   eci:       { label:'ECI',       avatar:'EC', name:'Usuario ECI',         rp:'rp-tec', rpText:'● ECI' },
   franquicias: { label:'Franquicias', avatar:'FQ', name:'Usuario Franquicias', rp:'rp-tec', rpText:'● Franquicias' },
   eciclinicas: { label:'ECI Clínicas', avatar:'CL', name:'Usuario ECI Clínicas', rp:'rp-tec', rpText:'● ECI Clínicas' },
+  ecclinicas: { label:'ECI Clínicas', avatar:'CL', name:'Usuario ECI Clínicas', rp:'rp-tec', rpText:'● ECI Clínicas' },
 };
 
 function isReadOnlyCatalogRole(role = currentRole) {
-  return ['franquicias', 'eciclinicas'].includes(String(role || '').toLowerCase());
+  return ['franquicias', 'eciclinicas', 'ecclinicas'].includes(String(role || '').toLowerCase());
+}
+
+function canReportReferences(role = currentRole) {
+  return !isAdminRole() && !isReadOnlyCatalogRole(role);
 }
 
 function catalogLabel(cat) {
@@ -2182,7 +2190,7 @@ function onReportTipoChange() {
 }
 
 function openReportRefModal(catalogo, ref, categoria = '', marca = '', modelo = '', etiqueta = '', pvp = '') {
-  if (isAdminRole()) return toast('Solo usuarios no-admin pueden reportar referencias', 'warn');
+  if (!canReportReferences()) return toast('Tu rol no tiene permisos para reportar referencias', 'warn');
   document.getElementById('reportCatalogo').value = catalogo || '';
   document.getElementById('reportReferencia').value = ref || '';
   document.getElementById('reportCatalogoText').value = catalogLabel(catalogo);
@@ -2198,7 +2206,7 @@ function openReportRefModal(catalogo, ref, categoria = '', marca = '', modelo = 
 }
 
 async function enviarReporteReferencia() {
-  if (isAdminRole()) return toast('Solo usuarios no-admin pueden reportar referencias', 'warn');
+  if (!canReportReferences()) return toast('Tu rol no tiene permisos para reportar referencias', 'warn');
   const tipo = (document.getElementById('reportTipo').value || 'referencia').trim().toLowerCase();
   const pvpInput = document.getElementById('reportPvpOriginal').value;
   const payload = {
@@ -2403,7 +2411,7 @@ async function guardarNuevoUsuario() {
   if (!nombre || !username || !password || !rol) {
     return toast('Nombre, usuario, rol y contraseña son obligatorios', 'warn');
   }
-  if (!['admin', 'carrefour', 'eci', 'franquicias', 'eciclinicas'].includes(rol)) {
+  if (!['admin', 'carrefour', 'eci', 'franquicias', 'eciclinicas', 'ecclinicas'].includes(rol)) {
     return toast('Rol inválido', 'warn');
   }
 
@@ -2441,7 +2449,7 @@ async function guardarUsuarioDesdeModal() {
   if (!id || !nombre || !username || !rol) {
     return toast('Nombre, usuario y rol son obligatorios', 'warn');
   }
-  if (!['admin', 'carrefour', 'eci', 'franquicias', 'eciclinicas'].includes(rol)) {
+  if (!['admin', 'carrefour', 'eci', 'franquicias', 'eciclinicas', 'ecclinicas'].includes(rol)) {
     return toast('Rol inválido', 'warn');
   }
 
@@ -2515,7 +2523,9 @@ async function loadAppleFromAPI(page = _applePage, options = {}) {
              <button class="ab e" onclick="editarApple('${escJS(r.referencia)}','${escJS(r.marca || '')}','${escJS(r.categoria || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">✏️</button>
              <button class="ab d" onclick="eliminarApple('${escJS(r.referencia)}')">🗑️</button>
            </div>`
-        : `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('apple','${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">🚩 Reportar</button>`;
+        : (canReportReferences()
+            ? `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('apple','${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">🚩 Reportar</button>`
+            : '<span style="color:var(--g400);">—</span>');
       tr.innerHTML = `
         <td class="td-ref">${escHTML(r.referencia)}</td>
         <td>${catBadge(r.categoria)}</td>
@@ -2551,7 +2561,9 @@ async function loadOppoFromAPI(page = _oppoPage, options = {}) {
              <button class="ab e" onclick="editarOppo('${escJS(r.referencia)}','${escJS(r.marca || '')}','${escJS(r.categoria || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">✏️</button>
              <button class="ab d" onclick="eliminarOppo('${escJS(r.referencia)}')">🗑️</button>
            </div>`
-        : `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('oppo','${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">🚩 Reportar</button>`;
+        : (canReportReferences()
+            ? `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('oppo','${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">🚩 Reportar</button>`
+            : '<span style="color:var(--g400);">—</span>');
       tr.innerHTML = `
         <td class="td-ref">${escHTML(r.referencia)}</td>
         <td>${catBadge(r.categoria)}</td>
@@ -2586,7 +2598,9 @@ async function loadTelefonosFromAPI(page = _telPage, options = {}) {
              <button class="ab e" onclick="editarTelefono('${escJS(r.referencia)}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">✏️</button>
              <button class="ab d" onclick="eliminarTelefono('${escJS(r.referencia)}')">🗑️</button>
            </div>`
-        : `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('telefonos','${escJS(r.referencia)}','','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">🚩 Reportar</button>`;
+        : (canReportReferences()
+            ? `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('telefonos','${escJS(r.referencia)}','','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">🚩 Reportar</button>`
+            : '<span style="color:var(--g400);">—</span>');
       tr.innerHTML = `
         <td class="td-ref">${escHTML(r.referencia)}</td>
         <td>${escHTML(r.marca||'—')}</td>
@@ -2608,8 +2622,8 @@ async function loadUsuariosFromAPI() {
     const lista = await API.usuarios.listar();
     const tb    = document.getElementById('tbUsuarios');
     tb.innerHTML = '';
-    const ROL_LABEL = { admin:'★ Admin', carrefour:'◆ Carrefour', eci:'● ECI', franquicias:'● Franquicias', eciclinicas:'● ECI Clínicas' };
-    const ROL_CLASS = { admin:'rp-adm', carrefour:'rp-sup', eci:'rp-tec', franquicias:'rp-tec', eciclinicas:'rp-tec' };
+    const ROL_LABEL = { admin:'★ Admin', carrefour:'◆ Carrefour', eci:'● ECI', franquicias:'● Franquicias', eciclinicas:'● ECI Clínicas', ecclinicas:'● ECI Clínicas' };
+    const ROL_CLASS = { admin:'rp-adm', carrefour:'rp-sup', eci:'rp-tec', franquicias:'rp-tec', eciclinicas:'rp-tec', ecclinicas:'rp-tec' };
     lista.forEach(u => {
       const rolNombre = u.rolNombre || u.rol_nombre || '';
       const actions = isAdminRole()
@@ -2625,10 +2639,20 @@ async function loadUsuariosFromAPI() {
         <td style="color:var(--g500);">${escHTML(u.email||'—')}</td>
         <td><span class="rp ${ROL_CLASS[rolNombre]||''}">${ROL_LABEL[rolNombre]||rolNombre}</span></td>
         <td style="text-align:center;">${actions}</td>`;
+      tr.dataset.search = normalizeText(`${u.id || u.id_usuario} ${u.nombre || ''} ${u.username || u.usuario || ''} ${u.email || ''} ${rolNombre}`);
       tb.appendChild(tr);
     });
     document.getElementById('usuariosTotal').textContent = `${lista.length} usuarios registrados`;
+    filtrarUsuariosAdmin();
   } catch(e) { console.warn('Error cargando usuarios:', e.message); }
+}
+
+function filtrarUsuariosAdmin() {
+  const q = normalizeText(document.getElementById('filtroUsuarios')?.value || '');
+  document.querySelectorAll('#tbUsuarios tr').forEach(row => {
+    const hay = row.dataset.search || '';
+    row.style.display = !q || hay.includes(q) ? '' : 'none';
+  });
 }
 
 // ── MIS SOLICITUDES (usuario actual) ───────────────
@@ -2690,7 +2714,9 @@ async function loadRepuestosFromAPI(params = {}) {
              <button class="ab e" onclick="editarRepuesto('${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}','${escJS(String(r.pvp_clubsave ?? ''))}')">✏️</button>
              <button class="ab d" onclick="eliminarRepuesto('${escJS(r.referencia)}',this)">🗑️</button>
            </div>`
-        : `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('repuestos','${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">🚩 Reportar</button>`;
+        : (canReportReferences()
+            ? `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('repuestos','${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">🚩 Reportar</button>`
+            : '<span style="color:var(--g400);">—</span>');
       tr.innerHTML = `
         <td class="td-ref">${escHTML(r.referencia||'—')}</td>
         <td>${catBadge(r.categoria)}</td>
