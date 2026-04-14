@@ -1216,6 +1216,169 @@ function onGSearch(v) {
   globalSearchTimer = setTimeout(() => ejecutarBusquedaGlobal(term), 300);
 }
 
+function excelNumOrNull(v) {
+  const raw = String(v ?? '').trim();
+  if (!raw) return null;
+  const n = Number(raw.replace(',', '.'));
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizeExcelKey(k) {
+  return String(k || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function getExcelValue(row, aliases) {
+  const map = new Map(Object.keys(row || {}).map(k => [normalizeExcelKey(k), row[k]]));
+  for (const a of aliases) {
+    const v = map.get(normalizeExcelKey(a));
+    if (v !== undefined) return v;
+  }
+  return '';
+}
+
+function mapExcelRowToRepuesto(row) {
+  const referencia = String(getExcelValue(row, ['referencia', 'ref', 'codigo'])).trim();
+  const marca = String(getExcelValue(row, ['marca'])).trim();
+  const categoria = String(getExcelValue(row, ['categoria', 'cat'])).trim();
+  const modelo = String(getExcelValue(row, ['modelo'])).trim();
+  const etiquetaRaw = String(getExcelValue(row, ['etiqueta', 'descripcion', 'descripcionetiqueta'])).trim();
+  const etiqueta = etiquetaRaw || [categoria, marca, modelo].filter(Boolean).join(' ').trim() || referencia;
+  const sage_act = String(getExcelValue(row, ['sageact', 'sage_act', 'sage actual'])).trim() || null;
+  const sage_new = String(getExcelValue(row, ['sagenew', 'sage_new', 'sage nuevo', 'coste'])).trim() || null;
+  const pvp = excelNumOrNull(getExcelValue(row, ['pvp', 'pvpventa']));
+  let pvp_clubsave = excelNumOrNull(getExcelValue(row, ['pvpclubsave', 'pvpclub', 'clubsave']));
+  if (pvp_clubsave === null && Number.isFinite(pvp)) {
+    pvp_clubsave = Number((pvp * 0.85).toFixed(2));
+  }
+  return { referencia, marca, categoria, modelo, etiqueta, sage_act, sage_new, pvp, pvp_clubsave };
+}
+
+function ensureExcelImportInput() {
+  let input = document.getElementById('excelImportInput');
+  if (input) return input;
+  input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.xlsx,.xls,.csv';
+  input.id = 'excelImportInput';
+  input.style.display = 'none';
+  input.addEventListener('change', handleImportExcelFile);
+  document.body.appendChild(input);
+  return input;
+}
+
+function importarRepuestosExcel() {
+  if (!isAdminRole()) return toast('Solo admin puede importar Excel', 'warn');
+  if (!API_AVAILABLE) return toast('API no disponible', 'err');
+  if (typeof XLSX === 'undefined') return toast('Librería Excel no cargada', 'err');
+  const input = ensureExcelImportInput();
+  input.value = '';
+  input.click();
+}
+
+async function handleImportExcelFile(ev) {
+  const file = ev?.target?.files?.[0];
+  if (!file) return;
+  try {
+    const buffer = await file.arrayBuffer();
+    const wb = XLSX.read(buffer, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    if (!rows.length) return toast('El Excel no contiene filas', 'warn');
+
+    let creadas = 0, actualizadas = 0, ignoradas = 0, fallidas = 0;
+    for (const raw of rows) {
+      const payload = mapExcelRowToRepuesto(raw);
+      if (!payload.referencia) { ignoradas++; continue; }
+      try {
+        await API.repuestos.crear(payload);
+        creadas++;
+      } catch (e) {
+        const msg = String(e?.message || '').toLowerCase();
+        if (msg.includes('existe') || msg.includes('duplic') || msg.includes('dup')) {
+          try {
+            await API.repuestos.actualizar(payload.referencia, payload);
+            actualizadas++;
+          } catch {
+            fallidas++;
+          }
+        } else {
+          fallidas++;
+        }
+      }
+    }
+    await Promise.allSettled([loadRepuestosFromAPI({ page: 1 }), refreshSidebarCatalogCounts(), loadDashboard()]);
+    toast(`Importación completada · Creadas: ${creadas} · Actualizadas: ${actualizadas} · Ignoradas: ${ignoradas} · Fallidas: ${fallidas}`, fallidas ? 'warn' : 'ok');
+  } catch (e) {
+    toast('Error importando Excel: ' + e.message, 'err');
+  } finally {
+    ev.target.value = '';
+  }
+}
+
+async function exportarRepuestosExcel() {
+  if (!isAdminRole()) return toast('Solo admin puede exportar Excel', 'warn');
+  if (!API_AVAILABLE) return toast('API no disponible', 'err');
+  if (typeof XLSX === 'undefined') return toast('Librería Excel no cargada', 'err');
+  try {
+    const filters = {
+      ref: (document.getElementById('fRef')?.value || '').trim(),
+      categoria: document.getElementById('fCat')?.value || '',
+      marca: document.getElementById('fMarca')?.value || '',
+      modelo: (document.getElementById('fModelo')?.value || '').trim(),
+      q: globalSearchTerm || '',
+      limit: 500,
+    };
+    let page = 1;
+    let total = 0;
+    const out = [];
+    do {
+      const res = await API.repuestos.listar({ ...filters, page });
+      total = Number(res.total || 0);
+      (res.data || []).forEach(r => {
+        out.push({
+          Referencia: r.referencia || '',
+          Categoria: r.categoria || '',
+          Marca: r.marca || '',
+          Modelo: r.modelo || '',
+          Etiqueta: r.etiqueta || '',
+          "SAGE ACT": r.sage_act ?? '',
+          "SAGE NEW": r.sage_new ?? '',
+          PVP: r.pvp ?? '',
+          "PVP Club SAVE": r.pvp_clubsave ?? '',
+          Stock: r.stock ?? '',
+        });
+      });
+      page += 1;
+      if (page > 200) break;
+    } while (out.length < total);
+
+    if (!out.length) return toast('No hay datos para exportar', 'warn');
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(out);
+    XLSX.utils.book_append_sheet(wb, ws, 'Repuestos');
+    const fileName = `Repuestos_${new Date().toISOString().slice(0,10)}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    toast(`Exportación completada (${out.length} filas)`, 'ok');
+  } catch (e) {
+    toast('Error exportando Excel: ' + e.message, 'err');
+  }
+}
+
+function bindRepuestosExcelButtons() {
+  const bImp = document.getElementById('btnRepuestosImportar');
+  const bExp = document.getElementById('btnRepuestosExportar');
+  if (bImp && !bImp.dataset.bound) {
+    bImp.addEventListener('click', importarRepuestosExcel);
+    bImp.dataset.bound = '1';
+  }
+  if (bExp && !bExp.dataset.bound) {
+    bExp.addEventListener('click', exportarRepuestosExcel);
+    bExp.dataset.bound = '1';
+  }
+}
+
 function hardenGlobalSearchAutofill() {
   const g = document.getElementById('gSearch');
   if (!g) return;
@@ -2887,6 +3050,7 @@ async function loadDashboard() {
 window.addEventListener('load', async () => {
   const authed = await checkAuth();
   if (!authed) return;
+  bindRepuestosExcelButtons();
   hardenGlobalSearchAutofill();
   loadSolicitudesFromAPI();
   loadReportesFromAPI();
