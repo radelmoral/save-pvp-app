@@ -45,6 +45,12 @@ router.post('/telefonos', auth, role('admin'), repCtrl.crearTelefono);
 router.put('/telefonos/:id', auth, role('admin'), repCtrl.actualizarTelefono);
 router.delete('/telefonos/:id', auth, role('admin'), repCtrl.eliminarTelefono);
 
+// ── Consolas ──────────────────────────────────────────────
+router.get('/consolas', auth, repCtrl.listarConsolas);
+router.post('/consolas', auth, role('admin'), repCtrl.crearConsola);
+router.put('/consolas/:id', auth, role('admin'), repCtrl.actualizarConsola);
+router.delete('/consolas/:id', auth, role('admin'), repCtrl.eliminarConsola);
+
 // ── Solicitudes PVP ───────────────────────────────────────
 router.get ('/solicitudes',              auth, solicCtrl.listar);
 router.get ('/solicitudes/validar-referencia', auth, solicCtrl.validarReferencia);
