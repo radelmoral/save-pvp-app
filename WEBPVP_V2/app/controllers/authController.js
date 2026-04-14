@@ -3,9 +3,9 @@ const jwt    = require('jsonwebtoken');
 const db     = require('../config/db');
 
 // Mapeo numérico de roles de tu BBDD → nombres usados en la app
-const ROL_MAP = { 1: 'admin', 2: 'carrefour', 3: 'eci' };
+const ROL_MAP = { 1: 'admin', 2: 'carrefour', 3: 'eci', 4: 'franquicias', 5: 'eciclinicas' };
 // Y al revés, para filtros
-const ROL_NUM = { admin: 1, carrefour: 2, eci: 3 };
+const ROL_NUM = { admin: 1, carrefour: 2, eci: 3, franquicias: 4, eciclinicas: 5 };
 let _hasMustChangePasswordCol = null;
 
 async function ensureMustChangePasswordColumn() {
@@ -41,7 +41,7 @@ async function ensureMustChangePasswordColumn() {
 /**
  * POST /api/auth/login
  * Usa la tabla `usuarios` original con columnas:
- *   id_usuario, nombre, usuario, email, clave, rol (1/2/3)
+   *   id_usuario, nombre, usuario, email, clave, rol (1..5)
  * Los hashes son $2y$ (PHP bcrypt) — compatibles con bcryptjs
  */
 async function login(req, res) {
@@ -81,8 +81,8 @@ async function login(req, res) {
         id:       user.id_usuario,
         username: user.usuario,
         nombre:   user.nombre,
-        rol:      rolNombre,       // 'admin' | 'carrefour' | 'eci'
-        rolNum:   user.rol,        // 1 | 2 | 3  (por si hace falta)
+        rol:      rolNombre,       // 'admin' | 'carrefour' | 'eci' | 'franquicias' | 'eciclinicas'
+        rolNum:   user.rol,        // 1..5  (por si hace falta)
         mustChangePassword: forcePasswordChange,
       },
       process.env.JWT_SECRET,
