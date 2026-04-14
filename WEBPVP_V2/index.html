@@ -157,6 +157,16 @@ tbody td { padding:12px 14px; color:var(--g700); vertical-align:middle; }
 .price     { font-weight:700; color:var(--g900); }
 .price-club{ font-weight:700; color:var(--save-dk); }
 .hide-pvpclub .pvpclub-col { display:none; }
+.hide-ref-eciclinicas #page-repuestos table thead th:first-child,
+.hide-ref-eciclinicas #page-telefonos table thead th:first-child,
+.hide-ref-eciclinicas #page-apple table thead th:first-child,
+.hide-ref-eciclinicas #page-oppo table thead th:first-child,
+.hide-ref-eciclinicas #page-consolas table thead th:first-child { display:none; }
+.hide-ref-eciclinicas #tbRepuestos td.td-ref,
+.hide-ref-eciclinicas #tbTelefonos td.td-ref,
+.hide-ref-eciclinicas #tbApple td.td-ref,
+.hide-ref-eciclinicas #tbOppo td.td-ref,
+.hide-ref-eciclinicas #tbConsolas td.td-ref { display:none; }
 .tf { padding:12px 16px; display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--g200); font-size:12px; color:var(--g500); }
 .pager { display:flex; gap:3px; }
 .pb { min-width:30px; height:30px; border-radius:6px; border:1px solid var(--g200); background:var(--white); font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0 8px; transition:all var(--tr); color:var(--g700); }
@@ -1086,6 +1096,11 @@ function applyPvpClubVisibilityByRole() {
   document.body.classList.toggle('hide-pvpclub', hide);
 }
 
+function applyReferenceVisibilityByRole() {
+  const hide = normalizeRoleKey(currentRole) === 'eciclinicas';
+  document.body.classList.toggle('hide-ref-eciclinicas', hide);
+}
+
 function syncDashboardRoleVisibility() {
   const readOnlyRole = isReadOnlyCatalogRole(currentRole);
   const dashCardUltimasRefs = document.getElementById('dashCardUltimasRefs');
@@ -1094,6 +1109,7 @@ function syncDashboardRoleVisibility() {
   if (dashCardUltimosPvp) dashCardUltimosPvp.style.display = readOnlyRole ? 'none' : '';
 }
 applyPvpClubVisibilityByRole();
+applyReferenceVisibilityByRole();
 
 async function adminRealtimeTick(force = false) {
   if (!API_AVAILABLE || currentRole !== 'admin') return;
@@ -1133,6 +1149,7 @@ function setRole(role) {
   currentRole = normalizeRoleKey(role);
   window.__SAVE_CURRENT_ROLE = currentRole;
   applyPvpClubVisibilityByRole();
+  applyReferenceVisibilityByRole();
   const cfg = roleConfig[currentRole] || roleConfig.eci;
   const readOnlyRole = isReadOnlyCatalogRole(currentRole);
   // Update user card
