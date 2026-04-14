@@ -286,6 +286,10 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
       <span class="ic">📲</span> Oppo Original
       <span class="sb-badge" id="sbCountOppo">—</span>
     </button>
+    <button class="sb-item" onclick="nav('consolas',this)">
+      <span class="ic">🎮</span> Consolas
+      <span class="sb-badge" id="sbCountConsolas">—</span>
+    </button>
 
     <div class="sb-sec">Operaciones</div>
     <button class="sb-item" id="navPedidosBtn" onclick="nav('pedidos',this)">
@@ -374,6 +378,10 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <h4><span>Oppo Original</span><span id="grCountOppo">0</span></h4>
         <table><tbody id="grRowsOppo"></tbody></table>
       </div>
+      <div class="gr-card">
+        <h4><span>Consolas</span><span id="grCountConsolas">0</span></h4>
+        <table><tbody id="grRowsConsolas"></tbody></table>
+      </div>
     </div>
   </section>
 
@@ -384,7 +392,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <p style="color:var(--g500);font-size:13px;margin-top:3px;" id="globalResultsTableInfo">—</p>
       </div>
     </div>
-    <div class="card" id="dashCardUltimasRefs">
+    <div class="card" id="globalResultsCard">
       <div class="tw">
         <table>
           <thead>
@@ -423,7 +431,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <div class="cb"><div class="cc"><canvas id="chartMarca"></canvas></div></div>
       </div>
     </div>
-    <div class="card">
+    <div class="card" id="dashCardUltimasRefs">
       <div class="ch"><div><div class="ct">Últimas referencias añadidas</div></div><button class="btn btn-o" onclick="nav('repuestos',null)">Ver todas →</button></div>
       <div class="tw"><table>
         <thead><tr><th>Referencia</th><th>Categoría</th><th>Marca</th><th>Modelo</th><th>Etiqueta</th><th>PVP</th><th class="pvpclub-col">PVP Club</th></tr></thead>
@@ -466,7 +474,13 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
 
   <!-- ── TELÉFONOS ── -->
   <section class="page" id="page-telefonos">
-    <div style="display:flex;align-items:center;justify-content:space-between;"><div><h2 style="font-size:20px;font-weight:800;">Teléfonos</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;" id="telefonosTotal">Cargando…</p></div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div><h2 style="font-size:20px;font-weight:800;">Teléfonos</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;" id="telefonosTotal">Cargando…</p></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-o" id="btnTelefonosImportar">📥 Importar Excel</button>
+        <button class="btn btn-o" id="btnTelefonosExportar">📤 Exportar</button>
+      </div>
+    </div>
     <div class="card">
       <div class="tfilters">
         <input class="fi" id="filtroTelRef" placeholder="🔍 Referencia…" style="flex:1;" oninput="loadTelefonosFromAPI()"/>
@@ -479,7 +493,13 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
 
   <!-- ── APPLE / OPPO ── -->
   <section class="page" id="page-apple">
-    <div style="display:flex;align-items:center;justify-content:space-between;"><div><h2 style="font-size:20px;font-weight:800;">Apple Original</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;" id="appleTotal">Cargando…</p></div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div><h2 style="font-size:20px;font-weight:800;">Apple Original</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;" id="appleTotal">Cargando…</p></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-o" id="btnAppleImportar">📥 Importar Excel</button>
+        <button class="btn btn-o" id="btnAppleExportar">📤 Exportar</button>
+      </div>
+    </div>
     <div class="card">
       <div class="tfilters">
         <input class="fi" id="filtroAppleRef" placeholder="🔍 Buscar (referencia, categoría, marca, modelo, etiqueta)..." style="flex:1;" oninput="filterApple()"/>
@@ -492,7 +512,13 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
     </div>
   </section>
   <section class="page" id="page-oppo">
-    <div style="display:flex;align-items:center;justify-content:space-between;"><div><h2 style="font-size:20px;font-weight:800;">Oppo Original</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;" id="oppoTotal">Cargando…</p></div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div><h2 style="font-size:20px;font-weight:800;">Oppo Original</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;" id="oppoTotal">Cargando…</p></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-o" id="btnOppoImportar">📥 Importar Excel</button>
+        <button class="btn btn-o" id="btnOppoExportar">📤 Exportar</button>
+      </div>
+    </div>
     <div class="card">
       <div class="tfilters">
         <input class="fi" id="filtroOppoRef" placeholder="🔍 Buscar (referencia, categoría, marca, modelo, etiqueta)..." style="flex:1;" oninput="filterOppo()"/>
@@ -502,6 +528,25 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
       </div>
       <div class="tw"><table><thead><tr><th>Referencia</th><th>Categoría</th><th>Modelo</th><th>Etiqueta</th><th>PVP</th><th style="text-align:center;">Opciones</th></tr></thead><tbody id="tbOppo"></tbody></table></div>
       <div class="tf"><span id="oppoPager">—</span><div class="pager" id="oppoPagerBtns"></div></div>
+    </div>
+  </section>
+  <section class="page" id="page-consolas">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div><h2 style="font-size:20px;font-weight:800;">Consolas</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;" id="consolasTotal">Cargando…</p></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-o" id="btnConsolasImportar">📥 Importar Excel</button>
+        <button class="btn btn-o" id="btnConsolasExportar">📤 Exportar</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="tfilters">
+        <input class="fi" id="filtroConsolasRef" placeholder="🔍 Buscar (referencia, categoría, marca, modelo, etiqueta)..." style="flex:1;" oninput="filterConsolas()"/>
+        <select class="fi" id="filtroConsolasCategoria" onchange="filterConsolas()"><option value="">Todas las categorías</option><option>Pantalla</option><option>Tapa</option><option>Carcasa</option><option>PCB</option></select>
+        <select class="fi" id="filtroConsolasMarca" onchange="filterConsolas()"><option value="">Todas las marcas</option><option>SONY</option><option>NINTENDO</option><option>MICROSOFT</option></select>
+        <input class="fi" id="filtroConsolasModelo" placeholder="Modelo…" oninput="filterConsolas()"/>
+      </div>
+      <div class="tw"><table><thead><tr><th>Referencia</th><th>Categoría</th><th>Marca</th><th>Modelo</th><th>Etiqueta</th><th>PVP</th><th style="text-align:center;">Opciones</th></tr></thead><tbody id="tbConsolas"></tbody></table></div>
+      <div class="tf"><span id="consolasPager">—</span><div class="pager" id="consolasPagerBtns"></div></div>
     </div>
   </section>
 
@@ -714,6 +759,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
             <option value="telefonos">Teléfonos</option>
             <option value="apple">Apple Original</option>
             <option value="oppo">Oppo Original</option>
+            <option value="consolas">Consolas</option>
           </select>
         </div>
         <div class="ff full"><label>Referencia *</label><input class="finp" id="newRefReferencia" placeholder="Ej: 02351BDD"/></div>
@@ -754,6 +800,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
             <option value="telefonos">Teléfonos</option>
             <option value="apple">Apple Original</option>
             <option value="oppo">Oppo Original</option>
+            <option value="consolas">Consolas</option>
           </select>
         </div>
         <div class="ff full"><label>Categoría</label>
@@ -819,6 +866,15 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
       <input type="hidden" id="editType"/>
       <input type="hidden" id="editOriginalRef"/>
       <div class="fg">
+        <div class="ff"><label>Catálogo</label>
+          <select class="finp" id="editCatalogo" onchange="onEditCatalogoChange()">
+            <option value="repuestos">Repuestos</option>
+            <option value="telefonos">Teléfonos</option>
+            <option value="apple">Apple Original</option>
+            <option value="oppo">Oppo Original</option>
+            <option value="consolas">Consolas</option>
+          </select>
+        </div>
         <div class="ff"><label>Referencia</label><input class="finp" id="editRef"/></div>
         <div class="ff" id="editMarcaWrap"><label>Marca</label><input class="finp" id="editMarca"/></div>
         <div class="ff" id="editCategoriaWrap"><label>Categoría</label><input class="finp" id="editCategoria"/></div>
@@ -967,7 +1023,7 @@ let currentRole = 'eci';
 let globalSearchTerm = '';
 let globalSearchTimer = null;
 let globalLastSummary = null;
-const globalRowsVisible = { repuestos: 6, telefonos: 6, apple: 6, oppo: 6 };
+const globalRowsVisible = { repuestos: 6, telefonos: 6, apple: 6, oppo: 6, consolas: 6 };
 let globalFlatResults = [];
 let pendingSolicitudesAdmin = 0;
 let pendingReportesAdmin = 0;
@@ -1008,7 +1064,7 @@ function normalizeRoleKey(role) {
 }
 
 function catalogLabel(cat) {
-  const m = { repuestos: 'Repuestos', telefonos: 'Teléfonos', apple: 'Apple Original', oppo: 'Oppo Original' };
+  const m = { repuestos: 'Repuestos', telefonos: 'Teléfonos', apple: 'Apple Original', oppo: 'Oppo Original', consolas: 'Consolas' };
   return m[String(cat || '').toLowerCase()] || (cat || '—');
 }
 
@@ -1092,6 +1148,11 @@ function setRole(role) {
   if (repImportar) repImportar.style.display = (currentRole === 'admin') ? '' : 'none';
   const repExportar = document.getElementById('btnRepuestosExportar');
   if (repExportar) repExportar.style.display = (currentRole === 'admin') ? '' : 'none';
+  ['btnTelefonosImportar', 'btnTelefonosExportar', 'btnAppleImportar', 'btnAppleExportar', 'btnOppoImportar', 'btnOppoExportar', 'btnConsolasImportar', 'btnConsolasExportar']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = (currentRole === 'admin') ? '' : 'none';
+    });
   const navPedidosBtn = document.getElementById('navPedidosBtn');
   if (navPedidosBtn) navPedidosBtn.style.display = readOnlyRole ? 'none' : '';
   const navSolicitudPvpBtn = document.getElementById('navSolicitudPvpBtn');
@@ -1126,7 +1187,7 @@ function nav(id, btn) {
   if(btn) btn.classList.add('active');
   const titles = {
     dashboard:'Dashboard', repuestos:'Repuestos', telefonos:'Teléfonos',
-    apple:'Apple Original', oppo:'Oppo Original', pedidos:'Gestión de Pedidos',
+    apple:'Apple Original', oppo:'Oppo Original', consolas:'Consolas', pedidos:'Gestión de Pedidos',
     'solicitud-pvp':'Solicitud de PVP', 'mis-reportes':'Mis reportes', usuarios:'Usuarios',
     'solicitudes-pvp-admin':'Solicitudes PVP — Admin',
     'reportes-referencias-admin':'Reportes referencias — Admin',
@@ -1142,6 +1203,9 @@ function navById(id) {
     loadMisSolicitudesFromAPI();
     loadReportesFromAPI();
   }
+  if (id === 'consolas') {
+    loadConsolasFromAPI();
+  }
 }
 
 function openGlobalResultsPage() {
@@ -1155,6 +1219,7 @@ function openGlobalResultsPage() {
     ...mapRows(globalLastSummary.telefonos, 'Teléfonos'),
     ...mapRows(globalLastSummary.apple, 'Apple Original'),
     ...mapRows(globalLastSummary.oppo, 'Oppo Original'),
+    ...mapRows(globalLastSummary.consolas, 'Consolas'),
   ];
   navById('resultados-globales');
   document.getElementById('tbTitle').textContent = 'Resultados Globales';
@@ -1210,6 +1275,13 @@ function filterOppo() {
   const modelo = document.getElementById('filtroOppoModelo')?.value || '';
   loadOppoFromAPI(1, { q, categoria, marca, modelo });
 }
+function filterConsolas() {
+  const q = document.getElementById('filtroConsolasRef')?.value?.trim() || '';
+  const categoria = document.getElementById('filtroConsolasCategoria')?.value || '';
+  const marca = document.getElementById('filtroConsolasMarca')?.value || '';
+  const modelo = document.getElementById('filtroConsolasModelo')?.value || '';
+  loadConsolasFromAPI(1, { q, categoria, marca, modelo });
+}
 function onGSearch(v) {
   const term = String(v || '').trim();
   clearTimeout(globalSearchTimer);
@@ -1238,7 +1310,7 @@ function getExcelValue(row, aliases) {
   return '';
 }
 
-function mapExcelRowToRepuesto(row) {
+function mapExcelRowToPayload(catalogo, row) {
   const referencia = String(getExcelValue(row, ['referencia', 'ref', 'codigo'])).trim();
   const marca = String(getExcelValue(row, ['marca'])).trim();
   const categoria = String(getExcelValue(row, ['categoria', 'cat'])).trim();
@@ -1251,6 +1323,10 @@ function mapExcelRowToRepuesto(row) {
   let pvp_clubsave = excelNumOrNull(getExcelValue(row, ['pvpclubsave', 'pvpclub', 'clubsave']));
   if (pvp_clubsave === null && Number.isFinite(pvp)) {
     pvp_clubsave = Number((pvp * 0.85).toFixed(2));
+  }
+  if (catalogo === 'telefonos') return { referencia, marca, modelo, etiqueta, pvp };
+  if (catalogo === 'apple' || catalogo === 'oppo' || catalogo === 'consolas') {
+    return { referencia, marca, categoria, modelo, etiqueta, pvp };
   }
   return { referencia, marca, categoria, modelo, etiqueta, sage_act, sage_new, pvp, pvp_clubsave };
 }
@@ -1268,10 +1344,23 @@ function ensureExcelImportInput() {
   return input;
 }
 
-function importarRepuestosExcel() {
+let currentExcelImportCatalog = 'repuestos';
+
+function getCatalogApi(catalogo) {
+  if (catalogo === 'repuestos') return API.repuestos;
+  if (catalogo === 'telefonos') return API.telefonos;
+  if (catalogo === 'apple') return API.apple;
+  if (catalogo === 'oppo') return API.oppo;
+  if (catalogo === 'consolas') return API.consolas;
+  return null;
+}
+
+function importCatalogoExcel(catalogo) {
   if (!isAdminRole()) return toast('Solo admin puede importar Excel', 'warn');
   if (!API_AVAILABLE) return toast('API no disponible', 'err');
   if (typeof XLSX === 'undefined') return toast('Librería Excel no cargada', 'err');
+  if (!getCatalogApi(catalogo)) return toast('Catálogo no soportado', 'err');
+  currentExcelImportCatalog = catalogo;
   const input = ensureExcelImportInput();
   input.value = '';
   input.click();
@@ -1280,6 +1369,12 @@ function importarRepuestosExcel() {
 async function handleImportExcelFile(ev) {
   const file = ev?.target?.files?.[0];
   if (!file) return;
+  const catalogo = currentExcelImportCatalog || 'repuestos';
+  const api = getCatalogApi(catalogo);
+  if (!api) {
+    ev.target.value = '';
+    return toast('Catálogo no soportado', 'err');
+  }
   try {
     const buffer = await file.arrayBuffer();
     const wb = XLSX.read(buffer, { type: 'array' });
@@ -1289,16 +1384,16 @@ async function handleImportExcelFile(ev) {
 
     let creadas = 0, actualizadas = 0, ignoradas = 0, fallidas = 0;
     for (const raw of rows) {
-      const payload = mapExcelRowToRepuesto(raw);
+      const payload = mapExcelRowToPayload(catalogo, raw);
       if (!payload.referencia) { ignoradas++; continue; }
       try {
-        await API.repuestos.crear(payload);
+        await api.crear(payload);
         creadas++;
       } catch (e) {
         const msg = String(e?.message || '').toLowerCase();
         if (msg.includes('existe') || msg.includes('duplic') || msg.includes('dup')) {
           try {
-            await API.repuestos.actualizar(payload.referencia, payload);
+            await api.actualizar(payload.referencia, payload);
             actualizadas++;
           } catch {
             fallidas++;
@@ -1308,8 +1403,16 @@ async function handleImportExcelFile(ev) {
         }
       }
     }
-    await Promise.allSettled([loadRepuestosFromAPI({ page: 1 }), refreshSidebarCatalogCounts(), loadDashboard()]);
-    toast(`Importación completada · Creadas: ${creadas} · Actualizadas: ${actualizadas} · Ignoradas: ${ignoradas} · Fallidas: ${fallidas}`, fallidas ? 'warn' : 'ok');
+    await Promise.allSettled([
+      loadRepuestosFromAPI({ page: 1 }),
+      loadTelefonosFromAPI(1),
+      loadAppleFromAPI(1),
+      loadOppoFromAPI(1),
+      loadConsolasFromAPI(1),
+      refreshSidebarCatalogCounts(),
+      loadDashboard(),
+    ]);
+    toast(`Importación ${catalogLabel(catalogo)} completada · Creadas: ${creadas} · Actualizadas: ${actualizadas} · Ignoradas: ${ignoradas} · Fallidas: ${fallidas}`, fallidas ? 'warn' : 'ok');
   } catch (e) {
     toast('Error importando Excel: ' + e.message, 'err');
   } finally {
@@ -1317,39 +1420,102 @@ async function handleImportExcelFile(ev) {
   }
 }
 
-async function exportarRepuestosExcel() {
-  if (!isAdminRole()) return toast('Solo admin puede exportar Excel', 'warn');
-  if (!API_AVAILABLE) return toast('API no disponible', 'err');
-  if (typeof XLSX === 'undefined') return toast('Librería Excel no cargada', 'err');
-  try {
-    const filters = {
+function getCatalogExportFilters(catalogo) {
+  if (catalogo === 'repuestos') {
+    return {
       ref: (document.getElementById('fRef')?.value || '').trim(),
       categoria: document.getElementById('fCat')?.value || '',
       marca: document.getElementById('fMarca')?.value || '',
       modelo: (document.getElementById('fModelo')?.value || '').trim(),
       q: globalSearchTerm || '',
-      limit: 500,
     };
+  }
+  if (catalogo === 'telefonos') {
+    return {
+      ref: (document.getElementById('filtroTelRef')?.value || '').trim(),
+      modelo: (document.getElementById('filtroTelModelo')?.value || '').trim(),
+      q: globalSearchTerm || '',
+    };
+  }
+  if (catalogo === 'apple') {
+    return {
+      ref: (document.getElementById('filtroAppleRef')?.value || '').trim(),
+      categoria: document.getElementById('filtroAppleCategoria')?.value || '',
+      marca: document.getElementById('filtroAppleMarca')?.value || '',
+      modelo: (document.getElementById('filtroAppleModelo')?.value || '').trim(),
+      q: globalSearchTerm || '',
+    };
+  }
+  if (catalogo === 'oppo') {
+    return {
+      ref: (document.getElementById('filtroOppoRef')?.value || '').trim(),
+      categoria: document.getElementById('filtroOppoCategoria')?.value || '',
+      marca: document.getElementById('filtroOppoMarca')?.value || '',
+      modelo: (document.getElementById('filtroOppoModelo')?.value || '').trim(),
+      q: globalSearchTerm || '',
+    };
+  }
+  if (catalogo === 'consolas') {
+    return {
+      ref: (document.getElementById('filtroConsolasRef')?.value || '').trim(),
+      categoria: document.getElementById('filtroConsolasCategoria')?.value || '',
+      marca: document.getElementById('filtroConsolasMarca')?.value || '',
+      modelo: (document.getElementById('filtroConsolasModelo')?.value || '').trim(),
+      q: globalSearchTerm || '',
+    };
+  }
+  return { q: globalSearchTerm || '' };
+}
+
+function mapCatalogExportRow(catalogo, r) {
+  if (catalogo === 'telefonos') {
+    return {
+      Referencia: r.referencia || '',
+      Marca: r.marca || '',
+      Modelo: r.modelo || '',
+      Etiqueta: r.etiqueta || '',
+      PVP: r.pvp ?? '',
+    };
+  }
+  if (catalogo === 'apple' || catalogo === 'oppo' || catalogo === 'consolas') {
+    return {
+      Referencia: r.referencia || '',
+      Categoria: r.categoria || '',
+      Marca: r.marca || '',
+      Modelo: r.modelo || '',
+      Etiqueta: r.etiqueta || '',
+      PVP: r.pvp ?? '',
+    };
+  }
+  return {
+    Referencia: r.referencia || '',
+    Categoria: r.categoria || '',
+    Marca: r.marca || '',
+    Modelo: r.modelo || '',
+    Etiqueta: r.etiqueta || '',
+    "SAGE ACT": r.sage_act ?? '',
+    "SAGE NEW": r.sage_new ?? '',
+    PVP: r.pvp ?? '',
+    "PVP Club SAVE": r.pvp_clubsave ?? '',
+    Stock: r.stock ?? '',
+  };
+}
+
+async function exportarCatalogoExcel(catalogo) {
+  if (!isAdminRole()) return toast('Solo admin puede exportar Excel', 'warn');
+  if (!API_AVAILABLE) return toast('API no disponible', 'err');
+  if (typeof XLSX === 'undefined') return toast('Librería Excel no cargada', 'err');
+  const api = getCatalogApi(catalogo);
+  if (!api) return toast('Catálogo no soportado', 'err');
+  try {
+    const filters = { ...getCatalogExportFilters(catalogo), limit: 500 };
     let page = 1;
     let total = 0;
     const out = [];
     do {
-      const res = await API.repuestos.listar({ ...filters, page });
+      const res = await api.listar({ ...filters, page });
       total = Number(res.total || 0);
-      (res.data || []).forEach(r => {
-        out.push({
-          Referencia: r.referencia || '',
-          Categoria: r.categoria || '',
-          Marca: r.marca || '',
-          Modelo: r.modelo || '',
-          Etiqueta: r.etiqueta || '',
-          "SAGE ACT": r.sage_act ?? '',
-          "SAGE NEW": r.sage_new ?? '',
-          PVP: r.pvp ?? '',
-          "PVP Club SAVE": r.pvp_clubsave ?? '',
-          Stock: r.stock ?? '',
-        });
-      });
+      (res.data || []).forEach(r => out.push(mapCatalogExportRow(catalogo, r)));
       page += 1;
       if (page > 200) break;
     } while (out.length < total);
@@ -1357,26 +1523,36 @@ async function exportarRepuestosExcel() {
     if (!out.length) return toast('No hay datos para exportar', 'warn');
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(out);
-    XLSX.utils.book_append_sheet(wb, ws, 'Repuestos');
-    const fileName = `Repuestos_${new Date().toISOString().slice(0,10)}.xlsx`;
+    const title = catalogLabel(catalogo);
+    XLSX.utils.book_append_sheet(wb, ws, title.slice(0, 31));
+    const fileName = `${title.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.xlsx`;
     XLSX.writeFile(wb, fileName);
-    toast(`Exportación completada (${out.length} filas)`, 'ok');
+    toast(`Exportación ${title} completada (${out.length} filas)`, 'ok');
   } catch (e) {
     toast('Error exportando Excel: ' + e.message, 'err');
   }
 }
 
-function bindRepuestosExcelButtons() {
-  const bImp = document.getElementById('btnRepuestosImportar');
-  const bExp = document.getElementById('btnRepuestosExportar');
-  if (bImp && !bImp.dataset.bound) {
-    bImp.addEventListener('click', importarRepuestosExcel);
-    bImp.dataset.bound = '1';
-  }
-  if (bExp && !bExp.dataset.bound) {
-    bExp.addEventListener('click', exportarRepuestosExcel);
-    bExp.dataset.bound = '1';
-  }
+function bindCatalogExcelButtons() {
+  const binds = [
+    ['btnRepuestosImportar', () => importCatalogoExcel('repuestos')],
+    ['btnRepuestosExportar', () => exportarCatalogoExcel('repuestos')],
+    ['btnTelefonosImportar', () => importCatalogoExcel('telefonos')],
+    ['btnTelefonosExportar', () => exportarCatalogoExcel('telefonos')],
+    ['btnAppleImportar', () => importCatalogoExcel('apple')],
+    ['btnAppleExportar', () => exportarCatalogoExcel('apple')],
+    ['btnOppoImportar', () => importCatalogoExcel('oppo')],
+    ['btnOppoExportar', () => exportarCatalogoExcel('oppo')],
+    ['btnConsolasImportar', () => importCatalogoExcel('consolas')],
+    ['btnConsolasExportar', () => exportarCatalogoExcel('consolas')],
+  ];
+  binds.forEach(([id, handler]) => {
+    const btn = document.getElementById(id);
+    if (btn && !btn.dataset.bound) {
+      btn.addEventListener('click', handler);
+      btn.dataset.bound = '1';
+    }
+  });
 }
 
 function hardenGlobalSearchAutofill() {
@@ -1400,10 +1576,12 @@ async function ejecutarBusquedaGlobal(term) {
     globalRowsVisible.telefonos = 6;
     globalRowsVisible.apple = 6;
     globalRowsVisible.oppo = 6;
+    globalRowsVisible.consolas = 6;
     ocultarResultadosGlobales();
     loadRepuestosFromAPI({ page: 1 });
     loadAppleFromAPI(1);
     loadOppoFromAPI(1);
+    loadConsolasFromAPI(1);
     loadTelefonosFromAPI(1);
     return;
   }
@@ -1413,11 +1591,13 @@ async function ejecutarBusquedaGlobal(term) {
     globalRowsVisible.telefonos = 6;
     globalRowsVisible.apple = 6;
     globalRowsVisible.oppo = 6;
-    const [repRes, telRes, appleRes, oppoRes] = await Promise.allSettled([
+    globalRowsVisible.consolas = 6;
+    const [repRes, telRes, appleRes, oppoRes, conRes] = await Promise.allSettled([
       API.repuestos.listar({ q: term, limit: 50, page: 1 }),
       API.telefonos.listar({ q: term, limit: 50, page: 1 }),
       API.apple.listar({ q: term, limit: 50, page: 1 }),
       API.oppo.listar({ q: term, limit: 50, page: 1 }),
+      API.consolas.listar({ q: term, limit: 50, page: 1 }),
     ]);
 
     const summary = {
@@ -1426,14 +1606,16 @@ async function ejecutarBusquedaGlobal(term) {
       telefonos: telRes.status === 'fulfilled' ? (telRes.value.data || []) : [],
       apple: appleRes.status === 'fulfilled' ? (appleRes.value.data || []) : [],
       oppo: oppoRes.status === 'fulfilled' ? (oppoRes.value.data || []) : [],
+      consolas: conRes.status === 'fulfilled' ? (conRes.value.data || []) : [],
     };
-    summary.total = summary.repuestos.length + summary.telefonos.length + summary.apple.length + summary.oppo.length;
+    summary.total = summary.repuestos.length + summary.telefonos.length + summary.apple.length + summary.oppo.length + summary.consolas.length;
 
     pintarResultadosGlobales(summary);
     await Promise.allSettled([
       loadRepuestosFromAPI({ q: term, page: 1 }),
       loadAppleFromAPI(1, { q: term }),
       loadOppoFromAPI(1, { q: term }),
+      loadConsolasFromAPI(1, { q: term }),
       loadTelefonosFromAPI(1, { q: term }),
     ]);
     document.getElementById('tbTitle').textContent = `Resultados globales: ${summary.total}`;
@@ -1452,11 +1634,13 @@ function pintarResultadosGlobales(summary) {
   document.getElementById('grCountTel').textContent = summary.telefonos.length;
   document.getElementById('grCountApple').textContent = summary.apple.length;
   document.getElementById('grCountOppo').textContent = summary.oppo.length;
+  document.getElementById('grCountConsolas').textContent = summary.consolas.length;
 
   renderRows('repuestos', 'grRowsRep', summary.repuestos, r => `${escHTML(r.referencia)} · ${escHTML(r.categoria || '—')} · ${escHTML(r.marca || '—')} · ${escHTML(r.modelo || '—')} · PVP: ${r.pvp ? formatMoney(r.pvp) + ' €' : '—'}`);
   renderRows('telefonos', 'grRowsTel', summary.telefonos, r => `${escHTML(r.referencia)} · ${escHTML(r.categoria || '—')} · ${escHTML(r.marca || '—')} · ${escHTML(r.modelo || '—')} · PVP: ${r.pvp ? formatMoney(r.pvp) + ' €' : '—'}`);
   renderRows('apple', 'grRowsApple', summary.apple, r => `${escHTML(r.referencia)} · ${escHTML(r.categoria || '—')} · ${escHTML(r.modelo || '—')} · ${escHTML(r.etiqueta || '—')} · PVP: ${r.pvp ? formatMoney(r.pvp) + ' €' : '—'}`);
   renderRows('oppo', 'grRowsOppo', summary.oppo, r => `${escHTML(r.referencia)} · ${escHTML(r.categoria || '—')} · ${escHTML(r.modelo || '—')} · ${escHTML(r.etiqueta || '—')} · PVP: ${r.pvp ? formatMoney(r.pvp) + ' €' : '—'}`);
+  renderRows('consolas', 'grRowsConsolas', summary.consolas, r => `${escHTML(r.referencia)} · ${escHTML(r.categoria || '—')} · ${escHTML(r.marca || '—')} · ${escHTML(r.modelo || '—')} · PVP: ${r.pvp ? formatMoney(r.pvp) + ' €' : '—'}`);
 }
 
 function toggleGlobalRows(catKey) {
@@ -1866,6 +2050,11 @@ async function guardarNuevaReferenciaAPI() {
         referencia, marca, categoria, modelo, etiqueta, pvp,
       });
       await loadOppoFromAPI(1);
+    } else if (destino === 'consolas') {
+      await API.consolas.crear({
+        referencia, marca, categoria, modelo, etiqueta, pvp,
+      });
+      await loadConsolasFromAPI(1);
     } else {
       throw new Error('Catálogo no soportado');
     }
@@ -1913,16 +2102,18 @@ function setSidebarCatalogCount(id, value) {
 async function refreshSidebarCatalogCounts() {
   if (!API_AVAILABLE) return;
   try {
-    const [repRes, telRes, appleRes, oppoRes] = await Promise.allSettled([
+    const [repRes, telRes, appleRes, oppoRes, conRes] = await Promise.allSettled([
       API.repuestos.listar({ page: 1, limit: 1 }),
       API.telefonos.listar({ page: 1, limit: 1 }),
       API.apple.listar({ page: 1, limit: 1 }),
       API.oppo.listar({ page: 1, limit: 1 }),
+      API.consolas.listar({ page: 1, limit: 1 }),
     ]);
     setSidebarCatalogCount('sbCountRepuestos', repRes.status === 'fulfilled' ? repRes.value.total : null);
     setSidebarCatalogCount('sbCountTelefonos', telRes.status === 'fulfilled' ? telRes.value.total : null);
     setSidebarCatalogCount('sbCountApple', appleRes.status === 'fulfilled' ? appleRes.value.total : null);
     setSidebarCatalogCount('sbCountOppo', oppoRes.status === 'fulfilled' ? oppoRes.value.total : null);
+    setSidebarCatalogCount('sbCountConsolas', conRes.status === 'fulfilled' ? conRes.value.total : null);
   } catch (e) {
     console.warn('No se pudieron actualizar contadores del catálogo:', e.message);
   }
@@ -2001,7 +2192,7 @@ async function loadCategoriasFromAPI() {
   if (!API_AVAILABLE) return;
   try {
     const cats = await API.categorias.listar();
-    ['pvpCat', 'fCat', 'filtroAppleCategoria', 'filtroOppoCategoria', 'newRefCategoria'].forEach(selId => {
+    ['pvpCat', 'fCat', 'filtroAppleCategoria', 'filtroOppoCategoria', 'filtroConsolasCategoria', 'newRefCategoria', 'editCategoria'].forEach(selId => {
       const sel = document.getElementById(selId);
       if (!sel) return;
       const current = sel.value;
@@ -2276,6 +2467,7 @@ function isAdminRole() {
 function openEditModal(type, data) {
   if (!isAdminRole()) return toast('Solo admin puede editar', 'warn');
   document.getElementById('editType').value = type;
+  document.getElementById('editCatalogo').value = type;
   document.getElementById('editOriginalRef').value = data.referencia || '';
   document.getElementById('editRef').value = data.referencia || '';
   document.getElementById('editMarca').value = data.marca || '';
@@ -2292,9 +2484,16 @@ function openEditModal(type, data) {
   openModal('modalEditRef');
 }
 
+function onEditCatalogoChange() {
+  const type = document.getElementById('editCatalogo').value || 'repuestos';
+  document.getElementById('editCategoriaWrap').style.display = type !== 'telefonos' ? '' : 'none';
+  document.getElementById('editPvpClubWrap').style.display = type === 'repuestos' ? '' : 'none';
+}
+
 async function guardarEdicionReferencia() {
   if (!isAdminRole()) return toast('Solo admin puede editar', 'warn');
   const type = document.getElementById('editType').value;
+  const targetType = document.getElementById('editCatalogo').value || type;
   const originalRef = document.getElementById('editOriginalRef').value;
   const payload = {
     referencia: document.getElementById('editRef').value.trim(),
@@ -2307,22 +2506,55 @@ async function guardarEdicionReferencia() {
   };
 
   try {
-    if (type === 'repuestos') {
-      await API.repuestos.actualizar(originalRef, payload);
-      loadRepuestosFromAPI({ page: _repPage });
-    } else if (type === 'apple') {
-      await API.apple.actualizar(originalRef, payload);
-      loadAppleFromAPI(_applePage);
-    } else if (type === 'oppo') {
-      await API.oppo.actualizar(originalRef, payload);
-      loadOppoFromAPI(_oppoPage);
-    } else if (type === 'telefonos') {
-      await API.telefonos.actualizar(originalRef, payload);
-      loadTelefonosFromAPI(_telPage);
-    } else {
+    const updateByType = async (t, ref, data) => {
+      if (t === 'repuestos') return API.repuestos.actualizar(ref, data);
+      if (t === 'apple') return API.apple.actualizar(ref, data);
+      if (t === 'oppo') return API.oppo.actualizar(ref, data);
+      if (t === 'telefonos') return API.telefonos.actualizar(ref, data);
+      if (t === 'consolas') return API.consolas.actualizar(ref, data);
       throw new Error('Tipo de catálogo no soportado');
+    };
+    const createByType = async (t, data) => {
+      if (t === 'repuestos') return API.repuestos.crear(data);
+      if (t === 'apple') return API.apple.crear(data);
+      if (t === 'oppo') return API.oppo.crear(data);
+      if (t === 'telefonos') return API.telefonos.crear(data);
+      if (t === 'consolas') return API.consolas.crear(data);
+      throw new Error('Tipo de catálogo no soportado');
+    };
+    const deleteByType = async (t, ref) => {
+      if (t === 'repuestos') return API.repuestos.eliminar(ref);
+      if (t === 'apple') return API.apple.eliminar(ref);
+      if (t === 'oppo') return API.oppo.eliminar(ref);
+      if (t === 'telefonos') return API.telefonos.eliminar(ref);
+      if (t === 'consolas') return API.consolas.eliminar(ref);
+      throw new Error('Tipo de catálogo no soportado');
+    };
+
+    if (targetType === type) {
+      await updateByType(type, originalRef, payload);
+    } else {
+      await createByType(targetType, payload);
+      await deleteByType(type, originalRef);
+    }
+
+    if (type === 'repuestos' || targetType === 'repuestos') {
+      loadRepuestosFromAPI({ page: _repPage });
+    }
+    if (type === 'apple' || targetType === 'apple') {
+      loadAppleFromAPI(_applePage);
+    }
+    if (type === 'oppo' || targetType === 'oppo') {
+      loadOppoFromAPI(_oppoPage);
+    }
+    if (type === 'telefonos' || targetType === 'telefonos') {
+      loadTelefonosFromAPI(_telPage);
+    }
+    if (type === 'consolas' || targetType === 'consolas') {
+      loadConsolasFromAPI(_consolasPage);
     }
     closeModal('modalEditRef');
+    await refreshSidebarCatalogCounts();
     await loadDashboard();
     toast('Referencia actualizada', 'ok');
   } catch (e) {
@@ -2346,6 +2578,10 @@ function editarTelefono(ref, marca, modelo, etiqueta, pvp) {
   return openEditModal('telefonos', { referencia: ref, marca, modelo, etiqueta, pvp });
 }
 
+function editarConsola(ref, marca, categoria, modelo, etiqueta, pvp) {
+  return openEditModal('consolas', { referencia: ref, marca, categoria, modelo, etiqueta, pvp });
+}
+
 async function eliminarApple(ref) {
   if (!isAdminRole()) return toast('Solo admin puede eliminar', 'warn');
   if (!confirm(`¿Eliminar referencia Apple ${ref}?`)) return;
@@ -2364,6 +2600,13 @@ async function eliminarTelefono(ref) {
   if (!isAdminRole()) return toast('Solo admin puede eliminar', 'warn');
   if (!confirm(`¿Eliminar teléfono ${ref}?`)) return;
   try { await API.telefonos.eliminar(ref); toast('Teléfono eliminado', 'ok'); loadTelefonosFromAPI(_telPage); refreshSidebarCatalogCounts(); }
+  catch (e) { toast('Error: ' + e.message, 'err'); }
+}
+
+async function eliminarConsola(ref) {
+  if (!isAdminRole()) return toast('Solo admin puede eliminar', 'warn');
+  if (!confirm(`¿Eliminar consola ${ref}?`)) return;
+  try { await API.consolas.eliminar(ref); toast('Consola eliminada', 'ok'); loadConsolasFromAPI(_consolasPage); refreshSidebarCatalogCounts(); }
   catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 
@@ -2799,6 +3042,47 @@ async function loadTelefonosFromAPI(page = _telPage, options = {}) {
   } catch(e) { console.warn('Error cargando Teléfonos:', e.message); }
 }
 
+// ── CONSOLAS ───────────────────────────────────────
+let _consolasPage = 1;
+async function loadConsolasFromAPI(page = _consolasPage, options = {}) {
+  if (!API_AVAILABLE) return;
+  _consolasPage = page;
+  try {
+    const q = options.q ?? globalSearchTerm;
+    const ref = options.ref ?? '';
+    const categoria = options.categoria ?? '';
+    const marca = options.marca ?? '';
+    const modelo = options.modelo ?? '';
+    const res = await API.consolas.listar({ ref, categoria, marca, modelo, q, page, limit: 50 });
+    const tb = document.getElementById('tbConsolas');
+    if (!tb) return;
+    tb.innerHTML = '';
+    res.data.forEach(r => {
+      const tr = document.createElement('tr');
+      const actions = isAdminRole()
+        ? `<div class="abtns" style="justify-content:center;">
+             <button class="ab e" onclick="editarConsola('${escJS(r.referencia)}','${escJS(r.marca || '')}','${escJS(r.categoria || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">✏️</button>
+             <button class="ab d" onclick="eliminarConsola('${escJS(r.referencia)}')">🗑️</button>
+           </div>`
+        : (canReportReferences()
+            ? `<button class="btn btn-o" style="font-size:11px;padding:4px 8px;" onclick="openReportRefModal('consolas','${escJS(r.referencia)}','${escJS(r.categoria || '')}','${escJS(r.marca || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">🚩 Reportar</button>`
+            : '<span style="color:var(--g400);">—</span>');
+      tr.innerHTML = `
+        <td class="td-ref">${escHTML(r.referencia)}</td>
+        <td>${catBadge(r.categoria)}</td>
+        <td>${escHTML(r.marca||'—')}</td>
+        <td>${escHTML(r.modelo||'—')}</td>
+        <td>${escHTML(r.etiqueta||'—')}</td>
+        <td class="price">${r.pvp ? formatMoney(r.pvp)+' €' : '—'}</td>
+        <td style="text-align:center;">${actions}</td>`;
+      tb.appendChild(tr);
+    });
+    const totalEl = document.getElementById('consolasTotal');
+    if (totalEl) totalEl.textContent = `${res.total} referencias`;
+    renderPager('consolasPagerBtns', 'consolasPager', page, res.total, 50, loadConsolasFromAPI);
+  } catch(e) { console.warn('Error cargando Consolas:', e.message); }
+}
+
 // ── USUARIOS ───────────────────────────────────────
 async function loadUsuariosFromAPI() {
   if (!API_AVAILABLE) return;
@@ -3050,7 +3334,7 @@ async function loadDashboard() {
 window.addEventListener('load', async () => {
   const authed = await checkAuth();
   if (!authed) return;
-  bindRepuestosExcelButtons();
+  bindCatalogExcelButtons();
   hardenGlobalSearchAutofill();
   loadSolicitudesFromAPI();
   loadReportesFromAPI();
