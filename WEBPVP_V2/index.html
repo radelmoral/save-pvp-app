@@ -1954,6 +1954,9 @@ function openModal(id)  {
     toast('Solo administrador puede añadir referencias', 'warn');
     return;
   }
+  if (id === 'modalRef' || id === 'modalPVP') {
+    loadCategoriasFromAPI();
+  }
   document.getElementById(id).classList.add('open');
   if (id === 'modalRef') onNewRefCatalogoChange();
 }
@@ -2191,25 +2194,33 @@ async function loadSolicitudesFromAPI() {
 async function loadCategoriasFromAPI() {
   if (!API_AVAILABLE) return;
   try {
-    const cats = await API.categorias.listar();
-    ['pvpCat', 'fCat', 'filtroAppleCategoria', 'filtroOppoCategoria', 'filtroConsolasCategoria', 'newRefCategoria', 'editCategoria'].forEach(selId => {
+    const raw = await API.categorias.listar();
+    const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []);
+    const names = Array.from(new Set(list
+      .map(c => (typeof c === 'string' ? c : c?.nombre))
+      .map(v => String(v || '').trim())
+      .filter(Boolean)))
+      .sort((a, b) => a.localeCompare(b, 'es'));
+    ['pvpCat', 'fCat', 'filtroAppleCategoria', 'filtroOppoCategoria', 'filtroConsolasCategoria', 'newRefCategoria'].forEach(selId => {
       const sel = document.getElementById(selId);
-      if (!sel) return;
+      if (!sel || sel.tagName !== 'SELECT') return;
       const current = sel.value;
       // Conservar primera opción
       const primera  = sel.options[0];
       const nueva    = sel.querySelector('[value="__nueva__"]');
       sel.innerHTML  = '';
       if (primera) sel.appendChild(primera);
-      cats.forEach(c => {
+      names.forEach(nombre => {
         const o = document.createElement('option');
-        o.value = c.nombre; o.textContent = c.nombre;
+        o.value = nombre; o.textContent = nombre;
         sel.appendChild(o);
       });
       if (nueva) sel.appendChild(nueva);
       if (current) sel.value = current;
     });
-  } catch(e) {}
+  } catch(e) {
+    console.warn('No se pudieron cargar categorías:', e.message);
+  }
 }
 
 /** Versiones de openModalPVP que trabajan con IDs reales */
