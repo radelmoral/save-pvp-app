@@ -106,7 +106,7 @@ async function crear(req, res) {
     if (!referencia || !catalogo || !motivo || !String(motivo).trim()) {
       return res.status(400).json({ error: 'referencia, catalogo y motivo son obligatorios' });
     }
-    const catalogosValidos = ['repuestos', 'telefonos', 'apple', 'oppo'];
+    const catalogosValidos = ['repuestos', 'telefonos', 'apple', 'oppo', 'consolas'];
     if (!catalogosValidos.includes(String(catalogo))) {
       return res.status(400).json({ error: 'Catálogo inválido' });
     }

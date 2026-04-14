@@ -54,6 +54,12 @@ async function buscarReferenciaExistente(referenciaRaw) {
       [refParam, refNorm]
     ),
     db.execute(
+      `SELECT referencia FROM consolas
+       WHERE UPPER(TRIM(referencia)) = ? OR ${normExpr} = ?
+       LIMIT 1`,
+      [refParam, refNorm]
+    ),
+    db.execute(
       `SELECT id FROM solicitudes_pvp
        WHERE (UPPER(TRIM(referencia)) = ? OR ${normExpr} = ?)
          AND estado = 'pendiente'
@@ -70,7 +76,9 @@ async function buscarReferenciaExistente(referenciaRaw) {
   if (appleRows.length) return { existe: true, origen: 'apple', tipo: 'catalogo' };
   const [oppoRows] = checks[3];
   if (oppoRows.length) return { existe: true, origen: 'oppo', tipo: 'catalogo' };
-  const [pendRows] = checks[4];
+  const [conRows] = checks[4];
+  if (conRows.length) return { existe: true, origen: 'consolas', tipo: 'catalogo' };
+  const [pendRows] = checks[5];
   if (pendRows.length) return { existe: true, origen: 'solicitud_pendiente', tipo: 'solicitud' };
 
   return { existe: false };
@@ -218,7 +226,7 @@ async function aprobar(req, res) {
     const s = rows[0];
 
     // 3. Insertar o actualizar en el catálogo destino
-    const destino = ['repuestos', 'telefonos', 'apple', 'oppo'].includes(destino_catalogo)
+    const destino = ['repuestos', 'telefonos', 'apple', 'oppo', 'consolas'].includes(destino_catalogo)
       ? destino_catalogo
       : 'repuestos';
 
@@ -272,6 +280,19 @@ async function aprobar(req, res) {
            marca    = VALUES(marca),
            categoria = VALUES(categoria),
            modelo   = VALUES(modelo),
+           etiqueta  = VALUES(etiqueta),
+           pvp       = VALUES(pvp)`,
+        [s.referencia, s.marca || '', s.categoria || '', s.modelo || '', s.descripcion || s.referencia, pvpAsignadoNum]
+      );
+    } else if (destino === 'consolas') {
+      await conn.execute(
+        `INSERT INTO consolas
+           (referencia, marca, categoria, modelo, etiqueta, pvp)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           marca     = VALUES(marca),
+           categoria = VALUES(categoria),
+           modelo    = VALUES(modelo),
            etiqueta  = VALUES(etiqueta),
            pvp       = VALUES(pvp)`,
         [s.referencia, s.marca || '', s.categoria || '', s.modelo || '', s.descripcion || s.referencia, pvpAsignadoNum]

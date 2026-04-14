@@ -55,9 +55,27 @@ async function getTableColumns(tableName) {
   return cols;
 }
 
+async function ensureConsolasTable() {
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS consolas (
+      referencia VARCHAR(120) NOT NULL PRIMARY KEY,
+      marca VARCHAR(120) NULL,
+      categoria VARCHAR(120) NULL,
+      modelo VARCHAR(160) NULL,
+      etiqueta VARCHAR(255) NULL,
+      pvp DECIMAL(10,2) NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      pvp_updated_at TIMESTAMP NULL DEFAULT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+  _tableColsCache.delete('consolas');
+}
+
 async function ensureCatalogAuditColumns() {
   if (_catalogAuditReady) return;
-  const tables = ['repuestos', 'telefonos', 'apple_original', 'oppo_original'];
+  await ensureConsolasTable();
+  const tables = ['repuestos', 'telefonos', 'apple_original', 'oppo_original', 'consolas'];
   for (const table of tables) {
     const cols = await getTableColumns(table);
     if (!cols.has('created_at')) {
@@ -96,6 +114,7 @@ async function dashboardResumen(req, res) {
       { table: 'telefonos', label: 'Teléfonos' },
       { table: 'apple_original', label: 'Apple Original' },
       { table: 'oppo_original', label: 'Oppo Original' },
+      { table: 'consolas', label: 'Consolas' },
     ];
     const colsByTable = {};
     for (const c of catalogos) {
@@ -132,11 +151,13 @@ async function dashboardResumen(req, res) {
     const [
       [[repCount]],
       [[telCount]],
+      [[conCount]],
       [catRows],
       [marcaRows],
     ] = await Promise.all([
       db.execute(`SELECT COUNT(*) AS total FROM repuestos`),
       db.execute(`SELECT COUNT(*) AS total FROM telefonos`),
+      db.execute(`SELECT COUNT(*) AS total FROM consolas`),
       db.execute(
         `SELECT COALESCE(NULLIF(TRIM(categoria), ''), 'Sin categoría') AS nombre, COUNT(*) AS total
            FROM repuestos
@@ -200,6 +221,7 @@ async function dashboardResumen(req, res) {
     res.json({
       totalRepuestos: Number(repCount.total || 0),
       totalTelefonos: Number(telCount.total || 0),
+      totalConsolas: Number(conCount.total || 0),
       topCategorias: catRows,
       topMarcas: marcaRows,
       ultimasReferencias: latestRowsAll,
@@ -545,6 +567,83 @@ async function eliminarTelefono(req, res) {
   }
 }
 
+// ── Consolas ────────────────────────────────────────────────
+
+/** GET /api/consolas */
+async function listarConsolas(req, res) {
+  try {
+    await ensureConsolasTable();
+    const { ref, categoria, marca, modelo, q, page = 1, limit = 50 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    let where = []; const params = [];
+    if (ref)      { where.push('referencia LIKE ?'); params.push(`%${ref}%`); }
+    if (categoria){ where.push('categoria = ?');     params.push(categoria);  }
+    if (marca)    { where.push('marca = ?');         params.push(marca);      }
+    if (modelo)   { where.push('modelo LIKE ?');     params.push(`%${modelo}%`); }
+    addTokenizedSearch(where, params, q, ['referencia', 'etiqueta', 'modelo', 'categoria', 'marca']);
+    const w = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    const [[{ total }]] = await db.execute(`SELECT COUNT(*) AS total FROM consolas ${w}`, params);
+    const [rows] = await db.execute(
+      `SELECT referencia, marca, categoria, modelo, etiqueta, pvp
+       FROM consolas ${w} ORDER BY referencia LIMIT ? OFFSET ?`,
+      [...params, parseInt(limit), offset]
+    );
+    res.json({ total, page: parseInt(page), limit: parseInt(limit), data: rows });
+  } catch (err) { res.status(500).json({ error: 'Error al obtener consolas' }); }
+}
+
+/** POST /api/consolas — solo admin */
+async function crearConsola(req, res) {
+  const { referencia, marca, categoria, modelo, etiqueta, pvp } = req.body;
+  if (!referencia) return res.status(400).json({ error: 'Referencia obligatoria' });
+  try {
+    await ensureConsolasTable();
+    await db.execute(
+      `INSERT INTO consolas (referencia, marca, categoria, modelo, etiqueta, pvp)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [referencia, marca || '', categoria || '', modelo || '', etiqueta || referencia, pvp || null]
+    );
+    res.status(201).json({ referencia, message: 'Consola creada' });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Esa referencia ya existe' });
+    res.status(500).json({ error: 'Error al crear consola' });
+  }
+}
+
+/** PUT /api/consolas/:ref — solo admin */
+async function actualizarConsola(req, res) {
+  const { referencia, marca, categoria, modelo, etiqueta, pvp } = req.body;
+  const pvpVal = (pvp === '' || pvp === null || typeof pvp === 'undefined' || Number.isNaN(Number(pvp))) ? null : Number(pvp);
+  try {
+    await ensureConsolasTable();
+    const [result] = await db.execute(
+      `UPDATE consolas
+       SET referencia=COALESCE(NULLIF(?, ''), referencia),
+           marca=?, categoria=?, modelo=?, etiqueta=?, pvp=?,
+           pvp_updated_at = IF(NOT (pvp <=> ?), CURRENT_TIMESTAMP, pvp_updated_at)
+       WHERE referencia=?`,
+      [referencia || null, marca || '', categoria || '', modelo || '', etiqueta || '', pvpVal, pvpVal, req.params.id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Referencia no encontrada' });
+    res.json({ message: 'Consola actualizada' });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'La referencia nueva ya existe' });
+    res.status(500).json({ error: 'Error al actualizar consola' });
+  }
+}
+
+/** DELETE /api/consolas/:ref — solo admin */
+async function eliminarConsola(req, res) {
+  try {
+    await ensureConsolasTable();
+    const [result] = await db.execute('DELETE FROM consolas WHERE referencia = ?', [req.params.id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Referencia no encontrada' });
+    res.json({ message: 'Consola eliminada' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al eliminar consola' });
+  }
+}
+
 /** GET /api/busqueda-global?q=... */
 async function busquedaGlobal(req, res) {
   try {
@@ -591,13 +690,24 @@ async function busquedaGlobal(req, res) {
       telParams
     );
 
+    const conWhere = []; const conParams = [];
+    addTokenizedSearch(conWhere, conParams, q, ['referencia', 'etiqueta', 'marca', 'modelo', 'categoria']);
+    const [conRows] = await db.execute(
+      `SELECT referencia, marca, categoria, modelo, etiqueta, pvp
+       FROM consolas
+       WHERE ${conWhere.join(' AND ')}
+       ORDER BY referencia LIMIT 50`,
+      conParams
+    );
+
     res.json({
       q,
       repuestos: repRows,
       apple: appleRows,
       oppo: oppoRows,
       telefonos: telRows,
-      total: repRows.length + appleRows.length + oppoRows.length + telRows.length,
+      consolas: conRows,
+      total: repRows.length + appleRows.length + oppoRows.length + telRows.length + conRows.length,
     });
   } catch (err) {
     res.status(500).json({ error: 'Error en búsqueda global' });
@@ -623,6 +733,10 @@ async function listarCategorias(req, res) {
          SELECT DISTINCT categoria AS nombre
          FROM oppo_original
          WHERE categoria IS NOT NULL AND categoria != ''
+         UNION
+         SELECT DISTINCT categoria AS nombre
+         FROM consolas
+         WHERE categoria IS NOT NULL AND categoria != ''
        ) c
        WHERE nombre IS NOT NULL AND nombre != ''
        ORDER BY nombre`
@@ -638,6 +752,7 @@ module.exports = {
   listarApple, crearApple, actualizarApple, eliminarApple,
   listarOppo, crearOppo, actualizarOppo, eliminarOppo,
   listarTelefonos, crearTelefono, actualizarTelefono, eliminarTelefono,
+  listarConsolas, crearConsola, actualizarConsola, eliminarConsola,
   dashboardResumen,
   busquedaGlobal,
   listarCategorias,
