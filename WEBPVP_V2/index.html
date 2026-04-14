@@ -985,11 +985,24 @@ const roleConfig = {
 };
 
 function isReadOnlyCatalogRole(role = currentRole) {
-  return ['franquicias', 'eciclinicas', 'ecclinicas'].includes(String(role || '').toLowerCase());
+  const r = normalizeRoleKey(role);
+  return ['franquicias', 'eciclinicas'].includes(r);
 }
 
 function canReportReferences(role = currentRole) {
   return !isAdminRole() && !isReadOnlyCatalogRole(role);
+}
+
+function normalizeRoleKey(role) {
+  let r = String(role || '').trim().toLowerCase();
+  if (r === '1') r = 'admin';
+  if (r === '2') r = 'carrefour';
+  if (r === '3') r = 'eci';
+  if (r === '4') r = 'franquicias';
+  if (r === '5') r = 'eciclinicas';
+  if (r === 'ecclinicas' || r === 'eci clinicas' || r === 'eci_clinicas') r = 'eciclinicas';
+  if (r === 'franquiciado' || r === 'franquiciados') r = 'franquicias';
+  return r;
 }
 
 function catalogLabel(cat) {
@@ -1004,7 +1017,8 @@ function updateAdminNotificationIndicators() {
 }
 
 function applyPvpClubVisibilityByRole() {
-  document.body.classList.toggle('hide-pvpclub', currentRole === 'eci');
+  const hide = currentRole === 'eci' || isReadOnlyCatalogRole(currentRole);
+  document.body.classList.toggle('hide-pvpclub', hide);
 }
 applyPvpClubVisibilityByRole();
 
@@ -1043,31 +1057,31 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function setRole(role) {
-  currentRole = role;
-  window.__SAVE_CURRENT_ROLE = role;
+  currentRole = normalizeRoleKey(role);
+  window.__SAVE_CURRENT_ROLE = currentRole;
   applyPvpClubVisibilityByRole();
-  const cfg = roleConfig[role] || roleConfig.eci;
-  const readOnlyRole = isReadOnlyCatalogRole(role);
+  const cfg = roleConfig[currentRole] || roleConfig.eci;
+  const readOnlyRole = isReadOnlyCatalogRole(currentRole);
   // Update user card
   document.getElementById('uaAvatar').textContent = cfg.avatar;
   document.getElementById('uaName').textContent   = cfg.name;
   document.getElementById('uaRole').textContent   = cfg.label;
   // Update role buttons
-  document.getElementById('rbAdmin').classList.toggle('on',     role === 'admin');
-  document.getElementById('rbCarrefour').classList.toggle('on', role === 'carrefour');
-  document.getElementById('rbEci').classList.toggle('on',       role === 'eci');
+  document.getElementById('rbAdmin').classList.toggle('on',     currentRole === 'admin');
+  document.getElementById('rbCarrefour').classList.toggle('on', currentRole === 'carrefour');
+  document.getElementById('rbEci').classList.toggle('on',       currentRole === 'eci');
   // Show/hide admin section
-  document.getElementById('adminSection').style.display = (role === 'admin') ? '' : 'none';
+  document.getElementById('adminSection').style.display = (currentRole === 'admin') ? '' : 'none';
   const notif = document.getElementById('ibNotif');
-  if (notif) notif.style.display = (role === 'admin') ? '' : 'none';
+  if (notif) notif.style.display = (currentRole === 'admin') ? '' : 'none';
   const topNuevaRef = document.getElementById('btnTopNuevaRef');
-  if (topNuevaRef) topNuevaRef.style.display = (role === 'admin') ? '' : 'none';
+  if (topNuevaRef) topNuevaRef.style.display = (currentRole === 'admin') ? '' : 'none';
   const repNuevaRef = document.getElementById('btnRepuestosNuevaRef');
-  if (repNuevaRef) repNuevaRef.style.display = (role === 'admin') ? '' : 'none';
+  if (repNuevaRef) repNuevaRef.style.display = (currentRole === 'admin') ? '' : 'none';
   const repImportar = document.getElementById('btnRepuestosImportar');
-  if (repImportar) repImportar.style.display = (role === 'admin') ? '' : 'none';
+  if (repImportar) repImportar.style.display = (currentRole === 'admin') ? '' : 'none';
   const repExportar = document.getElementById('btnRepuestosExportar');
-  if (repExportar) repExportar.style.display = (role === 'admin') ? '' : 'none';
+  if (repExportar) repExportar.style.display = (currentRole === 'admin') ? '' : 'none';
   const navPedidosBtn = document.getElementById('navPedidosBtn');
   if (navPedidosBtn) navPedidosBtn.style.display = readOnlyRole ? 'none' : '';
   const navSolicitudPvpBtn = document.getElementById('navSolicitudPvpBtn');
@@ -1082,14 +1096,14 @@ function setRole(role) {
   const adminPages = ['usuarios','solicitudes-pvp-admin','reportes-referencias-admin'];
   const restrictedPages = ['pedidos', 'solicitud-pvp', 'mis-reportes'];
   const active = document.querySelector('.page.active');
-  if (active && adminPages.some(p => active.id === 'page-'+p) && role !== 'admin') {
+  if (active && adminPages.some(p => active.id === 'page-'+p) && currentRole !== 'admin') {
     navById('dashboard');
   }
   if (active && readOnlyRole && restrictedPages.some(p => active.id === 'page-'+p)) {
     navById('repuestos');
     document.getElementById('tbTitle').textContent = 'Repuestos';
   }
-  if (role === 'admin') startAdminRealtimeSync();
+  if (currentRole === 'admin') startAdminRealtimeSync();
   else stopAdminRealtimeSync();
   toast(`Rol cambiado a ${cfg.label}`, 'ok');
 }
