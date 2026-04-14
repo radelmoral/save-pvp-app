@@ -763,7 +763,14 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
           </select>
         </div>
         <div class="ff full"><label>Referencia *</label><input class="finp" id="newRefReferencia" placeholder="Ej: 02351BDD"/></div>
-        <div class="ff" id="newRefCategoriaWrap"><label>Categoría</label><select class="finp" id="newRefCategoria"><option value="">— Selecciona —</option><option>Pantalla</option><option>Tapa</option><option>Carcasa</option><option>PCB</option></select></div>
+        <div class="ff" id="newRefCategoriaWrap"><label>Categoría</label>
+          <select class="finp" id="newRefCategoria" onchange="handleNewRefCatChange(this)">
+            <option value="">— Selecciona —</option>
+            <option>Pantalla</option><option>Tapa</option><option>Carcasa</option><option>PCB</option>
+            <option value="__nueva__">➕ Nueva categoría…</option>
+          </select>
+          <input class="finp" id="newRefNewCat" placeholder="Nombre de la nueva categoría" style="margin-top:8px;display:none;" />
+        </div>
         <div class="ff"><label>Marca</label><input class="finp" id="newRefMarca" placeholder="Ej: HUAWEI"/></div>
         <div class="ff"><label>Modelo</label><input class="finp" id="newRefModelo" placeholder="Ej: Mate 9"/></div>
         <div class="ff full"><label>Etiqueta</label><input class="finp" id="newRefEtiqueta" placeholder="Ej: Pantalla Huawei Mate 9 Negro"/></div>
@@ -2031,7 +2038,31 @@ function onNewRefCatalogoChange() {
   const pvpClubWrap = document.getElementById('newRefPvpClubWrap');
   if (categoriaWrap) categoriaWrap.style.display = showCategoria ? '' : 'none';
   if (pvpClubWrap) pvpClubWrap.style.display = showPvpClub ? '' : 'none';
+  if (!showCategoria) {
+    const catSel = document.getElementById('newRefCategoria');
+    if (catSel) catSel.value = '';
+    const newCatInput = document.getElementById('newRefNewCat');
+    if (newCatInput) {
+      newCatInput.value = '';
+      newCatInput.style.display = 'none';
+      newCatInput.required = false;
+    }
+  }
   syncNewRefPvpClubFromPvp();
+}
+
+function handleNewRefCatChange(sel) {
+  const newCatInput = document.getElementById('newRefNewCat');
+  if (!newCatInput) return;
+  if (sel.value === '__nueva__') {
+    newCatInput.style.display = 'block';
+    newCatInput.required = true;
+    newCatInput.focus();
+  } else {
+    newCatInput.style.display = 'none';
+    newCatInput.required = false;
+    newCatInput.value = '';
+  }
 }
 
 function syncNewRefPvpClubFromPvp() {
@@ -2078,7 +2109,8 @@ async function guardarNuevaReferenciaAPI() {
   const destino = document.getElementById('newRefCatalogo').value;
   const referencia = document.getElementById('newRefReferencia').value.trim();
   const marca = document.getElementById('newRefMarca').value.trim();
-  const categoria = document.getElementById('newRefCategoria').value;
+  const categoriaSel = document.getElementById('newRefCategoria');
+  let categoria = categoriaSel ? categoriaSel.value : '';
   const modelo = document.getElementById('newRefModelo').value.trim();
   const etiqueta = document.getElementById('newRefEtiqueta').value.trim();
   const pvpVal = document.getElementById('newRefPvp').value;
@@ -2090,6 +2122,16 @@ async function guardarNuevaReferenciaAPI() {
   const pvp_clubsave = pvpClubVal === '' ? null : Number(pvpClubVal);
 
   try {
+    if (destino !== 'telefonos' && categoria === '__nueva__') {
+      const newCatInput = document.getElementById('newRefNewCat');
+      const newCat = String(newCatInput?.value || '').trim();
+      if (!newCat) return toast('Indica el nombre de la nueva categoría', 'warn');
+      await API.categorias.crear(newCat);
+      await loadCategoriasFromAPI();
+      if (categoriaSel) categoriaSel.value = newCat;
+      categoria = newCat;
+    }
+
     if (destino === 'repuestos') {
       await API.repuestos.crear({
         referencia, marca, categoria, modelo, etiqueta, pvp, pvp_clubsave,
@@ -2126,6 +2168,12 @@ async function guardarNuevaReferenciaAPI() {
     });
     const catEl = document.getElementById('newRefCategoria');
     if (catEl) catEl.value = '';
+    const newCatEl = document.getElementById('newRefNewCat');
+    if (newCatEl) {
+      newCatEl.value = '';
+      newCatEl.style.display = 'none';
+      newCatEl.required = false;
+    }
     await loadDashboard();
     await refreshSidebarCatalogCounts();
     toast(`Referencia creada en ${destino}`, 'ok');
