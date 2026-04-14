@@ -118,5 +118,11 @@ const API = (() => {
       actualizar:(id, data) => request('PUT', `/telefonos/${id}`, data),
       eliminar:  (id)       => request('DELETE', `/telefonos/${id}`),
     },
+    consolas: {
+      listar: (params = {}) => request('GET', '/consolas?' + new URLSearchParams(params)),
+      crear:     (data)      => request('POST', '/consolas', data),
+      actualizar:(id, data) => request('PUT', `/consolas/${id}`, data),
+      eliminar:  (id)       => request('DELETE', `/consolas/${id}`),
+    },
   };
 })();
