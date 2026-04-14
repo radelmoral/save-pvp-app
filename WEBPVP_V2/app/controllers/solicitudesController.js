@@ -287,15 +287,16 @@ async function aprobar(req, res) {
     } else if (destino === 'consolas') {
       await conn.execute(
         `INSERT INTO consolas
-           (referencia, marca, categoria, modelo, etiqueta, pvp)
-         VALUES (?, ?, ?, ?, ?, ?)
+           (referencia, marca, categoria, modelo, etiqueta, pvp, pvp_clubsave)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
            marca     = VALUES(marca),
            categoria = VALUES(categoria),
            modelo    = VALUES(modelo),
            etiqueta  = VALUES(etiqueta),
-           pvp       = VALUES(pvp)`,
-        [s.referencia, s.marca || '', s.categoria || '', s.modelo || '', s.descripcion || s.referencia, pvpAsignadoNum]
+           pvp       = VALUES(pvp),
+           pvp_clubsave = VALUES(pvp_clubsave)`,
+        [s.referencia, s.marca || '', s.categoria || '', s.modelo || '', s.descripcion || s.referencia, pvpAsignadoNum, pvpClubAsignadoNum]
       );
     }
 

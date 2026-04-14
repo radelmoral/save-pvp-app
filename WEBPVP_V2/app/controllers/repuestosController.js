@@ -64,6 +64,7 @@ async function ensureConsolasTable() {
       modelo VARCHAR(160) NULL,
       etiqueta VARCHAR(255) NULL,
       pvp DECIMAL(10,2) NULL,
+      pvp_clubsave DECIMAL(10,2) NULL,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       pvp_updated_at TIMESTAMP NULL DEFAULT NULL
@@ -78,6 +79,13 @@ async function ensureCatalogAuditColumns() {
   const tables = ['repuestos', 'telefonos', 'apple_original', 'oppo_original', 'consolas'];
   for (const table of tables) {
     const cols = await getTableColumns(table);
+    if (table === 'consolas' && !cols.has('pvp_clubsave')) {
+      await db.execute(
+        `ALTER TABLE ${table}
+         ADD COLUMN pvp_clubsave DECIMAL(10,2) NULL`
+      );
+      _tableColsCache.delete(table);
+    }
     if (!cols.has('created_at')) {
       await db.execute(
         `ALTER TABLE ${table}
@@ -584,7 +592,7 @@ async function listarConsolas(req, res) {
     const w = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const [[{ total }]] = await db.execute(`SELECT COUNT(*) AS total FROM consolas ${w}`, params);
     const [rows] = await db.execute(
-      `SELECT referencia, marca, categoria, modelo, etiqueta, pvp
+      `SELECT referencia, marca, categoria, modelo, etiqueta, pvp, pvp_clubsave
        FROM consolas ${w} ORDER BY referencia LIMIT ? OFFSET ?`,
       [...params, parseInt(limit), offset]
     );
@@ -594,14 +602,14 @@ async function listarConsolas(req, res) {
 
 /** POST /api/consolas — solo admin */
 async function crearConsola(req, res) {
-  const { referencia, marca, categoria, modelo, etiqueta, pvp } = req.body;
+  const { referencia, marca, categoria, modelo, etiqueta, pvp, pvp_clubsave } = req.body;
   if (!referencia) return res.status(400).json({ error: 'Referencia obligatoria' });
   try {
     await ensureConsolasTable();
     await db.execute(
-      `INSERT INTO consolas (referencia, marca, categoria, modelo, etiqueta, pvp)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [referencia, marca || '', categoria || '', modelo || '', etiqueta || referencia, pvp || null]
+      `INSERT INTO consolas (referencia, marca, categoria, modelo, etiqueta, pvp, pvp_clubsave)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [referencia, marca || '', categoria || '', modelo || '', etiqueta || referencia, pvp || null, pvp_clubsave || null]
     );
     res.status(201).json({ referencia, message: 'Consola creada' });
   } catch (err) {
@@ -612,17 +620,18 @@ async function crearConsola(req, res) {
 
 /** PUT /api/consolas/:ref — solo admin */
 async function actualizarConsola(req, res) {
-  const { referencia, marca, categoria, modelo, etiqueta, pvp } = req.body;
+  const { referencia, marca, categoria, modelo, etiqueta, pvp, pvp_clubsave } = req.body;
   const pvpVal = (pvp === '' || pvp === null || typeof pvp === 'undefined' || Number.isNaN(Number(pvp))) ? null : Number(pvp);
+  const pvpClubVal = (pvp_clubsave === '' || pvp_clubsave === null || typeof pvp_clubsave === 'undefined' || Number.isNaN(Number(pvp_clubsave))) ? null : Number(pvp_clubsave);
   try {
     await ensureConsolasTable();
     const [result] = await db.execute(
       `UPDATE consolas
        SET referencia=COALESCE(NULLIF(?, ''), referencia),
-           marca=?, categoria=?, modelo=?, etiqueta=?, pvp=?,
+           marca=?, categoria=?, modelo=?, etiqueta=?, pvp=?, pvp_clubsave=?,
            pvp_updated_at = IF(NOT (pvp <=> ?), CURRENT_TIMESTAMP, pvp_updated_at)
        WHERE referencia=?`,
-      [referencia || null, marca || '', categoria || '', modelo || '', etiqueta || '', pvpVal, pvpVal, req.params.id]
+      [referencia || null, marca || '', categoria || '', modelo || '', etiqueta || '', pvpVal, pvpClubVal, pvpVal, req.params.id]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Referencia no encontrada' });
     res.json({ message: 'Consola actualizada' });
