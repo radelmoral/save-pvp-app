@@ -284,7 +284,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
       <span class="ic">🔧</span> Repuestos
       <span class="sb-badge" id="sbCountRepuestos">—</span>
     </button>
-    <button class="sb-item" onclick="nav('telefonos',this)">
+    <button class="sb-item" id="navTelefonosBtn" onclick="nav('telefonos',this)">
       <span class="ic">📱</span> Teléfonos
       <span class="sb-badge" id="sbCountTelefonos">—</span>
     </button>
@@ -1152,6 +1152,7 @@ function setRole(role) {
   applyReferenceVisibilityByRole();
   const cfg = roleConfig[currentRole] || roleConfig.eci;
   const readOnlyRole = isReadOnlyCatalogRole(currentRole);
+  const hideTelefonosForRole = normalizeRoleKey(currentRole) === 'eciclinicas';
   // Update user card
   document.getElementById('uaAvatar').textContent = cfg.avatar;
   document.getElementById('uaName').textContent   = cfg.name;
@@ -1183,6 +1184,8 @@ function setRole(role) {
   if (navSolicitudPvpBtn) navSolicitudPvpBtn.style.display = readOnlyRole ? 'none' : '';
   const navMisReportesBtn = document.getElementById('navMisReportesBtn');
   if (navMisReportesBtn) navMisReportesBtn.style.display = readOnlyRole ? 'none' : '';
+  const navTelefonosBtn = document.getElementById('navTelefonosBtn');
+  if (navTelefonosBtn) navTelefonosBtn.style.display = hideTelefonosForRole ? 'none' : '';
   syncDashboardRoleVisibility();
   // If on an admin-only page, redirect to dashboard
   const adminPages = ['usuarios','solicitudes-pvp-admin','reportes-referencias-admin'];
@@ -1195,6 +1198,10 @@ function setRole(role) {
     navById('repuestos');
     document.getElementById('tbTitle').textContent = 'Repuestos';
   }
+  if (active && hideTelefonosForRole && active.id === 'page-telefonos') {
+    navById('repuestos');
+    document.getElementById('tbTitle').textContent = 'Repuestos';
+  }
   if (currentRole === 'admin') startAdminRealtimeSync();
   else stopAdminRealtimeSync();
   toast(`Rol cambiado a ${cfg.label}`, 'ok');
@@ -1204,6 +1211,12 @@ function setRole(role) {
 function nav(id, btn) {
   if (isReadOnlyCatalogRole() && ['pedidos', 'solicitud-pvp', 'mis-reportes'].includes(id)) {
     toast('Tu rol solo tiene acceso de consulta a catálogos', 'warn');
+    return;
+  }
+  if (normalizeRoleKey(currentRole) === 'eciclinicas' && id === 'telefonos') {
+    toast('Tu rol no tiene acceso al catálogo Teléfonos', 'warn');
+    navById('repuestos');
+    document.getElementById('tbTitle').textContent = 'Repuestos';
     return;
   }
   navById(id);
@@ -1220,6 +1233,9 @@ function nav(id, btn) {
   document.getElementById('tbTitle').textContent = titles[id] || id;
 }
 function navById(id) {
+  if (normalizeRoleKey(currentRole) === 'eciclinicas' && id === 'telefonos') {
+    id = 'repuestos';
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const pg = document.getElementById('page-'+id);
   if(pg) pg.classList.add('active');
