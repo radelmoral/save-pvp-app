@@ -545,7 +545,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <select class="fi" id="filtroConsolasMarca" onchange="filterConsolas()"><option value="">Todas las marcas</option><option>SONY</option><option>NINTENDO</option><option>MICROSOFT</option></select>
         <input class="fi" id="filtroConsolasModelo" placeholder="Modelo…" oninput="filterConsolas()"/>
       </div>
-      <div class="tw"><table><thead><tr><th>Referencia</th><th>Categoría</th><th>Marca</th><th>Modelo</th><th>Etiqueta</th><th>PVP</th><th style="text-align:center;">Opciones</th></tr></thead><tbody id="tbConsolas"></tbody></table></div>
+      <div class="tw"><table><thead><tr><th>Referencia</th><th>Categoría</th><th>Marca</th><th>Modelo</th><th>Etiqueta</th><th>PVP</th><th class="pvpclub-col">PVP Club</th><th style="text-align:center;">Opciones</th></tr></thead><tbody id="tbConsolas"></tbody></table></div>
       <div class="tf"><span id="consolasPager">—</span><div class="pager" id="consolasPagerBtns"></div></div>
     </div>
   </section>
@@ -1332,7 +1332,10 @@ function mapExcelRowToPayload(catalogo, row) {
     pvp_clubsave = Number((pvp * 0.85).toFixed(2));
   }
   if (catalogo === 'telefonos') return { referencia, marca, modelo, etiqueta, pvp };
-  if (catalogo === 'apple' || catalogo === 'oppo' || catalogo === 'consolas') {
+  if (catalogo === 'consolas') {
+    return { referencia, marca, categoria, modelo, etiqueta, pvp, pvp_clubsave };
+  }
+  if (catalogo === 'apple' || catalogo === 'oppo') {
     return { referencia, marca, categoria, modelo, etiqueta, pvp };
   }
   return { referencia, marca, categoria, modelo, etiqueta, sage_act, sage_new, pvp, pvp_clubsave };
@@ -1484,7 +1487,18 @@ function mapCatalogExportRow(catalogo, r) {
       PVP: r.pvp ?? '',
     };
   }
-  if (catalogo === 'apple' || catalogo === 'oppo' || catalogo === 'consolas') {
+  if (catalogo === 'consolas') {
+    return {
+      Referencia: r.referencia || '',
+      Categoria: r.categoria || '',
+      Marca: r.marca || '',
+      Modelo: r.modelo || '',
+      Etiqueta: r.etiqueta || '',
+      PVP: r.pvp ?? '',
+      "PVP Club SAVE": r.pvp_clubsave ?? '',
+    };
+  }
+  if (catalogo === 'apple' || catalogo === 'oppo') {
     return {
       Referencia: r.referencia || '',
       Categoria: r.categoria || '',
@@ -2033,7 +2047,7 @@ document.addEventListener('keydown', e => {
 function onNewRefCatalogoChange() {
   const cat = document.getElementById('newRefCatalogo')?.value || 'repuestos';
   const showCategoria = cat !== 'telefonos';
-  const showPvpClub = cat === 'repuestos';
+  const showPvpClub = cat === 'repuestos' || cat === 'consolas';
   const categoriaWrap = document.getElementById('newRefCategoriaWrap');
   const pvpClubWrap = document.getElementById('newRefPvpClubWrap');
   if (categoriaWrap) categoriaWrap.style.display = showCategoria ? '' : 'none';
@@ -2068,7 +2082,7 @@ function handleNewRefCatChange(sel) {
 function syncNewRefPvpClubFromPvp() {
   if (!isAdminRole()) return;
   const destino = document.getElementById('newRefCatalogo')?.value || 'repuestos';
-  if (destino !== 'repuestos') return;
+  if (!['repuestos', 'consolas'].includes(destino)) return;
   const pvpEl = document.getElementById('newRefPvp');
   const clubEl = document.getElementById('newRefPvpClub');
   if (!pvpEl || !clubEl) return;
@@ -2154,7 +2168,7 @@ async function guardarNuevaReferenciaAPI() {
       await loadOppoFromAPI(1);
     } else if (destino === 'consolas') {
       await API.consolas.crear({
-        referencia, marca, categoria, modelo, etiqueta, pvp,
+        referencia, marca, categoria, modelo, etiqueta, pvp, pvp_clubsave,
       });
       await loadConsolasFromAPI(1);
     } else {
@@ -2579,7 +2593,7 @@ function openEditModal(type, data) {
   document.getElementById('editPvpClub').value = data.pvp_clubsave ?? '';
 
   const showCategoria = type !== 'telefonos';
-  const showPvpClub = type === 'repuestos';
+  const showPvpClub = type === 'repuestos' || type === 'consolas';
   document.getElementById('editCategoriaWrap').style.display = showCategoria ? '' : 'none';
   document.getElementById('editPvpClubWrap').style.display = showPvpClub ? '' : 'none';
   openModal('modalEditRef');
@@ -2588,7 +2602,7 @@ function openEditModal(type, data) {
 function onEditCatalogoChange() {
   const type = document.getElementById('editCatalogo').value || 'repuestos';
   document.getElementById('editCategoriaWrap').style.display = type !== 'telefonos' ? '' : 'none';
-  document.getElementById('editPvpClubWrap').style.display = type === 'repuestos' ? '' : 'none';
+  document.getElementById('editPvpClubWrap').style.display = (type === 'repuestos' || type === 'consolas') ? '' : 'none';
 }
 
 async function guardarEdicionReferencia() {
@@ -2679,8 +2693,8 @@ function editarTelefono(ref, marca, modelo, etiqueta, pvp) {
   return openEditModal('telefonos', { referencia: ref, marca, modelo, etiqueta, pvp });
 }
 
-function editarConsola(ref, marca, categoria, modelo, etiqueta, pvp) {
-  return openEditModal('consolas', { referencia: ref, marca, categoria, modelo, etiqueta, pvp });
+function editarConsola(ref, marca, categoria, modelo, etiqueta, pvp, pvpClubsave) {
+  return openEditModal('consolas', { referencia: ref, marca, categoria, modelo, etiqueta, pvp, pvp_clubsave: pvpClubsave });
 }
 
 async function eliminarApple(ref) {
@@ -3162,7 +3176,7 @@ async function loadConsolasFromAPI(page = _consolasPage, options = {}) {
       const tr = document.createElement('tr');
       const actions = isAdminRole()
         ? `<div class="abtns" style="justify-content:center;">
-             <button class="ab e" onclick="editarConsola('${escJS(r.referencia)}','${escJS(r.marca || '')}','${escJS(r.categoria || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}')">✏️</button>
+             <button class="ab e" onclick="editarConsola('${escJS(r.referencia)}','${escJS(r.marca || '')}','${escJS(r.categoria || '')}','${escJS(r.modelo || '')}','${escJS(r.etiqueta || '')}','${escJS(String(r.pvp ?? ''))}','${escJS(String(r.pvp_clubsave ?? ''))}')">✏️</button>
              <button class="ab d" onclick="eliminarConsola('${escJS(r.referencia)}')">🗑️</button>
            </div>`
         : (canReportReferences()
@@ -3175,6 +3189,7 @@ async function loadConsolasFromAPI(page = _consolasPage, options = {}) {
         <td>${escHTML(r.modelo||'—')}</td>
         <td>${escHTML(r.etiqueta||'—')}</td>
         <td class="price">${r.pvp ? formatMoney(r.pvp)+' €' : '—'}</td>
+        <td class="price-club pvpclub-col">${r.pvp_clubsave ? formatMoney(r.pvp_clubsave)+' €' : '—'}</td>
         <td style="text-align:center;">${actions}</td>`;
       tb.appendChild(tr);
     });
