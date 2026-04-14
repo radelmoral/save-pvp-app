@@ -719,6 +719,7 @@ async function busquedaGlobal(req, res) {
 /** GET /api/categorias  — extrae las categorías reales de la BBDD */
 async function listarCategorias(req, res) {
   try {
+    await ensureConsolasTable();
     const [rows] = await db.execute(
       `SELECT nombre
        FROM (
