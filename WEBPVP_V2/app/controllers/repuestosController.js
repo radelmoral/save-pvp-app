@@ -349,7 +349,7 @@ async function actualizar(req, res) {
        SET referencia=COALESCE(NULLIF(?, ''), referencia),
            marca=?, categoria=?, modelo=?, etiqueta=?,
            sage_act=?, sage_new=?, pvp=?, pvp_clubsave=?,
-           pvp_updated_at = IF(NOT (pvp <=> ?), CURRENT_TIMESTAMP, pvp_updated_at)
+           pvp_updated_at = IF(? IS NOT NULL, CURRENT_TIMESTAMP, pvp_updated_at)
        WHERE referencia=?`,
       [referencia || null, marca, categoria, modelo, etiqueta,
        sage_act || null, sage_new || null, pvpVal, pvpClubVal, pvpVal,
@@ -407,7 +407,7 @@ async function actualizarApple(req, res) {
       `UPDATE apple_original
        SET referencia=COALESCE(NULLIF(?, ''), referencia),
            marca=?, categoria=?, modelo=?, etiqueta=?, pvp=?,
-           pvp_updated_at = IF(NOT (pvp <=> ?), CURRENT_TIMESTAMP, pvp_updated_at)
+           pvp_updated_at = IF(? IS NOT NULL, CURRENT_TIMESTAMP, pvp_updated_at)
        WHERE referencia=?`,
       [referencia || null, marca || '', categoria || '', modelo || '', etiqueta || '', pvpVal, pvpVal, req.params.id]
     );
@@ -463,7 +463,7 @@ async function actualizarOppo(req, res) {
       `UPDATE oppo_original
        SET referencia=COALESCE(NULLIF(?, ''), referencia),
            marca=?, categoria=?, modelo=?, etiqueta=?, pvp=?,
-           pvp_updated_at = IF(NOT (pvp <=> ?), CURRENT_TIMESTAMP, pvp_updated_at)
+           pvp_updated_at = IF(? IS NOT NULL, CURRENT_TIMESTAMP, pvp_updated_at)
        WHERE referencia=?`,
       [referencia || null, marca || '', categoria || '', modelo || '', etiqueta || '', pvpVal, pvpVal, req.params.id]
     );
@@ -535,7 +535,7 @@ async function actualizarTelefono(req, res) {
       `UPDATE telefonos
        SET referencia=COALESCE(NULLIF(?, ''), referencia),
            marca=?, modelo=?, etiqueta=?, pvp=?,
-           pvp_updated_at = IF(NOT (pvp <=> ?), CURRENT_TIMESTAMP, pvp_updated_at)
+           pvp_updated_at = IF(? IS NOT NULL, CURRENT_TIMESTAMP, pvp_updated_at)
        WHERE referencia=?`,
       [referencia || null, marca || '', modelo || '', etiqueta || '', pvpVal, pvpVal, req.params.id]
     );
@@ -629,7 +629,7 @@ async function actualizarConsola(req, res) {
       `UPDATE consolas
        SET referencia=COALESCE(NULLIF(?, ''), referencia),
            marca=?, categoria=?, modelo=?, etiqueta=?, pvp=?, pvp_clubsave=?,
-           pvp_updated_at = IF(NOT (pvp <=> ?), CURRENT_TIMESTAMP, pvp_updated_at)
+           pvp_updated_at = IF(? IS NOT NULL, CURRENT_TIMESTAMP, pvp_updated_at)
        WHERE referencia=?`,
       [referencia || null, marca || '', categoria || '', modelo || '', etiqueta || '', pvpVal, pvpClubVal, pvpVal, req.params.id]
     );
