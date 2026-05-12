@@ -464,6 +464,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
       <div style="display:flex;gap:8px;">
         <button class="btn btn-o" id="btnRepuestosImportar">📥 Importar Excel</button>
         <button class="btn btn-o" id="btnRepuestosExportar">📤 Exportar</button>
+        <button class="btn btn-o" id="btnRepuestosEliminarExcel">🗑️ Eliminar por Excel</button>
         <button class="btn btn-p" id="btnRepuestosNuevaRef" onclick="openModal('modalRef')">+ Nueva referencia</button>
       </div>
     </div>
@@ -1174,6 +1175,8 @@ function setRole(role) {
   if (repImportar) repImportar.style.display = (currentRole === 'admin') ? '' : 'none';
   const repExportar = document.getElementById('btnRepuestosExportar');
   if (repExportar) repExportar.style.display = (currentRole === 'admin') ? '' : 'none';
+  const repEliminarExcel = document.getElementById('btnRepuestosEliminarExcel');
+  if (repEliminarExcel) repEliminarExcel.style.display = (currentRole === 'admin') ? '' : 'none';
   ['btnTelefonosImportar', 'btnTelefonosExportar', 'btnAppleImportar', 'btnAppleExportar', 'btnOppoImportar', 'btnOppoExportar', 'btnConsolasImportar', 'btnConsolasExportar']
     .forEach(id => {
       const el = document.getElementById(id);
@@ -1388,6 +1391,76 @@ function ensureExcelImportInput() {
   return input;
 }
 
+function ensureExcelDeleteInput() {
+  let input = document.getElementById('excelDeleteInput');
+  if (input) return input;
+  input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.xlsx,.xls,.csv';
+  input.id = 'excelDeleteInput';
+  input.style.display = 'none';
+  input.addEventListener('change', handleDeleteRepuestosExcelFile);
+  document.body.appendChild(input);
+  return input;
+}
+
+function eliminarRepuestosPorExcel() {
+  if (!isAdminRole()) return toast('Solo admin puede eliminar por Excel', 'warn');
+  if (!API_AVAILABLE) return toast('API no disponible', 'err');
+  if (typeof XLSX === 'undefined') return toast('Librería Excel no cargada', 'err');
+  const input = ensureExcelDeleteInput();
+  input.value = '';
+  input.click();
+}
+
+async function handleDeleteRepuestosExcelFile(ev) {
+  const file = ev?.target?.files?.[0];
+  if (!file) return;
+  try {
+    const buffer = await file.arrayBuffer();
+    const wb = XLSX.read(buffer, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    if (!rows.length) return toast('El Excel no contiene filas', 'warn');
+
+    const refs = [];
+    const seen = new Set();
+    rows.forEach((row) => {
+      const ref = String(getExcelValue(row, ['referencia', 'ref', 'codigo'])).trim();
+      if (!ref) return;
+      const key = ref.toUpperCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      refs.push(ref);
+    });
+    if (!refs.length) return toast('No se encontraron referencias válidas en el Excel', 'warn');
+
+    const ok = confirm(`Se van a intentar eliminar ${refs.length} referencias de Repuestos. ¿Continuar?`);
+    if (!ok) return;
+
+    let eliminadas = 0;
+    let noEncontradas = 0;
+    let fallidas = 0;
+    for (const ref of refs) {
+      try {
+        await API.repuestos.eliminar(ref);
+        eliminadas++;
+      } catch (e) {
+        const msg = String(e?.message || '').toLowerCase();
+        if (msg.includes('no encontrada') || msg.includes('not found')) noEncontradas++;
+        else fallidas++;
+      }
+    }
+
+    await Promise.allSettled([loadRepuestosFromAPI({ page: 1 }), refreshSidebarCatalogCounts(), loadDashboard()]);
+    toast(`Eliminación completada · Eliminadas: ${eliminadas} · No encontradas: ${noEncontradas} · Fallidas: ${fallidas}`, fallidas ? 'warn' : 'ok');
+  } catch (e) {
+    toast('Error procesando Excel de eliminación: ' + e.message, 'err');
+  } finally {
+    ev.target.value = '';
+  }
+}
+
 let currentExcelImportCatalog = 'repuestos';
 
 function getCatalogApi(catalogo) {
@@ -1592,6 +1665,7 @@ function bindCatalogExcelButtons() {
   const binds = [
     ['btnRepuestosImportar', () => importCatalogoExcel('repuestos')],
     ['btnRepuestosExportar', () => exportarCatalogoExcel('repuestos')],
+    ['btnRepuestosEliminarExcel', () => eliminarRepuestosPorExcel()],
     ['btnTelefonosImportar', () => importCatalogoExcel('telefonos')],
     ['btnTelefonosExportar', () => exportarCatalogoExcel('telefonos')],
     ['btnAppleImportar', () => importCatalogoExcel('apple')],
