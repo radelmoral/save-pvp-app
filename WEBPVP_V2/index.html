@@ -707,7 +707,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
           <input class="fi" id="adminFiltroFechaHasta" type="date" onchange="filtrarAdminSolicitudes()" title="Hasta"/>
         </div>
       </div>
-      <div class="tw tw-admin-scroll">
+      <div class="tw tw-admin-scroll" style="max-height:60vh;overflow:auto;">
         <table>
           <thead><tr><th>Referencia</th><th>Marca</th><th>Modelo</th><th>Descripción</th><th>Proveedor</th><th>Coste</th><th>Solicitado por</th><th>Fecha</th><th>Estado</th><th style="text-align:center;">Acción</th></tr></thead>
           <tbody id="tbAdminSolicitudes"></tbody>
