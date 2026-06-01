@@ -129,6 +129,7 @@ body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:var
 
 /* ── TABLE ── */
 .tw { overflow-x:auto; }
+.tw-admin-scroll { max-height:calc(100vh - 320px); overflow:auto; }
 table { width:100%; border-collapse:collapse; font-size:13px; }
 thead th { padding:11px 14px; text-align:left; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--g500); background:var(--g50); border-bottom:1px solid var(--g200); white-space:nowrap; }
 thead th.sort { cursor:pointer; user-select:none; }
@@ -217,6 +218,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
   #modalPVP .ff.full { grid-column:auto; }
   #modalPVP .mf { flex-wrap:wrap; justify-content:stretch; }
   #modalPVP .mf .btn { flex:1; justify-content:center; }
+  .tw-admin-scroll { max-height:calc(100vh - 260px); }
 }
 
 /* ── TOAST ── */
@@ -705,7 +707,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
           <input class="fi" id="adminFiltroFechaHasta" type="date" onchange="filtrarAdminSolicitudes()" title="Hasta"/>
         </div>
       </div>
-      <div class="tw">
+      <div class="tw tw-admin-scroll">
         <table>
           <thead><tr><th>Referencia</th><th>Marca</th><th>Modelo</th><th>Descripción</th><th>Proveedor</th><th>Coste</th><th>Solicitado por</th><th>Fecha</th><th>Estado</th><th style="text-align:center;">Acción</th></tr></thead>
           <tbody id="tbAdminSolicitudes"></tbody>
