@@ -10,6 +10,7 @@ const usuariosCtrl  = require('../controllers/usuariosController');
 const reportesCtrl  = require('../controllers/reportesController');
 const stockCtrl     = require('../controllers/stockController');
 const chatCtrl      = require('../controllers/chatController');
+const chatLogsCtrl  = require('../controllers/chatLogsController');
 
 // ── Auth ──────────────────────────────────────────────────
 router.post('/auth/login', authCtrl.login);
@@ -76,7 +77,11 @@ router.delete('/usuarios/:id',auth, role('admin'), usuariosCtrl.eliminar);
 router.post('/stock/upload', auth, role('admin'), stockCtrl.upload.single('file'), stockCtrl.subirStock);
 router.get ('/stock/estado', auth, stockCtrl.estadoStock);
 
-// ── Chat de stock (todos excepto eciclinicas) ─────────────
+// ── Chat de stock (todos excepto eciclinicas y franquicias) ──
 router.post('/chat', auth, role('admin','carrefour','eci'), chatCtrl.chat);
+
+// ── Chat logs (admin only) ────────────────────────────────
+router.get('/chat-logs',         auth, role('admin'), chatLogsCtrl.listar);
+router.get('/chat-logs/resumen', auth, role('admin'), chatLogsCtrl.resumen);
 
 module.exports = router;
