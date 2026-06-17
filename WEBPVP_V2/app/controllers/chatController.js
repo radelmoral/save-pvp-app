@@ -3,14 +3,45 @@ const pool      = require('../config/db');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+const TIENDAS = {
+  PSCES011: 'CRF La Sierra (Córdoba)',
+  PSCES013: 'CRF El Paseo (Puerto de Santa María)',
+  PSCES021: 'CRF Fan Mallorca (Palma de Mallorca)',
+  PSCES078: 'SAVE General Ricardos (Madrid)',
+  PSCES020: 'ECI Castellana (Madrid)',
+  PSCES023: 'ECI Princesa (Madrid)',
+  PSCES024: 'ECI Pozuelo (Madrid)',
+  PSCES025: 'ECI Callao (Madrid)',
+  PSCES033: 'ECI Sanchinarro (Madrid)',
+  PSCES034: 'ECI Bilbao (Bilbao)',
+  PSCES035: 'ECI Plaza Cataluña (Barcelona)',
+  PSCES036: 'ECI Goya (Madrid)',
+  PSCES039: 'ECI Diagonal (Barcelona)',
+  PSCES040: 'ECI Marbella (Marbella)',
+  PSCES043: 'ECI Alicante (Alicante)',
+  PSCES044: 'ECI Málaga (Málaga)',
+  PSCES046: 'ECI Mallorca (Palma de Mallorca)',
+  PSCES047: 'ECI Valencia (Valencia)',
+  PSCES048: 'ECI Las Palmas (Las Palmas)',
+  PSCES065: 'ECI Murcia (Murcia)',
+  PSCES066: 'ECI Bahía de Santander (Santander)',
+  PSCES067: 'ECI San Juan de Aznalfarache (Sevilla)',
+  PSCES076: 'ECI Pamplona (Pamplona)',
+};
+
 const SYSTEM_PROMPT = `Eres un asistente de stock de SAVE, una red de tiendas de reparación de electrónica.
 Tu única función es ayudar a los empleados a encontrar piezas y repuestos disponibles en las tiendas de la red.
 
-Cuando el usuario pregunte por un producto, recibirás un contexto de stock filtrado.
-Responde siempre en español, de forma concisa y clara.
-Si hay resultados, lista las tiendas disponibles con el stock y el precio.
-Si no hay resultados, indícalo claramente y sugiere buscar con otros términos.
-No inventes datos: usa solo la información del contexto proporcionado.`;
+Cuando el usuario pregunte por un producto, recibirás un contexto de stock filtrado donde cada línea ya incluye el nombre completo de la tienda.
+Responde siempre en español, de forma concisa y estructurada.
+
+Formato de respuesta obligatorio:
+- Si hay resultados, presenta cada producto encontrado como un punto de lista con este formato:
+  • [Nombre tienda] — [Descripción producto] — Stock: [N] uds — PVP: [X]€
+- Agrupa por producto si el mismo artículo aparece en varias tiendas.
+- Añade un resumen breve al final indicando el total de unidades disponibles y en cuántas tiendas.
+- Si no hay resultados, indícalo claramente y sugiere buscar con otros términos.
+- No inventes datos: usa solo la información del contexto proporcionado.`;
 
 async function buscarStock(keyword) {
   const terms = keyword.trim().split(/\s+/).filter(Boolean);
@@ -38,10 +69,11 @@ async function buscarStock(keyword) {
 
 function formatStockContext(rows) {
   if (rows.length === 0) return 'No se encontraron resultados en el stock.';
-  return rows.map(r =>
-    `Tienda: ${r.store} | Ref: ${r.reference} | ${r.make} ${r.label} ${r.model || ''} | ` +
-    `Stock: ${r.current_stock} | Cat: ${r.category} | PVP: ${r.sell_price_with_tax ?? 'N/D'}€`
-  ).join('\n');
+  return rows.map(r => {
+    const tienda = TIENDAS[r.store] || r.store;
+    return `Tienda: ${tienda} | Ref: ${r.reference} | ${r.make} ${r.label} ${r.model || ''} | ` +
+           `Stock: ${r.current_stock} | Cat: ${r.category} | PVP: ${r.sell_price_with_tax ?? 'N/D'}€`;
+  }).join('\n');
 }
 
 async function chat(req, res) {
