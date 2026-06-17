@@ -339,6 +339,9 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
       <button class="sb-item" id="btnSubirStock" onclick="abrirModalStock()">
         <span class="ic">📦</span> Subir Stock ERP
       </button>
+      <button class="sb-item" onclick="nav('chat-logs',this)">
+        <span class="ic">💬</span> Uso del Chatbot
+      </button>
     </div>
   </nav>
 
@@ -766,6 +769,45 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <thead><tr><th>ID</th><th>Nombre</th><th>Usuario</th><th>Email</th><th>Rol</th><th style="text-align:center;">Opciones</th></tr></thead>
         <tbody id="tbUsuarios"></tbody>
       </table></div>
+    </div>
+  </section>
+
+  <!-- ── Uso del Chatbot (admin) ─────────────────────────── -->
+  <section class="page" id="page-chat-logs">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div><h2 style="font-size:20px;font-weight:800;">Uso del Chatbot</h2><p style="color:var(--g500);font-size:13px;margin-top:3px;" id="chatLogsSubtitle">Cargando…</p></div>
+    </div>
+
+    <!-- KPIs -->
+    <div style="display:flex;gap:16px;margin:18px 0 10px;flex-wrap:wrap;" id="chatLogsKpis"></div>
+
+    <!-- Filtros -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="tfilters">
+        <input class="fi" id="clFiltroUsuario" placeholder="🔍 Filtrar por usuario…" style="width:200px;" oninput="cargarChatLogs(1)"/>
+        <input class="fi" type="date" id="clFiltroDes" onchange="cargarChatLogs(1)" title="Desde"/>
+        <input class="fi" type="date" id="clFiltroHas" onchange="cargarChatLogs(1)" title="Hasta"/>
+        <button class="btn" onclick="document.getElementById('clFiltroUsuario').value='';document.getElementById('clFiltroDes').value='';document.getElementById('clFiltroHas').value='';cargarChatLogs(1)" style="margin-left:auto;">Limpiar</button>
+      </div>
+    </div>
+
+    <!-- Tabla por usuario -->
+    <div class="card" style="margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;color:var(--g700);padding:0 0 10px;">Consultas por usuario</div>
+      <div class="tw"><table>
+        <thead><tr><th>Usuario</th><th>Rol</th><th>Consultas</th><th>Con resultados</th><th>Última consulta</th></tr></thead>
+        <tbody id="tbChatResumen"></tbody>
+      </table></div>
+    </div>
+
+    <!-- Historial detallado -->
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--g700);padding:0 0 10px;">Historial detallado</div>
+      <div class="tw"><table>
+        <thead><tr><th>Fecha</th><th>Usuario</th><th>Rol</th><th>Consulta</th><th style="text-align:center;">Resultados</th></tr></thead>
+        <tbody id="tbChatLogs"></tbody>
+      </table></div>
+      <div id="chatLogsPager" style="display:flex;gap:8px;justify-content:center;padding:14px 0;"></div>
     </div>
   </section>
 
@@ -1211,7 +1253,7 @@ function setRole(role) {
   if (navTelefonosBtn) navTelefonosBtn.style.display = hideTelefonosForRole ? 'none' : '';
   syncDashboardRoleVisibility();
   // If on an admin-only page, redirect to dashboard
-  const adminPages = ['usuarios','solicitudes-pvp-admin','reportes-referencias-admin'];
+  const adminPages = ['usuarios','solicitudes-pvp-admin','reportes-referencias-admin','chat-logs'];
   const restrictedPages = ['pedidos', 'solicitud-pvp', 'mis-reportes'];
   const active = document.querySelector('.page.active');
   if (active && adminPages.some(p => active.id === 'page-'+p) && currentRole !== 'admin') {
@@ -1251,7 +1293,8 @@ function nav(id, btn) {
     'solicitud-pvp':'Solicitud de PVP', 'mis-reportes':'Mis reportes', usuarios:'Usuarios',
     'solicitudes-pvp-admin':'Solicitudes PVP — Admin',
     'reportes-referencias-admin':'Reportes referencias — Admin',
-    'resultados-globales':'Resultados Globales'
+    'resultados-globales':'Resultados Globales',
+    'chat-logs':'Uso del Chatbot'
   };
   document.getElementById('tbTitle').textContent = titles[id] || id;
 }
@@ -1268,6 +1311,10 @@ function navById(id) {
   }
   if (id === 'consolas') {
     loadConsolasFromAPI();
+  }
+  if (id === 'chat-logs') {
+    cargarChatLogsResumen();
+    cargarChatLogs(1);
   }
 }
 
@@ -4073,6 +4120,86 @@ window.addEventListener('load', async () => {
 </div>
 
 <script>
+// ── Chat Logs (admin) ────────────────────────────────────────────
+let chatLogsCurrentPage = 1;
+
+async function cargarChatLogsResumen() {
+  try {
+    const token = API.getToken();
+    const res = await fetch('/api/chat-logs/resumen', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+
+    document.getElementById('chatLogsSubtitle').textContent =
+      `${data.total.toLocaleString()} consultas totales · ${data.hoy} hoy`;
+
+    document.getElementById('chatLogsKpis').innerHTML = `
+      <div style="background:#fff;border-radius:12px;padding:16px 24px;box-shadow:var(--sh);min-width:140px;">
+        <div style="font-size:11px;color:var(--g500);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Total consultas</div>
+        <div style="font-size:28px;font-weight:800;color:var(--save);margin-top:4px;">${data.total.toLocaleString()}</div>
+      </div>
+      <div style="background:#fff;border-radius:12px;padding:16px 24px;box-shadow:var(--sh);min-width:140px;">
+        <div style="font-size:11px;color:var(--g500);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Consultas hoy</div>
+        <div style="font-size:28px;font-weight:800;color:var(--g900);margin-top:4px;">${data.hoy}</div>
+      </div>
+      <div style="background:#fff;border-radius:12px;padding:16px 24px;box-shadow:var(--sh);min-width:140px;">
+        <div style="font-size:11px;color:var(--g500);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Usuarios activos</div>
+        <div style="font-size:28px;font-weight:800;color:var(--g900);margin-top:4px;">${data.porUsuario.length}</div>
+      </div>`;
+
+    const tbody = document.getElementById('tbChatResumen');
+    tbody.innerHTML = data.porUsuario.map(u => `
+      <tr>
+        <td><strong>${u.usuario}</strong></td>
+        <td><span style="font-size:11px;background:var(--save-lt);color:var(--save-dkk);padding:2px 8px;border-radius:20px;font-weight:600;">${u.rol}</span></td>
+        <td>${u.consultas}</td>
+        <td>${u.con_resultados} <span style="color:var(--g400);font-size:11px;">(${Math.round(u.con_resultados/u.consultas*100)}%)</span></td>
+        <td style="color:var(--g500);font-size:12px;">${new Date(u.ultima).toLocaleString('es-ES')}</td>
+      </tr>`).join('');
+  } catch(e) { console.error('Error cargando resumen chat logs:', e); }
+}
+
+async function cargarChatLogs(page = 1) {
+  chatLogsCurrentPage = page;
+  const usuario = document.getElementById('clFiltroUsuario')?.value || '';
+  const desde   = document.getElementById('clFiltroDes')?.value || '';
+  const hasta   = document.getElementById('clFiltroHas')?.value || '';
+  const params  = new URLSearchParams({ page, ...(usuario && {usuario}), ...(desde && {desde}), ...(hasta && {hasta}) });
+  try {
+    const token = API.getToken();
+    const res = await fetch('/api/chat-logs?' + params, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+
+    const tbody = document.getElementById('tbChatLogs');
+    tbody.innerHTML = data.rows.length === 0
+      ? '<tr><td colspan="5" style="text-align:center;color:var(--g400);padding:24px;">No hay consultas registradas</td></tr>'
+      : data.rows.map(r => `
+        <tr>
+          <td style="white-space:nowrap;font-size:12px;color:var(--g500);">${new Date(r.created_at).toLocaleString('es-ES')}</td>
+          <td><strong>${r.usuario}</strong></td>
+          <td><span style="font-size:11px;background:var(--save-lt);color:var(--save-dkk);padding:2px 8px;border-radius:20px;font-weight:600;">${r.rol}</span></td>
+          <td style="max-width:320px;">${r.mensaje}</td>
+          <td style="text-align:center;">
+            <span style="font-weight:700;color:${r.resultados > 0 ? 'var(--green-500)' : 'var(--g400)'};">${r.resultados}</span>
+          </td>
+        </tr>`).join('');
+
+    const totalPages = Math.ceil(data.total / data.limit);
+    const pager = document.getElementById('chatLogsPager');
+    if (totalPages <= 1) { pager.innerHTML = ''; return; }
+    let html = '';
+    if (page > 1) html += `<button class="btn" onclick="cargarChatLogs(${page-1})">← Anterior</button>`;
+    html += `<span style="font-size:13px;color:var(--g500);padding:0 8px;">Página ${page} de ${totalPages}</span>`;
+    if (page < totalPages) html += `<button class="btn" onclick="cargarChatLogs(${page+1})">Siguiente →</button>`;
+    pager.innerHTML = html;
+  } catch(e) { console.error('Error cargando chat logs:', e); }
+}
+
 // ── Visibilidad del chat por rol ─────────────────────────────────
 function applyChatVisibility() {
   const rol = (typeof normalizeRoleKey === 'function')
