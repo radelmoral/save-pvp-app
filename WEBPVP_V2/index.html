@@ -4153,10 +4153,16 @@ function toggleChat() {
   document.getElementById('chatToggleBtn').textContent = chatOpen ? '✕' : '💬';
   if (chatOpen) setTimeout(() => document.getElementById('chatInput').focus(), 50);
 }
-function addChatMsg(text, who) {
+function addChatMsg(text, who, asHtml) {
   const el = document.createElement('div');
   el.className = who === 'user' ? 'cm-user' : 'cm-bot';
-  el.textContent = text;
+  if (asHtml) {
+    const escaped = text
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    el.innerHTML = escaped.replace(/\n/g, '<br>');
+  } else {
+    el.textContent = text;
+  }
   const msgs = document.getElementById('chatMessages');
   msgs.appendChild(el);
   msgs.scrollTop = msgs.scrollHeight;
@@ -4197,7 +4203,7 @@ async function enviarChat() {
     hideTyping();
     if (res.ok) {
       const data = await res.json();
-      addChatMsg(data.respuesta, 'bot');
+      addChatMsg(data.respuesta, 'bot', true);
     } else if (res.status === 401) {
       addChatMsg('Sesión expirada. Por favor, vuelve a iniciar sesión.', 'bot');
     } else {
