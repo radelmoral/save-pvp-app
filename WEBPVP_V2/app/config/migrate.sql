@@ -37,3 +37,27 @@ CREATE TABLE IF NOT EXISTS `solicitudes_pvp` (
   CONSTRAINT `fk_sol_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id_usuario`),
   CONSTRAINT `fk_sol_admin`   FOREIGN KEY (`admin_id`)   REFERENCES `usuarios` (`id_usuario`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+
+-- ── Tabla stock_erp ─────────────────────────────────────────────────
+--  Almacena el stock importado desde el Excel del ERP.
+--  Se borra y recarga completamente en cada subida de fichero.
+
+CREATE TABLE IF NOT EXISTS `stock_erp` (
+  `id`                  INT            NOT NULL AUTO_INCREMENT,
+  `store`               VARCHAR(100)   DEFAULT NULL,
+  `reference`           VARCHAR(100)   DEFAULT NULL,
+  `make`                VARCHAR(100)   DEFAULT NULL,
+  `label`               VARCHAR(255)   DEFAULT NULL,
+  `current_stock`       DECIMAL(10,2)  DEFAULT NULL,
+  `category`            VARCHAR(100)   DEFAULT NULL,
+  `model`               VARCHAR(100)   DEFAULT NULL,
+  `amount_without_vat`  DECIMAL(10,2)  DEFAULT NULL,
+  `sell_price_with_tax` DECIMAL(10,2)  DEFAULT NULL,
+  `created_at`          DATETIME       DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_reference` (`reference`),
+  KEY `idx_make`      (`make`),
+  KEY `idx_label`     (`label`(100)),
+  KEY `idx_store`     (`store`),
+  KEY `idx_stock`     (`current_stock`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
