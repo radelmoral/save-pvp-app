@@ -76,7 +76,7 @@ router.delete('/usuarios/:id',auth, role('admin'), usuariosCtrl.eliminar);
 router.post('/stock/upload', auth, role('admin'), stockCtrl.upload.single('file'), stockCtrl.subirStock);
 router.get ('/stock/estado', auth, stockCtrl.estadoStock);
 
-// ── Chat de stock ─────────────────────────────────────────
-router.post('/chat', auth, chatCtrl.chat);
+// ── Chat de stock (todos excepto eciclinicas) ─────────────
+router.post('/chat', auth, role('admin','carrefour','eci'), chatCtrl.chat);
 
 module.exports = router;
