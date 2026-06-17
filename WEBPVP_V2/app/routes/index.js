@@ -8,6 +8,8 @@ const repCtrl       = require('../controllers/repuestosController');
 const solicCtrl     = require('../controllers/solicitudesController');
 const usuariosCtrl  = require('../controllers/usuariosController');
 const reportesCtrl  = require('../controllers/reportesController');
+const stockCtrl     = require('../controllers/stockController');
+const chatCtrl      = require('../controllers/chatController');
 
 // ── Auth ──────────────────────────────────────────────────
 router.post('/auth/login', authCtrl.login);
@@ -69,5 +71,12 @@ router.get ('/usuarios',      auth, role('admin'), usuariosCtrl.listar);
 router.post('/usuarios',      auth, role('admin'), usuariosCtrl.crear);
 router.put ('/usuarios/:id',  auth, role('admin'), usuariosCtrl.actualizar);
 router.delete('/usuarios/:id',auth, role('admin'), usuariosCtrl.eliminar);
+
+// ── Stock ERP (admin only) ────────────────────────────────
+router.post('/stock/upload', auth, role('admin'), stockCtrl.upload.single('file'), stockCtrl.subirStock);
+router.get ('/stock/estado', auth, stockCtrl.estadoStock);
+
+// ── Chat de stock ─────────────────────────────────────────
+router.post('/chat', auth, chatCtrl.chat);
 
 module.exports = router;
