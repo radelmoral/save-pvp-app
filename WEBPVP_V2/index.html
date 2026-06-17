@@ -3833,7 +3833,6 @@ window.addEventListener('load', async () => {
 
       const handleProcess = async () => {
         if (items.length === 0) return alert("El pedido está vacío.");
-        if (!confirm(`¿Enviar ${items.length} líneas de pedido al Servidor?`)) return;
         setLoading(true);
         setStatusLog("Iniciando envío...");
         try {
