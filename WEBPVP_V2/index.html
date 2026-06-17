@@ -4042,7 +4042,7 @@ window.addEventListener('load', async () => {
 #chatToggleBtn { width:56px; height:56px; border-radius:50%; background:var(--save); border:none; cursor:pointer; box-shadow:0 4px 16px rgba(0,191,179,.45); display:flex; align-items:center; justify-content:center; font-size:24px; transition:transform .2s,background .2s; }
 #chatToggleBtn:hover { background:var(--save-dk); transform:scale(1.08); }
 #chatBox { width:360px; max-height:520px; background:#fff; border-radius:16px; box-shadow:0 8px 40px rgba(0,0,0,.18); display:flex; flex-direction:column; overflow:hidden; transition:opacity .2s,transform .2s; }
-#chatBox.hidden { opacity:0; pointer-events:none; transform:translateY(12px); }
+#chatBox.hidden { display:none; }
 #chatHeader { background:var(--save); color:#fff; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; }
 #chatHeader h3 { font-size:14px; font-weight:700; margin:0; }
 #chatHeader span { font-size:11px; opacity:.8; }
