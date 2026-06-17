@@ -99,6 +99,14 @@ async function chat(req, res) {
     });
 
     const respuesta = response.content[0]?.text ?? 'No se pudo obtener respuesta.';
+
+    pool.execute(
+      `INSERT INTO chat_logs (usuario_id, usuario, rol, mensaje, resultados)
+       VALUES (?, ?, ?, ?, ?)`,
+      [req.user.id, req.user.username || req.user.nombre || String(req.user.id),
+       req.user.rol, mensaje, rows.length]
+    ).catch(e => console.error('Error guardando chat_log:', e.message));
+
     res.json({ respuesta, resultados: rows.length });
   } catch (err) {
     console.error('Error en chat:', err.message);
