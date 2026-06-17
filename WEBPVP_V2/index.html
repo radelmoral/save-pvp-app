@@ -3832,7 +3832,7 @@ window.addEventListener('load', async () => {
       });
 
       const handleProcess = async () => {
-        if (items.length === 0) return alert("El pedido está vacío.");
+        if (items.length === 0) { setStatusLog("El pedido está vacío."); return; }
         setLoading(true);
         setStatusLog("Iniciando envío...");
         try {
@@ -3851,8 +3851,7 @@ window.addEventListener('load', async () => {
           form.submit();
           document.body.removeChild(form);
           await new Promise(resolve => setTimeout(resolve, 1500));
-          setStatusLog("¡Datos enviados!");
-          setStatusLog("Creando Excel local...");
+          setStatusLog("¡Datos enviados! Creando Excel local...");
           const wsData = items.map(item => ({
             "Tienda Origen": item.tienda, "Referencia": item.referencia, "Etiqueta": item.etiqueta,
             "Unidades": Number(item.unidades), "PVP Reparación": Number(item.pvpReparacion),
@@ -3866,12 +3865,10 @@ window.addEventListener('load', async () => {
           XLSX.utils.book_append_sheet(wb, ws, "Pedido");
           const fileName = `Copia_Local_Pedido_${new Date().toISOString().split('T')[0]}_${Date.now()}.xlsx`;
           XLSX.writeFile(wb, fileName);
-          setStatusLog("Finalizado.");
-          alert("✅ ¡PEDIDO ENVIADO!\n\nDatos enviados y copia descargada.");
-          if (confirm("¿Deseas limpiar la lista?")) { setItems([]); setStatusLog(""); }
+          setStatusLog("✅ ¡PEDIDO ENVIADO! Copia Excel descargada.");
+          setItems([]);
         } catch (error) {
-          setStatusLog("Error: " + error.message);
-          alert("❌ Error: " + error.message);
+          setStatusLog("❌ Error: " + error.message);
         } finally {
           setLoading(false);
         }
