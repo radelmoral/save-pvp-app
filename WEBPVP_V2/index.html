@@ -4116,7 +4116,7 @@ async function ejecutarSubidaStock() {
   const fd = new FormData();
   fd.append('file', file);
   try {
-    const token = localStorage.getItem('token');
+    const token = API.getToken();
     const res = await fetch('/api/stock/upload', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + token },
@@ -4188,7 +4188,7 @@ async function enviarChat() {
   addChatMsg(msg, 'user');
   showTyping();
   try {
-    const token = localStorage.getItem('token');
+    const token = API.getToken();
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
