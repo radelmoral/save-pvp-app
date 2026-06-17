@@ -1170,6 +1170,7 @@ function setRole(role) {
   window.__SAVE_CURRENT_ROLE = currentRole;
   applyPvpClubVisibilityByRole();
   applyReferenceVisibilityByRole();
+  if (typeof applyChatVisibility === 'function') applyChatVisibility();
   const cfg = roleConfig[currentRole] || roleConfig.eci;
   const readOnlyRole = isReadOnlyCatalogRole(currentRole);
   const hideTelefonosForRole = normalizeRoleKey(currentRole) === 'eciclinicas';
@@ -4072,6 +4073,19 @@ window.addEventListener('load', async () => {
 </div>
 
 <script>
+// ── Visibilidad del chat por rol ─────────────────────────────────
+function applyChatVisibility() {
+  const rol = (typeof normalizeRoleKey === 'function')
+    ? normalizeRoleKey(window.__SAVE_CURRENT_ROLE || '')
+    : (window.__SAVE_CURRENT_ROLE || '');
+  const permitido = !['eciclinicas', 'franquicias'].includes(rol);
+  document.getElementById('chatWidget').style.display = permitido ? '' : 'none';
+  if (!permitido && chatOpen) {
+    chatOpen = false;
+    document.getElementById('chatBox').classList.add('hidden');
+  }
+}
+
 // ── Stock modal ──────────────────────────────────────────────────
 function abrirModalStock() {
   document.getElementById('modalStock').classList.add('open');
