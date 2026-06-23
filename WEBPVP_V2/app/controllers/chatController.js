@@ -43,8 +43,18 @@ Formato de respuesta obligatorio:
 - Si no hay resultados, indícalo claramente y sugiere buscar con otros términos.
 - No inventes datos: usa solo la información del contexto proporcionado.`;
 
+const STOPWORDS = new Set([
+  'necesito','quiero','busco','hay','tiene','tienen','tienes','donde','dónde',
+  'en','que','qué','una','uno','unos','unas','un','de','del','la','el','los','las',
+  'con','para','por','si','se','su','sus','me','te','le','nos','les',
+  'alguna','algún','algun','alguno','algunos','algunas','disponible','disponibles',
+  'stock','hay','ver','saber','conocer','decir','como','cómo','cual','cuál',
+  'cuanto','cuánto','tengo','tiene','favor','gracias','hola','buenas',
+]);
+
 async function buscarStock(keyword) {
-  const terms = keyword.trim().split(/\s+/).filter(Boolean);
+  const terms = keyword.trim().toLowerCase().split(/\s+/)
+    .filter(t => t.length > 1 && !STOPWORDS.has(t));
   if (terms.length === 0) return [];
 
   const conditions = terms.map(() =>
