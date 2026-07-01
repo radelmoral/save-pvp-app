@@ -71,7 +71,8 @@ async function buscarStock(keyword) {
             amount_without_vat, sell_price_with_tax
      FROM stock_erp
      WHERE current_stock > 0 AND (${conditions})
-     LIMIT 30`,
+     ORDER BY current_stock DESC
+     LIMIT 15`,
     params
   );
   return rows;
@@ -104,7 +105,7 @@ async function chat(req, res) {
 
     const response = await client.messages.create({
       model:      'claude-haiku-4-5',
-      max_tokens: 512,
+      max_tokens: 1024,
       system:     SYSTEM_PROMPT,
       messages:   [{ role: 'user', content: userMessage }],
     });
