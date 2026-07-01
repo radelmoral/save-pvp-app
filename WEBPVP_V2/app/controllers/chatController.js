@@ -97,6 +97,7 @@ async function chat(req, res) {
 
   try {
     const rows = await buscarStock(mensaje);
+    console.log(`[CHAT] Mensaje: "${mensaje}" → ${rows.length} resultados en BD`);
     const contexto = formatStockContext(rows);
 
     const userMessage = `Pregunta: ${mensaje}\n\nStock disponible:\n${contexto}`;
