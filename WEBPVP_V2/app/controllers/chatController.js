@@ -30,16 +30,14 @@ const TIENDAS = {
 };
 
 const SYSTEM_PROMPT = `Eres un asistente de stock de SAVE, una red de tiendas de reparación de electrónica.
-Tu única función es mostrar exactamente los datos de stock que recibes, sin añadir ni inventar ningún dato.
+Recibirás un listado de productos ya agrupados y preparados. Tu trabajo es presentarlos en español de forma clara y natural.
 
-REGLAS ESTRICTAS:
-1. Usa ÚNICAMENTE los datos del contexto proporcionado. No añadas tiendas, referencias ni productos que no aparezcan en el contexto.
-2. Lista cada línea del contexto como un punto con este formato exacto:
-   • [Nombre tienda] — Ref: [referencia] — [descripción] — Stock: [N] uds — PVP: [X]€
-3. NO agrupes ni combines líneas. Cada línea del contexto = un punto en la respuesta.
-4. Al final añade: "Total: X unidades en Y tiendas."
-5. Si el contexto dice "No se encontraron resultados", responde que no hay stock disponible y sugiere buscar con otros términos.
-6. Responde siempre en español.`;
+REGLAS:
+1. Usa ÚNICAMENTE los datos del contexto. Nunca añadas tiendas, referencias ni información que no esté en el contexto.
+2. Presenta cada producto del contexto como un bloque con su nombre, referencia, tiendas disponibles y precio.
+3. Usa un tono natural y útil, como si fueras un compañero de trabajo.
+4. Si el contexto indica que no hay resultados, dilo claramente y sugiere buscar con otros términos.
+5. Responde siempre en español.`;
 
 const STOPWORDS = new Set([
   'necesito','quiero','busco','hay','tiene','tienen','tienes','donde','dónde',
@@ -78,11 +76,34 @@ async function buscarStock(keyword) {
 
 function formatStockContext(rows) {
   if (rows.length === 0) return 'No se encontraron resultados en el stock.';
-  return rows.map(r => {
-    const tienda = TIENDAS[r.store] || r.store;
-    return `Tienda: ${tienda} | Ref: ${r.reference} | ${r.make} ${r.label} ${r.model || ''} | ` +
-           `Stock: ${r.current_stock} | Cat: ${r.category} | PVP: ${r.sell_price_with_tax ?? 'N/D'}€`;
-  }).join('\n');
+
+  // Agrupar por referencia para evitar que Claude lo haga (y se equivoque)
+  const grupos = {};
+  for (const r of rows) {
+    const key = r.reference;
+    if (!grupos[key]) {
+      grupos[key] = {
+        referencia: r.reference,
+        descripcion: `${r.make} ${r.label}`.trim(),
+        pvp: r.sell_price_with_tax,
+        tiendas: [],
+      };
+    }
+    grupos[key].tiendas.push({
+      nombre: TIENDAS[r.store] || r.store,
+      stock: r.current_stock,
+    });
+  }
+
+  const totalUnidades = rows.reduce((s, r) => s + Number(r.current_stock || 0), 0);
+  const totalTiendas  = new Set(rows.map(r => r.store)).size;
+
+  const bloques = Object.values(grupos).map(g => {
+    const tiendasStr = g.tiendas.map(t => `  - ${t.nombre}: ${t.stock} ud.`).join('\n');
+    return `📦 ${g.descripcion} (Ref: ${g.referencia}) — PVP: ${g.pvp ?? 'N/D'}€\n${tiendasStr}`;
+  }).join('\n\n');
+
+  return `${bloques}\n\n[Resumen: ${totalUnidades} unidades en ${totalTiendas} tiendas]`;
 }
 
 async function chat(req, res) {
