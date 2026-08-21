@@ -315,6 +315,9 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
     <button class="sb-item" id="navPedidosBtn" onclick="nav('pedidos',this)">
       <span class="ic">🛒</span> Pedidos
     </button>
+    <button class="sb-item" id="navCalculadoraBtn" onclick="nav('calculadora-pvp',this)">
+      <span class="ic">🧮</span> Calculadora PVP
+    </button>
     <button class="sb-item" id="navSolicitudPvpBtn" onclick="nav('solicitud-pvp',this)">
       <span class="ic">💬</span> Solicitud de PVP
     </button>
@@ -581,6 +584,11 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
   <section class="page" id="page-pedidos">
     <div id="pedidos-root"></div>
     <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+  </section>
+
+  <!-- ── CALCULADORA PVP (solo Admin) ── -->
+  <section class="page" id="page-calculadora-pvp">
+    <div id="calc-pvp-root"></div>
   </section>
 
   <!-- ══════════════════════════════════════════════
@@ -1244,6 +1252,8 @@ function setRole(role) {
       const el = document.getElementById(id);
       if (el) el.style.display = (currentRole === 'admin') ? '' : 'none';
     });
+  const navCalculadoraBtn = document.getElementById('navCalculadoraBtn');
+  if (navCalculadoraBtn) navCalculadoraBtn.style.display = (currentRole === 'admin') ? '' : 'none';
   const navPedidosBtn = document.getElementById('navPedidosBtn');
   if (navPedidosBtn) navPedidosBtn.style.display = readOnlyRole ? 'none' : '';
   const navSolicitudPvpBtn = document.getElementById('navSolicitudPvpBtn');
@@ -1254,7 +1264,7 @@ function setRole(role) {
   if (navTelefonosBtn) navTelefonosBtn.style.display = hideTelefonosForRole ? 'none' : '';
   syncDashboardRoleVisibility();
   // If on an admin-only page, redirect to dashboard
-  const adminPages = ['usuarios','solicitudes-pvp-admin','reportes-referencias-admin','chat-logs'];
+  const adminPages = ['usuarios','solicitudes-pvp-admin','reportes-referencias-admin','chat-logs','calculadora-pvp'];
   const restrictedPages = ['pedidos', 'solicitud-pvp', 'mis-reportes'];
   const active = document.querySelector('.page.active');
   if (active && adminPages.some(p => active.id === 'page-'+p) && currentRole !== 'admin') {
@@ -4343,5 +4353,579 @@ async function enviarChat() {
   }
 }
 </script>
-</body>
-</html>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     CALCULADORA PVP — solo Admin
+     ═══════════════════════════════════════════════════════════════ -->
+<style>
+/* ── Variables propias de la calculadora, mapeadas a las del app ── */
+#calc-pvp-root {
+  --calc-ink:var(--g900); --calc-ink-soft:var(--g600); --calc-ink-faint:var(--g400);
+  --calc-field:var(--g100); --calc-panel:var(--white); --calc-rule:var(--g300); --calc-rule-hard:var(--g700);
+  --calc-teal:var(--save); --calc-teal-deep:var(--save-dk); --calc-teal-wash:var(--save-xlt);
+  --calc-amber:#B8730E; --calc-amber-wash:#FCF1DF;
+  --calc-stop:#C0392B; --calc-stop-wash:#FBEAE7;
+  --calc-mono:"IBM Plex Mono",ui-monospace,monospace;
+  font-family:inherit; color:var(--calc-ink);
+}
+#calc-pvp-root * { box-sizing:border-box; }
+.calc-eyebrow { font-family:var(--calc-mono);font-size:10.5px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--calc-ink-soft); }
+.calc-grid { display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start; }
+@media(max-width:840px){ .calc-grid { grid-template-columns:1fr; } }
+.calc-panel { background:var(--calc-panel);border:1.5px solid var(--calc-rule);border-radius:var(--r);padding:20px;box-shadow:var(--sh); }
+.calc-panel + .calc-panel { margin-top:16px; }
+.calc-panel-head { display:flex;justify-content:space-between;align-items:center;gap:12px;padding-bottom:9px;margin-bottom:16px;border-bottom:1px solid var(--calc-rule); }
+.calc-costfield { position:relative;margin-bottom:6px; }
+.calc-costfield input { width:100%;font-weight:800;font-size:clamp(36px,7vw,56px);line-height:1;letter-spacing:-.03em;padding:14px 62px 14px 16px;border:1.5px solid var(--calc-rule-hard);border-radius:var(--r);background:var(--calc-field);color:var(--calc-ink);font-variant-numeric:tabular-nums; }
+.calc-costfield input:focus { outline:none;border-color:var(--calc-teal);background:var(--calc-teal-wash); }
+.calc-costfield .unit { position:absolute;right:18px;top:50%;transform:translateY(-50%);font-weight:600;font-size:24px;color:var(--calc-ink-faint); }
+.calc-hint { font-size:12.5px;color:var(--calc-ink-soft);margin:0 0 16px; }
+.calc-rep { width:100%;font-family:inherit;font-size:15px;font-weight:500;color:var(--calc-ink);padding:12px 15px;border:1.5px solid var(--calc-rule-hard);border-radius:var(--r);background:var(--calc-field);appearance:none;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,var(--calc-ink) 50%),linear-gradient(135deg,var(--calc-ink) 50%,transparent 50%);background-position:calc(100% - 20px) 22px,calc(100% - 14px) 22px;background-size:6px 6px,6px 6px;background-repeat:no-repeat; }
+.calc-rep:focus { outline:none;border-color:var(--calc-teal);background-color:var(--calc-teal-wash); }
+.calc-rep optgroup { font-family:var(--calc-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--calc-ink-faint); }
+.calc-readout { border:1.5px solid var(--calc-rule-hard);border-radius:var(--r);background:var(--calc-rule-hard);color:#fff;padding:18px 20px 16px;box-shadow:var(--sh2); }
+.calc-readout .calc-eyebrow { color:rgba(255,255,255,.6); }
+.calc-pvp { font-weight:800;font-size:clamp(56px,10vw,80px);line-height:.9;letter-spacing:-.05em;font-variant-numeric:tabular-nums;margin:6px 0 2px; }
+.calc-pvp .cur { font-size:.42em;font-weight:600;letter-spacing:-.02em;margin-left:.1em;color:var(--save-lt); }
+.calc-readout .sub { font-family:var(--calc-mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.62);text-transform:uppercase;margin-top:4px; }
+.calc-ruler { margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,.16); }
+.calc-ruler-head { display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px; }
+.calc-ruler-head .calc-eyebrow { color:rgba(255,255,255,.55); }
+.calc-ruler-head .mult { font-weight:800;font-size:19px;color:var(--save-lt);letter-spacing:-.02em; }
+.calc-bars { display:flex;align-items:flex-end;height:52px;gap:2px;position:relative; }
+.calc-bar { background:rgba(255,255,255,.15);position:relative;transition:background .18s ease; }
+.calc-bar.on { background:var(--save); }
+.calc-bar b { position:absolute;top:-13px;left:0;right:0;text-align:center;font-family:var(--calc-mono);font-size:9px;font-weight:500;color:rgba(255,255,255,.4); }
+.calc-bar.on b { color:var(--save-lt); }
+.calc-needle { position:absolute;top:-8px;bottom:-5px;width:1.5px;background:#fff;transition:left .35s cubic-bezier(.22,1,.36,1); }
+.calc-needle::before { content:"";position:absolute;top:-1px;left:-3.5px;border-left:4.5px solid transparent;border-right:4.5px solid transparent;border-top:6px solid #fff; }
+.calc-scale { display:flex;justify-content:space-between;margin-top:6px;font-family:var(--calc-mono);font-size:9px;color:rgba(255,255,255,.38); }
+.calc-line { display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-bottom:1px solid var(--calc-rule); }
+.calc-line:last-of-type { border-bottom:0; }
+.calc-line .k { font-size:13px;color:var(--calc-ink-soft); }
+.calc-line .k em { font-style:normal;font-family:var(--calc-mono);font-size:10px;letter-spacing:.05em;color:var(--calc-ink-faint);display:block; }
+.calc-line .v { font-family:var(--calc-mono);font-size:13.5px;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums; }
+.calc-line.total { border-top:1.5px solid var(--calc-rule-hard);border-bottom:0;margin-top:4px;padding-top:10px; }
+.calc-line.total .k { font-weight:600;font-size:14px;color:var(--calc-ink); }
+.calc-line.total .v { font-weight:700;font-size:15px;color:var(--save-dk); }
+.calc-details { border:1.5px solid var(--calc-rule);border-radius:var(--r);background:var(--calc-panel);margin-top:16px;box-shadow:var(--sh); }
+.calc-details summary { list-style:none;cursor:pointer;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;color:var(--g600); }
+.calc-details summary::-webkit-details-marker { display:none; }
+.calc-details summary .sig { font-family:var(--calc-mono);font-size:15px;color:var(--calc-ink-faint); }
+.calc-details[open] summary { border-bottom:1px solid var(--calc-rule);color:var(--save-dk); }
+.calc-details[open] summary .sig { color:var(--save-dk); }
+.calc-details-body { padding:16px 20px 20px; }
+table.calc-tarifa { width:100%;border-collapse:collapse;font-family:var(--calc-mono);font-size:12px; }
+table.calc-tarifa th { text-align:right;font-weight:600;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--calc-ink-soft);padding:0 7px 7px;border-bottom:1.5px solid var(--calc-rule-hard);vertical-align:bottom; }
+table.calc-tarifa th:first-child, table.calc-tarifa td:first-child { text-align:left; }
+table.calc-tarifa td { padding:5px 7px;border-bottom:1px solid var(--calc-rule);text-align:right;font-variant-numeric:tabular-nums; }
+table.calc-tarifa td.pv { font-weight:600;color:var(--save-dk); }
+table.calc-tarifa td.bnd { color:var(--calc-ink-faint);font-size:10px; }
+table.calc-tarifa tr.brk td { border-bottom:1.5px solid var(--calc-ink-faint); }
+/* Administración */
+.calc-admin-note { background:var(--calc-amber-wash);border-left:3px solid var(--calc-amber);color:var(--calc-amber);padding:12px 14px;font-size:13px;line-height:1.5;margin-bottom:20px;border-radius:4px; }
+.calc-sec-title { font-family:var(--calc-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--save-dk);margin:0 0 4px; }
+.calc-sec-sub { font-size:12.5px;color:var(--calc-ink-soft);margin:0 0 14px; }
+table.calc-reps { width:100%;border-collapse:collapse; }
+table.calc-reps th { text-align:left;font-family:var(--calc-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--calc-ink-soft);font-weight:600;padding:0 6px 7px;border-bottom:1.5px solid var(--calc-rule-hard); }
+table.calc-reps td { padding:4px 6px;border-bottom:1px solid var(--calc-rule);vertical-align:middle; }
+table.calc-reps input[type=text] { width:100%;font-family:inherit;font-size:13.5px;padding:6px 8px;border:1.5px solid transparent;background:transparent;color:var(--calc-ink);border-radius:4px; }
+table.calc-reps input[type=text]:hover { border-color:var(--calc-rule); }
+table.calc-reps input[type=text]:focus { outline:none;border-color:var(--save);background:var(--save-xlt); }
+table.calc-reps select { font-family:var(--calc-mono);font-size:12px;padding:6px 7px;border:1.5px solid var(--calc-rule);background:var(--calc-field);color:var(--calc-ink);border-radius:4px;width:100%; }
+table.calc-reps select:focus { outline:none;border-color:var(--save); }
+table.calc-reps .colgrp{width:23%} table.calc-reps .colniv{width:22%} table.calc-reps .colpvp{width:15%} table.calc-reps .colx{width:38px}
+table.calc-reps .pvpref { font-family:var(--calc-mono);font-size:12px;color:var(--calc-ink-faint);text-align:right;display:block; }
+.calc-del { border:0;background:transparent;color:var(--calc-ink-faint);font-family:var(--calc-mono);font-size:16px;cursor:pointer;padding:4px 8px;line-height:1; }
+.calc-del:hover { color:var(--calc-stop); }
+.calc-btn { font-family:var(--calc-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:10px 16px;border:1.5px solid var(--calc-rule-hard);border-radius:var(--r);background:var(--calc-panel);color:var(--calc-ink);cursor:pointer; }
+.calc-btn:hover { background:var(--calc-rule-hard);color:#fff; }
+.calc-btn.pri { background:var(--save);border-color:var(--save);color:#fff; }
+.calc-btn.pri:hover { background:var(--save-dk);border-color:var(--save-dk); }
+.calc-btnrow { display:flex;gap:9px;flex-wrap:wrap;margin-top:16px; }
+.calc-set-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 24px; }
+.calc-set { display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--calc-rule); }
+.calc-set label { font-size:12.5px;color:var(--calc-ink-soft); }
+.calc-set input { width:78px;font-family:var(--calc-mono);font-size:13px;text-align:right;padding:5px 8px;border:1.5px solid var(--calc-rule);background:var(--calc-field);color:var(--calc-ink);border-radius:4px; }
+.calc-set input:focus { outline:none;border-color:var(--save); }
+.calc-textarea { width:100%;height:120px;font-family:var(--calc-mono);font-size:11px;line-height:1.5;padding:11px;border:1.5px solid var(--calc-rule);background:var(--calc-field);color:var(--calc-ink);border-radius:var(--r);resize:vertical; }
+.calc-textarea:focus { outline:none;border-color:var(--save); }
+.calc-tab-bar { display:flex;gap:0;margin-bottom:20px;border:1.5px solid var(--calc-rule-hard);border-radius:var(--r);overflow:hidden;background:var(--calc-panel); }
+.calc-tab-bar button { font-family:var(--calc-mono);font-size:11px;font-weight:500;letter-spacing:.1em;padding:10px 20px;border:0;border-right:1px solid var(--calc-rule);background:transparent;color:var(--calc-ink-soft);cursor:pointer;text-transform:uppercase;flex:1; }
+.calc-tab-bar button:last-child { border-right:0; }
+.calc-tab-bar button.active { background:var(--calc-rule-hard);color:#fff; }
+#calc-pvp-root .calc-toast { position:fixed;left:50%;bottom:80px;transform:translateX(-50%) translateY(80px);background:var(--g900);color:#fff;font-family:var(--calc-mono);font-size:12px;letter-spacing:.06em;padding:12px 20px;border-radius:var(--r);opacity:0;transition:transform .25s ease,opacity .25s ease;z-index:9999;pointer-events:none; }
+#calc-pvp-root .calc-toast.on { transform:translateX(-50%) translateY(0);opacity:1; }
+</style>
+
+<script>
+/* ══════════════════════════════════════════════
+   CALCULADORA PVP — lógica integrada en el app
+══════════════════════════════════════════════ */
+(function(){
+"use strict";
+
+const CALC_STORE_KEY = "savestore:pricing:v1";
+
+const CALC_FABRICA = {
+  iva:21, merma:4, log:3, minticket:25,
+  bandas:[
+    {c:"A",desde:0,hasta:5,mult:3.50},{c:"B",desde:5.01,hasta:15,mult:2.50},
+    {c:"C",desde:15.01,hasta:30,mult:2.10},{c:"D",desde:30.01,hasta:60,mult:1.80},
+    {c:"E",desde:60.01,hasta:100,mult:1.55},{c:"F",desde:100.01,hasta:150,mult:1.40},
+    {c:"G",desde:150.01,hasta:250,mult:1.28},{c:"H",desde:250.01,hasta:1e9,mult:1.22}
+  ],
+  mo:[
+    {c:"N1",n:"Rápida",h:0.25,e:15},{c:"N2",n:"Estándar",h:0.50,e:25},
+    {c:"N3",n:"Compleja",h:1.00,e:45},{c:"N4",n:"Microsoldadura",h:1.50,e:55},
+    {c:"N5",n:"Placa base",h:3.00,e:110}
+  ],
+  reparaciones:[
+    {n:"Cambio de pantalla",g:"Móvil y tablet",niv:"N2"},
+    {n:"Cambio de batería",g:"Móvil y tablet",niv:"N2"},
+    {n:"Cambio de conector de carga",g:"Móvil y tablet",niv:"N2"},
+    {n:"Reparación de conector de carga (soldadura)",g:"Móvil y tablet",niv:"N4"},
+    {n:"Cambio de tapa trasera",g:"Móvil y tablet",niv:"N3"},
+    {n:"Cambio de cristal de cámara",g:"Móvil y tablet",niv:"N1"},
+    {n:"Cambio de cámara",g:"Móvil y tablet",niv:"N2"},
+    {n:"Cambio de altavoz o micrófono",g:"Móvil y tablet",niv:"N2"},
+    {n:"Cambio de botones",g:"Móvil y tablet",niv:"N2"},
+    {n:"Reparación de Face ID o Touch ID",g:"Móvil y tablet",niv:"N4"},
+    {n:"Reparación de placa base",g:"Móvil y tablet",niv:"N5"},
+    {n:"Reparación por daños de líquido",g:"Móvil y tablet",niv:"N5"},
+    {n:"Liberación o software",g:"Móvil y tablet",niv:"N1"},
+    {n:"Limpieza interna",g:"Móvil y tablet",niv:"N1"},
+    {n:"Cambio de pantalla de portátil",g:"Portátil",niv:"N2"},
+    {n:"Cambio de teclado o topcase",g:"Portátil",niv:"N3"},
+    {n:"Cambio de bisagras",g:"Portátil",niv:"N3"},
+    {n:"Ampliación de RAM o disco",g:"Portátil",niv:"N1"},
+    {n:"Cambio de pasta térmica",g:"Portátil",niv:"N2"},
+    {n:"Cambio de ventilador",g:"Portátil",niv:"N2"},
+    {n:"Reparación de puerto HDMI",g:"Consola",niv:"N4"},
+    {n:"Cambio de lector óptico",g:"Consola",niv:"N3"},
+    {n:"Reparación de drift de mando",g:"Consola",niv:"N3"},
+    {n:"Cambio de ventilador de consola",g:"Consola",niv:"N2"}
+  ]
+};
+const CALC_ESCALERA=[19,25,29,35,39,45,49,55,59,65,69,75,79,85,89,95,99,109,119,129,139,149,159,169,
+179,189,199,219,239,259,279,299,329,349,379,399,429,449,479,499,549,599,649,699,749,799,849,899,
+949,999,1099,1199,1299];
+
+let calcP = JSON.parse(JSON.stringify(CALC_FABRICA));
+let calcRepSel = 0;
+let calcModo = 'calc'; // 'calc' | 'adm'
+
+function calcClonar(o){ return JSON.parse(JSON.stringify(o)); }
+const calcEur  = n => n.toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2})+" €";
+const calcEur0 = n => Math.round(n).toLocaleString("es-ES")+" €";
+const calcNum  = n => n.toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2});
+function calcEsc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+/* ── motor de precio ── */
+function calcSuelos(){
+  const out=[0];
+  for(let i=1;i<calcP.bandas.length;i++) out.push(calcP.bandas[i-1].hasta*calcP.bandas[i-1].mult);
+  return out;
+}
+function calcPeldano(v){
+  if(v<=CALC_ESCALERA[0]) return CALC_ESCALERA[0];
+  if(v>=CALC_ESCALERA[CALC_ESCALERA.length-1]) return CALC_ESCALERA[CALC_ESCALERA.length-1];
+  let lo=CALC_ESCALERA[0];
+  for(const r of CALC_ESCALERA){ if(r<=v) lo=r; else return (v-lo<=r-v)?lo:r; }
+  return lo;
+}
+function calcCalcular(coste, nivCod){
+  const iva=calcP.iva/100;
+  const landed=coste*(1+calcP.log/100)/(1-calcP.merma/100);
+  let bi=0;
+  for(let j=0;j<calcP.bandas.length;j++) if(landed>=calcP.bandas[j].desde) bi=j;
+  const b=calcP.bandas[bi];
+  const pieza=Math.max(landed*b.mult, calcSuelos()[bi]);
+  const mo=calcP.mo.find(m=>m.c===nivCod)||calcP.mo[1];
+  const pvp=Math.max(calcPeldano((pieza+mo.e)*(1+iva)), calcP.minticket);
+  const baseFinal=pvp/(1+iva);
+  const margen=baseFinal-landed;
+  return {landed,banda:b,bandaIdx:bi,pieza,mo,pvp,baseFinal,ivaEur:pvp-baseFinal,margen,
+          margenPct:baseFinal>0?margen/baseFinal:0, margenHora:mo.h>0?margen/mo.h:0};
+}
+
+const CALC_LMIN=Math.log10(1), CALC_LMAX=Math.log10(400);
+const calcPos = v => Math.max(0,Math.min(100,(Math.log10(Math.max(1,Math.min(400,v)))-CALC_LMIN)/(CALC_LMAX-CALC_LMIN)*100));
+
+/* ── renderizado ── */
+function calcPintarBarras(){
+  const bars=document.getElementById("calcBars"), needle=document.getElementById("calcNeedle");
+  if(!bars) return;
+  bars.querySelectorAll(".calc-bar").forEach(e=>e.remove());
+  const maxMult=Math.max(...calcP.bandas.map(b=>b.mult));
+  calcP.bandas.forEach((b,i)=>{
+    const el=document.createElement("div");
+    el.className="calc-bar"; el.dataset.i=i;
+    el.style.width=Math.max(3,calcPos(Math.min(400,b.hasta))-calcPos(Math.max(1,b.desde||1)))+"%";
+    el.style.height=Math.max(9,(b.mult/(maxMult*1.05))*100)+"%";
+    el.innerHTML="<b>"+b.c+"</b>";
+    bars.insertBefore(el,needle);
+  });
+}
+
+function calcPintarSelector(){
+  const sel=document.getElementById("calcReparacion");
+  if(!sel) return;
+  const orden=[...calcP.reparaciones.keys()].sort((a,b)=>
+    calcP.reparaciones[a].g.localeCompare(calcP.reparaciones[b].g,"es")||a-b);
+  let html="", grupo=null;
+  orden.forEach(i=>{
+    const r=calcP.reparaciones[i];
+    if(r.g!==grupo){ if(grupo!==null) html+="</optgroup>"; html+='<optgroup label="'+calcEsc(r.g)+'">'; grupo=r.g; }
+    html+='<option value="'+i+'">'+calcEsc(r.n)+'</option>';
+  });
+  sel.innerHTML=html+(grupo!==null?"</optgroup>":"");
+  if(!calcP.reparaciones[calcRepSel]) calcRepSel=orden[0]||0;
+  sel.value=String(calcRepSel);
+}
+
+function calcRender(){
+  const rep=calcP.reparaciones[calcRepSel];
+  if(!rep) return;
+  const costeEl=document.getElementById("calcCoste");
+  if(!costeEl) return;
+  const coste=Math.max(0,parseFloat(costeEl.value)||0);
+  const r=calcCalcular(coste, rep.niv);
+
+  document.getElementById("calcPvp").textContent=Math.round(r.pvp).toLocaleString("es-ES");
+  document.getElementById("calcPvpSub").textContent="Banda "+r.banda.c+" · MO "+r.mo.c+" · "+r.mo.n;
+  document.getElementById("calcMultLbl").textContent=calcNum(r.banda.mult)+"x";
+  document.getElementById("calcNivLbl").textContent=r.mo.c+" · "+r.mo.n;
+
+  document.querySelectorAll("#calcBars .calc-bar").forEach(el=>el.classList.toggle("on",+el.dataset.i===r.bandaIdx));
+  document.getElementById("calcNeedle").style.left=calcPos(r.landed)+"%";
+
+  const filas=[
+    ["Coste de la pieza en factura","",calcEur(coste)],
+    ["Coste aterrizado","+ "+calcNum(calcP.log)+"% logística · "+calcNum(calcP.merma)+"% merma",calcEur(r.landed)],
+    ["Pieza facturada","Banda "+r.banda.c+" · "+calcNum(r.banda.mult)+"x",calcEur(r.pieza)],
+    ["Mano de obra",r.mo.c+" · "+r.mo.n+" · "+calcNum(r.mo.h)+" h",calcEur(r.mo.e)],
+    ["Base imponible","",calcEur(r.baseFinal)],
+    ["IVA "+calcNum(calcP.iva)+"%","",calcEur(r.ivaEur)]
+  ];
+  document.getElementById("calcDesglose").innerHTML=
+    filas.map(([k,s,v])=>'<div class="calc-line"><span class="k">'+calcEsc(k)+(s?'<em>'+calcEsc(s)+'</em>':'')+
+      '</span><span class="v">'+v+'</span></div>').join("")+
+    '<div class="calc-line total"><span class="k">PVP al público</span><span class="v">'+calcEur(r.pvp)+'</span></div>';
+
+  calcPintarTarifa();
+}
+
+function calcPintarTarifa(){
+  const head=document.getElementById("calcTablaHead"), tbody=document.querySelector("#calcTabla tbody");
+  if(!head||!tbody) return;
+  head.innerHTML='<th>Coste pieza</th><th>Banda</th>'+
+    calcP.mo.map(m=>'<th>'+calcEsc(m.n)+'<br><small style="font-size:8px;color:var(--calc-ink-faint)">'+m.c+'</small></th>').join("");
+  const costes=[0,2,4,5,8,12,15,18,22,26,30,36,45,55,60,70,85,100,115,130,150,175,200,230,250,300];
+  let prev=null;
+  tbody.innerHTML=costes.map(c=>{
+    const base=calcCalcular(c,calcP.mo[1]?calcP.mo[1].c:calcP.mo[0].c);
+    const brk=prev!==null && base.banda.c!==prev; prev=base.banda.c;
+    return '<tr'+(brk?' class="brk"':'')+'><td>'+calcEur0(c)+'</td><td class="bnd">'+base.banda.c+'</td>'+
+      calcP.mo.map(m=>'<td class="pv">'+calcEur0(calcCalcular(c,m.c).pvp)+'</td>').join("")+'</tr>';
+  }).join("");
+}
+
+function calcPintarReps(){
+  const tb=document.querySelector("#calcTablaReps tbody");
+  if(!tb) return;
+  tb.innerHTML=calcP.reparaciones.map((r,i)=>{
+    const ref=calcCalcular(20,r.niv).pvp;
+    return '<tr>'+
+      '<td><input type="text" data-f="n" data-i="'+i+'" value="'+calcEsc(r.n)+'" aria-label="Nombre"></td>'+
+      '<td><input type="text" data-f="g" data-i="'+i+'" value="'+calcEsc(r.g)+'" aria-label="Grupo"></td>'+
+      '<td><select data-f="niv" data-i="'+i+'" aria-label="Nivel MO">'+
+        calcP.mo.map(m=>'<option value="'+m.c+'"'+(m.c===r.niv?' selected':'')+'>'+m.c+' · '+calcEsc(m.n)+'</option>').join("")+
+      '</select></td>'+
+      '<td><span class="pvpref">'+calcEur0(ref)+'</span></td>'+
+      '<td><button type="button" class="calc-del" data-del="'+i+'">×</button></td>'+
+    '</tr>';
+  }).join("");
+}
+
+function calcPintarAdmin(){
+  const setmo=document.getElementById("calcSetMo"), setbandas=document.getElementById("calcSetBandas");
+  if(!setmo||!setbandas) return;
+  setmo.innerHTML=calcP.mo.map((m,i)=>
+    '<div class="calc-set"><label for="calcMo'+i+'">'+calcEsc(m.c+' · '+m.n)+'</label>'+
+    '<input id="calcMo'+i+'" data-m="'+i+'" type="number" step="1" value="'+m.e+'"></div>').join("");
+  setbandas.innerHTML=calcP.bandas.map((b,i)=>
+    '<div class="calc-set"><label for="calcBd'+i+'">'+b.c+' · '+
+    (b.hasta>1e8?"más de "+calcEur0(b.desde):calcEur0(b.desde)+"–"+calcEur0(b.hasta))+
+    '</label><input id="calcBd'+i+'" data-b="'+i+'" type="number" step="0.05" value="'+b.mult+'"></div>').join("");
+  ["iva","merma","log","minticket"].forEach(k=>{
+    const el=document.getElementById("calcP_"+k);
+    if(el) el.value=calcP[k];
+  });
+  calcPintarReps();
+}
+
+function calcGuardar(){
+  try{ localStorage.setItem(CALC_STORE_KEY, JSON.stringify(calcP)); }catch(e){}
+}
+function calcCargar(){
+  try{
+    const raw=localStorage.getItem(CALC_STORE_KEY);
+    if(raw){ const c=JSON.parse(raw); if(c&&c.reparaciones&&c.bandas&&c.mo) calcP=c; }
+  }catch(e){}
+}
+
+let calcToastTt;
+function calcToast(msg){
+  const el=document.getElementById("calcToast");
+  if(!el) return;
+  el.textContent=msg; el.classList.add("on");
+  clearTimeout(calcToastTt); calcToastTt=setTimeout(()=>el.classList.remove("on"),2600);
+}
+
+function calcSetModo(modo){
+  calcModo=modo;
+  const vc=document.getElementById("calcVistaCalc"), va=document.getElementById("calcVistaAdm");
+  const tbC=document.getElementById("calcTabCalc"), tbA=document.getElementById("calcTabAdm");
+  if(!vc||!va) return;
+  vc.hidden=(modo==='adm'); va.hidden=(modo==='calc');
+  if(tbC) tbC.classList.toggle('active', modo==='calc');
+  if(tbA) tbA.classList.toggle('active', modo==='adm');
+  if(modo==='calc'){ calcPintarSelector(); calcPintarBarras(); calcRender(); }
+  else calcPintarAdmin();
+}
+
+function calcRefrescar(){ calcPintarSelector(); calcPintarBarras(); calcRender(); }
+
+/* ── renderizar la estructura HTML completa en el mount point ── */
+function calcMount(){
+  const root=document.getElementById("calc-pvp-root");
+  if(!root) return;
+
+  const isAdmin = window.__SAVE_CURRENT_ROLE === 'admin';
+
+  root.innerHTML=`
+<div style="max-width:1080px;margin:0 auto;padding:0 0 40px">
+
+  <!-- Cabecera -->
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+    <div>
+      <h2 style="font-size:20px;font-weight:800;margin:0">Calculadora de PVP</h2>
+      <p style="color:var(--g500);font-size:13px;margin:3px 0 0">Calcula el PVP de reparaciones aplicando multiplicadores por banda de coste</p>
+    </div>
+    ${isAdmin ? `<div class="calc-tab-bar" style="margin:0">
+      <button id="calcTabCalc" class="active" onclick="calcSetModo('calc')">Calculadora</button>
+      <button id="calcTabAdm" onclick="calcSetModo('adm')">Administración</button>
+    </div>` : ''}
+  </div>
+
+  <!-- Vista calculadora -->
+  <div id="calcVistaCalc">
+    <div class="calc-grid">
+      <section>
+        <div class="calc-panel">
+          <div class="calc-panel-head">
+            <span class="calc-eyebrow">1 · Coste de la pieza</span>
+            <span class="calc-eyebrow">Sin IVA</span>
+          </div>
+          <div class="calc-costfield">
+            <input id="calcCoste" type="number" inputmode="decimal" min="0" step="0.01" value="18" aria-label="Coste de la pieza sin IVA">
+            <span class="unit" style="position:absolute;right:18px;top:50%;transform:translateY(-50%);font-weight:600;font-size:24px;color:var(--g400)">€</span>
+          </div>
+          <p class="calc-hint">Lo que cuesta la pieza en factura de proveedor. El transporte y la merma se añaden solos.</p>
+          <div class="calc-panel-head" style="margin-top:4px">
+            <span class="calc-eyebrow">2 · Reparación</span>
+            <span class="calc-eyebrow" id="calcNivLbl"></span>
+          </div>
+          <select class="calc-rep" id="calcReparacion" aria-label="Tipo de reparación"></select>
+          <p class="calc-hint" style="margin-top:10px;margin-bottom:0">Elige la reparación de la orden de trabajo.</p>
+        </div>
+      </section>
+
+      <section>
+        <div class="calc-readout">
+          <span class="calc-eyebrow">PVP al público · IVA incluido</span>
+          <div class="calc-pvp"><span id="calcPvp">79</span><span class="cur">€</span></div>
+          <div class="sub" id="calcPvpSub" style="font-family:var(--calc-mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.62);text-transform:uppercase;margin-top:4px"></div>
+          <div class="calc-ruler">
+            <div class="calc-ruler-head">
+              <span class="calc-eyebrow">Banda de coste aplicada</span>
+              <span class="mult" id="calcMultLbl" style="font-weight:800;font-size:19px;color:var(--save-lt);letter-spacing:-.02em">2,10x</span>
+            </div>
+            <div class="calc-bars" id="calcBars"><div class="calc-needle" id="calcNeedle" style="left:0"></div></div>
+            <div class="calc-scale"><span>1 €</span><span>5</span><span>15</span><span>30</span><span>60</span><span>100</span><span>150</span><span>250</span><span>400 €</span></div>
+          </div>
+        </div>
+
+        <div class="calc-panel" style="margin-top:16px">
+          <div class="calc-panel-head">
+            <span class="calc-eyebrow">Desglose de la factura</span>
+            <span class="calc-eyebrow">Pieza y mano de obra por separado</span>
+          </div>
+          <div id="calcDesglose"></div>
+        </div>
+      </section>
+    </div>
+
+    <details class="calc-details">
+      <summary><span style="font-size:13px;font-weight:600;color:var(--g600)">Tarifa de mostrador · coste de pieza → PVP</span><span class="sig">+</span></summary>
+      <div class="calc-details-body">
+        <p class="calc-hint" style="margin-bottom:14px">Busca el coste de la pieza en la primera columna y baja por la columna del nivel asignado a esa reparación.</p>
+        <table class="calc-tarifa" id="calcTabla"><thead><tr id="calcTablaHead"></tr></thead><tbody></tbody></table>
+      </div>
+    </details>
+  </div>
+
+  <!-- Vista administración (solo admin) -->
+  ${isAdmin ? `<div id="calcVistaAdm" hidden>
+    <p class="calc-admin-note"><strong>Panel de administración.</strong> Lo que definas aquí fija el PVP de toda la red. Cuando termines, exporta la configuración y distribúyela.</p>
+
+    <div class="calc-panel">
+      <p class="calc-sec-title">Catálogo de reparaciones</p>
+      <p class="calc-sec-sub">La columna PVP ref. usa 20 € de coste y sirve para ver el efecto de cambiar el nivel.</p>
+      <table class="calc-reps" id="calcTablaReps">
+        <thead><tr>
+          <th>Reparación</th><th class="colgrp">Grupo</th><th class="colniv">Mano de obra</th>
+          <th class="colpvp" style="text-align:right">PVP ref.</th><th class="colx"></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="calc-btnrow">
+        <button type="button" class="calc-btn pri" id="calcAddRep">+ Añadir reparación</button>
+      </div>
+    </div>
+
+    <div class="calc-panel" style="margin-top:16px">
+      <p class="calc-sec-title">Niveles de mano de obra</p>
+      <p class="calc-sec-sub">Importe sin IVA de cada nivel. Se suma al precio de la pieza antes de aplicar el IVA.</p>
+      <div class="calc-set-grid" id="calcSetMo"></div>
+    </div>
+
+    <div class="calc-panel" style="margin-top:16px">
+      <p class="calc-sec-title">Multiplicadores por banda de coste</p>
+      <p class="calc-sec-sub">Degresivos: la pieza barata aguanta multiplicador alto, la cara no.</p>
+      <div class="calc-set-grid" id="calcSetBandas"></div>
+    </div>
+
+    <div class="calc-panel" style="margin-top:16px">
+      <p class="calc-sec-title">Parámetros generales</p>
+      <div class="calc-set-grid">
+        <div class="calc-set"><label for="calcP_iva">IVA %</label><input id="calcP_iva" type="number" step="1"></div>
+        <div class="calc-set"><label for="calcP_merma">Merma / DOA %</label><input id="calcP_merma" type="number" step="0.5"></div>
+        <div class="calc-set"><label for="calcP_log">Logística %</label><input id="calcP_log" type="number" step="0.5"></div>
+        <div class="calc-set"><label for="calcP_minticket">Ticket mínimo €</label><input id="calcP_minticket" type="number" step="1"></div>
+      </div>
+    </div>
+
+    <div class="calc-panel" style="margin-top:16px">
+      <p class="calc-sec-title">Distribuir a la red</p>
+      <p class="calc-sec-sub">Copia este texto y pégalo en la calculadora de cada tienda para que todas trabajen con la misma configuración.</p>
+      <textarea class="calc-textarea" id="calcCfg" spellcheck="false"></textarea>
+      <div class="calc-btnrow">
+        <button type="button" class="calc-btn pri" id="calcExportar">Generar configuración</button>
+        <button type="button" class="calc-btn" id="calcImportar">Aplicar la pegada</button>
+        <button type="button" class="calc-btn" id="calcReset">Valores de fábrica</button>
+      </div>
+    </div>
+  </div>` : ''}
+
+</div>
+<div class="calc-toast" id="calcToast"></div>`;
+
+  /* ── eventos ── */
+  const costeEl=document.getElementById("calcCoste");
+  if(costeEl) costeEl.addEventListener("input", calcRender);
+  const repEl=document.getElementById("calcReparacion");
+  if(repEl) repEl.addEventListener("change", e=>{ calcRepSel=+e.target.value; calcRender(); });
+
+  if(isAdmin){
+    const tablaRepsEl=document.getElementById("calcTablaReps");
+    if(tablaRepsEl){
+      tablaRepsEl.addEventListener("input", e=>{
+        const i=e.target.dataset.i, f=e.target.dataset.f;
+        if(i===undefined||!f) return;
+        calcP.reparaciones[+i][f]=e.target.value;
+        if(f==="niv") calcPintarReps();
+        calcGuardar();
+      });
+      tablaRepsEl.addEventListener("click", e=>{
+        const i=e.target.dataset.del; if(i===undefined) return;
+        if(calcP.reparaciones.length<=1){ calcToast("Tiene que quedar al menos una reparación"); return; }
+        calcP.reparaciones.splice(+i,1);
+        if(calcRepSel>=calcP.reparaciones.length) calcRepSel=calcP.reparaciones.length-1;
+        calcPintarReps(); calcGuardar();
+      });
+    }
+    const addRepEl=document.getElementById("calcAddRep");
+    if(addRepEl) addRepEl.addEventListener("click", ()=>{
+      calcP.reparaciones.push({n:"Nueva reparación",g:"Móvil y tablet",niv:calcP.mo[1]?calcP.mo[1].c:calcP.mo[0].c});
+      calcPintarReps(); calcGuardar();
+      const inputs=document.querySelectorAll('#calcTablaReps input[data-f="n"]');
+      const last=inputs[inputs.length-1]; if(last){ last.focus(); last.select(); }
+    });
+    const setmoEl=document.getElementById("calcSetMo");
+    if(setmoEl) setmoEl.addEventListener("input", e=>{
+      if(e.target.dataset.m===undefined) return;
+      calcP.mo[+e.target.dataset.m].e=parseFloat(e.target.value)||0;
+      calcPintarReps(); calcGuardar();
+    });
+    const setbandasEl=document.getElementById("calcSetBandas");
+    if(setbandasEl) setbandasEl.addEventListener("input", e=>{
+      const i=e.target.dataset.b; if(i===undefined) return;
+      calcP.bandas[+i].mult=parseFloat(e.target.value)||0.01; calcPintarReps(); calcGuardar();
+    });
+    ["iva","merma","log","minticket"].forEach(k=>{
+      const el=document.getElementById("calcP_"+k);
+      if(el) el.addEventListener("input", e=>{
+        calcP[k]=parseFloat(e.target.value)||0; calcPintarReps(); calcGuardar();
+      });
+    });
+    const expEl=document.getElementById("calcExportar");
+    if(expEl) expEl.addEventListener("click", ()=>{
+      const ta=document.getElementById("calcCfg");
+      if(ta) ta.value=JSON.stringify(calcP,null,1);
+      calcToast("Configuración generada. Cópiala y pégala en cada tienda.");
+    });
+    const impEl=document.getElementById("calcImportar");
+    if(impEl) impEl.addEventListener("click", ()=>{
+      try{
+        const ta=document.getElementById("calcCfg");
+        const c=JSON.parse(ta?ta.value:'{}');
+        if(!c.reparaciones||!c.bandas||!c.mo) throw new Error("faltan bloques");
+        calcP=c; calcRepSel=0; calcPintarAdmin(); calcGuardar();
+        calcToast("Configuración aplicada");
+      }catch(err){ calcToast("Ese texto no es una configuración válida"); }
+    });
+    const resetEl=document.getElementById("calcReset");
+    if(resetEl) resetEl.addEventListener("click", ()=>{
+      calcP=calcClonar(CALC_FABRICA); calcRepSel=0; calcPintarAdmin(); calcGuardar();
+      calcToast("Valores de fábrica restaurados");
+    });
+  }
+
+  calcSetModo('calc');
+}
+
+/* ── exponer globalmente ── */
+window.calcSetModo = calcSetModo;
+window.calcMountPvp = function(){
+  calcCargar();
+  calcMount();
+};
+
+/* ── arranque: montar cuando se navegue a esta página ── */
+// Se engancha al evento de navegación observando la página
+const calcObserver = new MutationObserver(() => {
+  const page = document.getElementById('page-calculadora-pvp');
+  if(page && page.classList.contains('active') && !page.dataset.calcMounted){
+    page.dataset.calcMounted = '1';
+    window.calcMountPvp();
+  }
+});
+const calcTarget = document.getElementById('page-calculadora-pvp');
+if(calcTarget){
+  calcObserver.observe(calcTarget, {attributes:true, attributeFilter:['class']});
+}
+
+})();
+</script>
