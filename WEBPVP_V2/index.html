@@ -4665,10 +4665,41 @@ function calcPintarAdmin(){
   calcPintarReps();
 }
 
-function calcGuardar(){
+async function calcGuardar(){
+  // Siempre guardar en localStorage como caché local
   try{ localStorage.setItem(CALC_STORE_KEY, JSON.stringify(calcP)); }catch(e){}
 }
-function calcCargar(){
+async function calcGuardarGlobal(){
+  // Guardar en el servidor (solo admin, se aplica a todos los usuarios)
+  try{
+    const token = localStorage.getItem('savePvpToken');
+    await fetch('/api/settings/calculadora', {
+      method: 'PUT',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+token },
+      body: JSON.stringify(calcP)
+    });
+    // También actualizar caché local
+    calcGuardar();
+  }catch(e){ console.warn('No se pudo guardar config en servidor:', e.message); }
+}
+async function calcCargar(){
+  // Intentar cargar desde el servidor primero
+  try{
+    const token = localStorage.getItem('savePvpToken');
+    const res = await fetch('/api/settings/calculadora', {
+      headers: { 'Authorization':'Bearer '+token }
+    });
+    if(res.ok){
+      const c = await res.json();
+      if(c && c.reparaciones && c.bandas && c.mo){
+        calcP = c;
+        // Actualizar caché local con la config del servidor
+        try{ localStorage.setItem(CALC_STORE_KEY, JSON.stringify(calcP)); }catch(e){}
+        return;
+      }
+    }
+  }catch(e){ /* fallback a localStorage */ }
+  // Fallback: cargar desde localStorage
   try{
     const raw=localStorage.getItem(CALC_STORE_KEY);
     if(raw){ const c=JSON.parse(raw); if(c&&c.reparaciones&&c.bandas&&c.mo) calcP=c; }
@@ -4757,13 +4788,13 @@ function calcMount(){
           </div>
         </div>
 
-        <div class="calc-panel" style="margin-top:16px">
+        ${isAdmin ? `<div class="calc-panel" style="margin-top:16px">
           <div class="calc-panel-head">
             <span class="calc-eyebrow">Desglose de la factura</span>
             <span class="calc-eyebrow">Pieza y mano de obra por separado</span>
           </div>
           <div id="calcDesglose"></div>
-        </div>
+        </div>` : '<div id="calcDesglose" hidden></div>'}
       </section>
     </div>
 
@@ -4813,11 +4844,12 @@ function calcMount(){
 
     <div class="calc-panel" style="margin-top:16px">
       <p class="calc-sec-title">Distribuir a la red</p>
-      <p class="calc-sec-sub">Copia este texto y pégalo en la calculadora de cada tienda para que todas trabajen con la misma configuración.</p>
-      <textarea class="calc-textarea" id="calcCfg" spellcheck="false"></textarea>
+      <p class="calc-sec-sub">Los cambios que hagas en las secciones anteriores y guardes aquí se aplican automáticamente a todos los usuarios. También puedes importar una configuración en JSON.</p>
+      <textarea class="calc-textarea" id="calcCfg" spellcheck="false" placeholder="Pega aquí un JSON de configuración para importarlo…"></textarea>
       <div class="calc-btnrow">
-        <button type="button" class="calc-btn pri" id="calcExportar">Generar configuración</button>
-        <button type="button" class="calc-btn" id="calcImportar">Aplicar la pegada</button>
+        <button type="button" class="calc-btn pri" id="calcGuardarTodos">💾 Guardar y aplicar a todos</button>
+        <button type="button" class="calc-btn" id="calcExportar">Exportar JSON</button>
+        <button type="button" class="calc-btn" id="calcImportar">Importar JSON</button>
         <button type="button" class="calc-btn" id="calcReset">Valores de fábrica</button>
       </div>
     </div>
@@ -4874,11 +4906,18 @@ function calcMount(){
         calcP[k]=parseFloat(e.target.value)||0; calcPintarReps(); calcGuardar();
       });
     });
+    const guardarTodosEl=document.getElementById("calcGuardarTodos");
+    if(guardarTodosEl) guardarTodosEl.addEventListener("click", async ()=>{
+      guardarTodosEl.disabled=true; guardarTodosEl.textContent="Guardando…";
+      await calcGuardarGlobal();
+      guardarTodosEl.disabled=false; guardarTodosEl.textContent="💾 Guardar y aplicar a todos";
+      calcToast("✅ Configuración guardada. Todos los usuarios verán estos cambios.");
+    });
     const expEl=document.getElementById("calcExportar");
     if(expEl) expEl.addEventListener("click", ()=>{
       const ta=document.getElementById("calcCfg");
       if(ta) ta.value=JSON.stringify(calcP,null,1);
-      calcToast("Configuración generada. Cópiala y pégala en cada tienda.");
+      calcToast("JSON generado. Cópialo para guardarlo como backup.");
     });
     const impEl=document.getElementById("calcImportar");
     if(impEl) impEl.addEventListener("click", ()=>{
@@ -4886,14 +4925,14 @@ function calcMount(){
         const ta=document.getElementById("calcCfg");
         const c=JSON.parse(ta?ta.value:'{}');
         if(!c.reparaciones||!c.bandas||!c.mo) throw new Error("faltan bloques");
-        calcP=c; calcRepSel=0; calcPintarAdmin(); calcGuardar();
-        calcToast("Configuración aplicada");
+        calcP=c; calcRepSel=0; calcPintarAdmin();
+        calcToast("JSON importado. Pulsa 'Guardar y aplicar a todos' para distribuirlo.");
       }catch(err){ calcToast("Ese texto no es una configuración válida"); }
     });
     const resetEl=document.getElementById("calcReset");
     if(resetEl) resetEl.addEventListener("click", ()=>{
-      calcP=calcClonar(CALC_FABRICA); calcRepSel=0; calcPintarAdmin(); calcGuardar();
-      calcToast("Valores de fábrica restaurados");
+      calcP=calcClonar(CALC_FABRICA); calcRepSel=0; calcPintarAdmin();
+      calcToast("Valores de fábrica cargados. Pulsa 'Guardar y aplicar a todos' para distribuirlos.");
     });
   }
 
@@ -4902,8 +4941,8 @@ function calcMount(){
 
 /* ── exponer globalmente ── */
 window.calcSetModo = calcSetModo;
-window.calcMountPvp = function(){
-  calcCargar();
+window.calcMountPvp = async function(){
+  await calcCargar();
   calcMount();
 };
 
