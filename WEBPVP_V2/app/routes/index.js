@@ -11,6 +11,7 @@ const reportesCtrl  = require('../controllers/reportesController');
 const stockCtrl     = require('../controllers/stockController');
 const chatCtrl      = require('../controllers/chatController');
 const chatLogsCtrl  = require('../controllers/chatLogsController');
+const settingsCtrl  = require('../controllers/settingsController');
 
 // ── Auth ──────────────────────────────────────────────────
 router.post('/auth/login', authCtrl.login);
@@ -83,5 +84,9 @@ router.post('/chat', auth, role('admin','carrefour','eci'), chatCtrl.chat);
 // ── Chat logs (admin only) ────────────────────────────────
 router.get('/chat-logs',         auth, role('admin'), chatLogsCtrl.listar);
 router.get('/chat-logs/resumen', auth, role('admin'), chatLogsCtrl.resumen);
+
+// ── Settings ──────────────────────────────────────────────
+router.get('/settings/calculadora', auth, settingsCtrl.getCalcConfig);
+router.put('/settings/calculadora', auth, role('admin'), settingsCtrl.setCalcConfig);
 
 module.exports = router;
