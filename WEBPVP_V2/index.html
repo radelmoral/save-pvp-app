@@ -4561,6 +4561,9 @@ const CALC_ESCALERA=[19,25,29,35,39,45,49,55,59,65,69,75,79,85,89,95,99,109,119,
 let calcP = JSON.parse(JSON.stringify(CALC_FABRICA));
 let calcRepSel = 0;
 let calcModo = 'calc'; // 'calc' | 'adm'
+let calcRefBlocked = false;     // true cuando la referencia ya tiene PVP en catálogo
+let calcRefValidadaOK = false;  // true cuando la referencia se valida como libre/pendiente
+let calcAutoSendKey = '';       // ref+prov de la última solicitud auto-enviada
 
 function calcClonar(o){ return JSON.parse(JSON.stringify(o)); }
 const calcEur  = n => n.toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2})+" €";
@@ -4637,6 +4640,13 @@ function calcRender(){
   const costeEl=document.getElementById("calcCoste");
   if(!costeEl) return;
   const coste=Math.max(0,parseFloat(costeEl.value)||0);
+
+  // Ocultar el panel derecho si la referencia está bloqueada (ya tiene PVP en catálogo)
+  const isAdminRol = window.__SAVE_CURRENT_ROLE === 'admin';
+  const rightPanel = document.getElementById('calcRightPanel');
+  if(rightPanel) rightPanel.style.display = (!isAdminRol && calcRefBlocked) ? 'none' : '';
+  if(!isAdminRol && calcRefBlocked) return;
+
   const r=calcCalcular(coste, rep.niv);
 
   const adminView = window.__SAVE_CURRENT_ROLE === 'admin';
@@ -4784,8 +4794,10 @@ function calcSetModo(modo){
   calcModo=modo;
   const vc=document.getElementById("calcVistaCalc"), va=document.getElementById("calcVistaAdm");
   const tbC=document.getElementById("calcTabCalc"), tbA=document.getElementById("calcTabAdm");
-  if(!vc||!va) return;
-  vc.hidden=(modo==='adm'); va.hidden=(modo==='calc');
+  if(!vc) return;
+  // calcVistaAdm solo existe para admin; si no existe, siempre mostrar calcVistaCalc
+  if(va){ vc.hidden=(modo==='adm'); va.hidden=(modo==='calc'); }
+  else { vc.hidden=false; }
   if(tbC) tbC.classList.toggle('active', modo==='calc');
   if(tbA) tbA.classList.toggle('active', modo==='adm');
   if(modo==='calc'){ calcPintarSelector(); calcPintarBarras(); calcRender(); }
@@ -4868,7 +4880,7 @@ function calcMount(){
         </div>
       </section>
 
-      <section>
+      <section id="calcRightPanel">
         <div class="calc-readout">
           <span class="calc-eyebrow">PVP al público · IVA incluido</span>
           <div class="calc-pvp"><span id="calcPvp">79</span><span class="cur">€</span></div>
@@ -4892,12 +4904,9 @@ function calcMount(){
         </div>
 
         ${!isAdmin ? `<div style="margin-top:12px">
-          <button type="button" id="calcBtnEnviar" onclick="calcEnviarSolicitud()"
-            style="width:100%;padding:14px;background:var(--save);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:700;cursor:pointer;letter-spacing:.02em;transition:background .2s"
-            onmouseover="this.style.background='var(--save-dk)'" onmouseout="this.style.background='var(--save)'">
-            📨 Enviar solicitud de PVP
-          </button>
-          <div id="calcEnviarStatus" style="margin-top:8px;font-size:12.5px;text-align:center;color:var(--g500);min-height:18px"></div>
+          <div id="calcEnviarStatus" style="padding:10px 14px;font-size:13px;text-align:center;min-height:38px;border-radius:var(--r);background:var(--g100);color:var(--g500)">
+            Completa Referencia y Proveedor para registrar la consulta automáticamente.
+          </div>
         </div>` : ''}
       </section>
     </div>
@@ -4967,6 +4976,12 @@ function calcMount(){
   if(costeEl) costeEl.addEventListener("input", calcRender);
   const repEl=document.getElementById("calcReparacion");
   if(repEl) repEl.addEventListener("change", e=>{ calcRepSel=+e.target.value; calcRender(); });
+  // Proveedor: auto-envío si la referencia ya está validada
+  const provEl=document.getElementById("calcSolProv");
+  if(provEl) provEl.addEventListener("change", ()=>{ if(calcRefValidadaOK) calcCheckAutoSend(); });
+  // Referencia: resetear estado al cambiar texto
+  const solRefEl=document.getElementById("calcSolRef");
+  if(solRefEl) solRefEl.addEventListener("input", ()=>{ calcRefValidadaOK=false; calcAutoSendKey=''; });
 
   if(isAdmin){
     const tablaRepsEl=document.getElementById("calcTablaReps");
@@ -5045,21 +5060,27 @@ function calcMount(){
 
 /* ── validación y envío de solicitud desde la calculadora ── */
 function calcRefSetWarn(msg, isBlocking){
+  calcRefBlocked = !!(isBlocking && msg);
   const warnEl=document.getElementById('calcRefWarn');
-  const btnEl=document.getElementById('calcBtnEnviar');
   if(!warnEl) return;
-  if(!msg){ warnEl.style.display='none'; warnEl.textContent=''; if(btnEl) btnEl.disabled=false; return; }
-  warnEl.style.display='block'; warnEl.textContent=msg;
+  if(!msg){ warnEl.style.display='none'; warnEl.textContent=''; calcRender(); return; }
   if(isBlocking){
     warnEl.style.cssText='display:block;margin-top:6px;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.5;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5';
-    if(btnEl) btnEl.disabled=true;
   } else {
     warnEl.style.cssText='display:block;margin-top:6px;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.5;background:#fef3c7;color:#92400e;border:1px solid #fcd34d';
-    if(btnEl) btnEl.disabled=false;
   }
+  warnEl.style.display='block'; warnEl.textContent=msg;
+  calcRender(); // re-render para mostrar/ocultar panel derecho
 }
-window.calcRefClearWarn = function(){ calcRefSetWarn(null, false); };
+window.calcRefClearWarn = function(){
+  calcRefBlocked = false;
+  calcRefValidadaOK = false;
+  const warnEl=document.getElementById('calcRefWarn');
+  if(warnEl){ warnEl.style.display='none'; warnEl.textContent=''; }
+  calcRender();
+};
 window.calcValidarRef = async function(){
+  calcRefValidadaOK = false;
   const ref=(document.getElementById('calcSolRef')?.value||'').trim();
   if(!ref){ calcRefSetWarn(null,false); return; }
   try{
@@ -5070,48 +5091,52 @@ window.calcValidarRef = async function(){
     const check=await res.json();
     if(check?.existe){
       if(check.conPvp){
-        calcRefSetWarn('⛔ La referencia "'+ref+'" ya tiene PVP asignado en '+check.origen+'. No es necesaria una solicitud.',true);
+        calcRefSetWarn('⛔ La referencia "'+ref+'" ya tiene PVP asignado en '+check.origen+'. No puedes solicitar una consulta de PVP para esta referencia.',true);
       } else {
-        calcRefSetWarn('⚠️ Ya existe una solicitud pendiente para esta referencia. Puedes enviarla igualmente si es necesario.',false);
+        calcRefSetWarn('⚠️ Ya existe una solicitud pendiente para esta referencia. Se enviará igualmente.',false);
+        calcRefValidadaOK = true;
+        calcCheckAutoSend();
       }
-    } else { calcRefSetWarn(null,false); }
+    } else {
+      calcRefSetWarn(null,false);
+      calcRefValidadaOK = true;
+      calcCheckAutoSend();
+    }
   }catch(e){ calcRefSetWarn(null,false); }
 };
+
+/* Auto-envío: se dispara cuando ref+prov están completos y la ref es válida */
+function calcCheckAutoSend(){
+  if(window.__SAVE_CURRENT_ROLE === 'admin') return;
+  if(!calcRefValidadaOK || calcRefBlocked) return;
+  const ref=(document.getElementById('calcSolRef')?.value||'').trim();
+  const prov=(document.getElementById('calcSolProv')?.value||'').trim();
+  if(!ref || !prov) return;
+  const key = ref + '||' + prov;
+  if(key === calcAutoSendKey) return; // ya enviada esta combinación
+  calcAutoSendKey = key;
+  window.calcEnviarSolicitud();
+}
 window.calcEnviarSolicitud = async function(){
   const ref=(document.getElementById('calcSolRef')?.value||'').trim();
   const prov=(document.getElementById('calcSolProv')?.value||'').trim();
   const costeEl=document.getElementById('calcCoste');
   const coste=parseFloat(costeEl?.value||0);
-  if(!ref){ calcRefSetWarn('⛔ La referencia es obligatoria.',true); document.getElementById('calcSolRef')?.focus(); return; }
-  if(!prov){ calcToast('Selecciona un proveedor'); document.getElementById('calcSolProv')?.focus(); return; }
-  if(!coste||coste<=0){ calcToast('Indica el coste de la pieza'); costeEl?.focus(); return; }
+  if(!ref || !prov) return;
 
-  // Verificar de nuevo por si el usuario no salió del campo
-  const token=localStorage.getItem('savePvpToken');
-  try{
-    const checkRes=await fetch('/api/solicitudes/validar-referencia?referencia='+encodeURIComponent(ref),
-      {headers:{'Authorization':'Bearer '+token}});
-    if(checkRes.ok){
-      const check=await checkRes.json();
-      if(check?.existe && check.conPvp){
-        calcRefSetWarn('⛔ La referencia "'+ref+'" ya tiene PVP asignado en '+check.origen+'. No es necesaria una solicitud.',true);
-        return;
-      }
-    }
-  }catch(e){}
-
-  // Obtener la reparación seleccionada para la descripción
   const repIdx=+(document.getElementById('calcReparacion')?.value||0);
   const rep=calcP.reparaciones[repIdx]||{n:'',g:''};
   const pvpCalculado=document.getElementById('calcPvp')?.textContent||'';
   const descSolicitud=rep.n+(rep.g?' ('+rep.g+')':'');
   const obsSolicitud='PVP calculado: '+pvpCalculado+' € | Coste pieza: '+coste+' €';
 
-  const btnEl=document.getElementById('calcBtnEnviar');
   const statusEl=document.getElementById('calcEnviarStatus');
-  if(btnEl){ btnEl.disabled=true; btnEl.textContent='Enviando…'; }
-  if(statusEl) statusEl.textContent='';
+  if(statusEl){
+    statusEl.textContent='⏳ Registrando solicitud…';
+    statusEl.style.cssText='padding:10px 14px;font-size:13px;text-align:center;min-height:38px;border-radius:var(--r);background:var(--g100);color:var(--g600)';
+  }
 
+  const token=localStorage.getItem('savePvpToken');
   try{
     const res=await fetch('/api/solicitudes',{
       method:'POST',
@@ -5119,7 +5144,7 @@ window.calcEnviarSolicitud = async function(){
       body:JSON.stringify({
         referencia: ref,
         proveedor:  prov,
-        coste:      coste,
+        coste:      coste||0,
         descripcion: descSolicitud,
         observaciones: obsSolicitud,
         marca:  '',
@@ -5127,17 +5152,22 @@ window.calcEnviarSolicitud = async function(){
       })
     });
     const data=await res.json();
-    if(!res.ok) throw new Error(data.error||'Error al enviar');
-    if(statusEl){ statusEl.style.color='var(--green-500)'; statusEl.textContent='✅ Solicitud enviada correctamente'; }
-    // Limpiar campos de identificación
-    const refEl=document.getElementById('calcSolRef'); if(refEl) refEl.value='';
-    const provEl=document.getElementById('calcSolProv'); if(provEl) provEl.value='';
-    calcRefSetWarn(null,false);
-    setTimeout(()=>{ if(statusEl) statusEl.textContent=''; },4000);
+    if(!res.ok) throw new Error(data.error||'Error al registrar');
+    if(statusEl){
+      statusEl.textContent='✅ Solicitud registrada. Un administrador asignará el PVP en breve.';
+      statusEl.style.cssText='padding:10px 14px;font-size:13px;text-align:center;min-height:38px;border-radius:var(--r);background:#d1fae5;color:#065f46';
+    }
   }catch(e){
-    if(statusEl){ statusEl.style.color='var(--red-500)'; statusEl.textContent='❌ '+e.message; }
-  }finally{
-    if(btnEl){ btnEl.disabled=false; btnEl.textContent='📨 Enviar solicitud de PVP'; }
+    // Si el error es que ya existe solicitud pendiente, no es un error real para el usuario
+    const alreadyExists = e.message && (e.message.includes('pendiente') || e.message.includes('existe'));
+    if(statusEl){
+      statusEl.textContent = alreadyExists
+        ? '⚠️ Ya existe una solicitud pendiente para esta referencia.'
+        : '❌ '+e.message;
+      statusEl.style.cssText='padding:10px 14px;font-size:13px;text-align:center;min-height:38px;border-radius:var(--r);background:'+(alreadyExists?'#fef3c7;color:#92400e':'#fee2e2;color:#b91c1c');
+    }
+    // Si ya existe, no volvemos a intentar
+    if(!alreadyExists) calcAutoSendKey = ''; // permitir reintento
   }
 };
 
