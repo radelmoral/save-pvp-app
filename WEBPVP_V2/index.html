@@ -608,7 +608,10 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <div style="display:flex;flex-direction:column;gap:14px;">
           <div class="ff">
             <label>Referencia *</label>
-            <input class="finp" id="solRef" placeholder="Ej: SAM-S24-LCD-01" onblur="validarReferenciaSolicitudUI()" />
+            <input class="finp" id="solRef" placeholder="Ej: SAM-S24-LCD-01"
+              oninput="solRefClearWarn()"
+              onblur="validarReferenciaSolicitudUI()" />
+            <div id="solRefWarn" style="display:none;margin-top:6px;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.5;"></div>
           </div>
           <div class="ff">
             <label>Coste (€) *</label>
@@ -2697,24 +2700,59 @@ async function eliminarRepuesto(referencia, btn) {
 }
 
 /** Enviar solicitud a la API */
+function solRefSetWarn(msg, isBlocking) {
+  const warnEl = document.getElementById('solRefWarn');
+  const btnEl  = document.querySelector('#page-solicitud-pvp .btn.btn-p');
+  if (!warnEl) return;
+  if (!msg) {
+    warnEl.style.display = 'none';
+    warnEl.textContent = '';
+    if (btnEl) btnEl.disabled = false;
+    return;
+  }
+  warnEl.style.display = 'block';
+  warnEl.textContent = msg;
+  if (isBlocking) {
+    warnEl.style.background = '#fee2e2';
+    warnEl.style.color = '#b91c1c';
+    warnEl.style.border = '1px solid #fca5a5';
+    if (btnEl) btnEl.disabled = true;
+  } else {
+    warnEl.style.background = '#fef3c7';
+    warnEl.style.color = '#92400e';
+    warnEl.style.border = '1px solid #fcd34d';
+    if (btnEl) btnEl.disabled = false;
+  }
+}
+
+function solRefClearWarn() {
+  solRefSetWarn(null, false);
+}
+
 async function enviarSolicitudAPI() {
   if (!API_AVAILABLE) { enviarSolicitud(); return; }
 
-  const ref  = document.getElementById('solRef').value.trim();
-  const cost = document.getElementById('solCoste').value;
+  const ref   = document.getElementById('solRef').value.trim();
+  const cost  = document.getElementById('solCoste').value;
   const marca = document.getElementById('solMarca').value.trim();
-  const modelo = document.getElementById('solModelo').value.trim();
-  const prov = document.getElementById('solProv').value;
-  if (!ref || !cost || !marca || !modelo || !prov) { toast('Rellena todos los campos obligatorios','warn'); return; }
+  const modelo= document.getElementById('solModelo').value.trim();
+  const prov  = document.getElementById('solProv').value;
+  if (!ref)   { toast('La referencia es obligatoria','warn'); document.getElementById('solRef').focus(); return; }
+  if (!prov)  { toast('Selecciona un proveedor','warn'); document.getElementById('solProv').focus(); return; }
+  if (!cost)  { toast('Indica el coste','warn'); return; }
+  if (!marca) { toast('Indica la marca','warn'); return; }
+  if (!modelo){ toast('Indica el modelo','warn'); return; }
 
   try {
     const check = await API.solicitudes.validarReferencia(ref);
     if (check?.existe) {
-      const origenTexto = check.tipo === 'solicitud'
-        ? 'ya existe una solicitud pendiente'
-        : `ya existe en ${check.origen}`;
-      toast(`No se puede enviar: la referencia ${ref} ${origenTexto}`, 'warn');
-      return;
+      if (check.conPvp) {
+        solRefSetWarn(`⛔ La referencia "${ref}" ya tiene PVP asignado en ${check.origen}. No es necesaria una solicitud.`, true);
+        return;
+      } else {
+        solRefSetWarn(`⚠️ Ya existe una solicitud pendiente para la referencia "${ref}".`, true);
+        return;
+      }
     }
     await API.solicitudes.crear({
       referencia:   ref,
@@ -2727,6 +2765,7 @@ async function enviarSolicitudAPI() {
     });
     ['solRef','solCoste','solMarca','solModelo','solDesc','solObs'].forEach(id => { document.getElementById(id).value=''; });
     document.getElementById('solProv').value='';
+    solRefClearWarn();
     toast('Solicitud enviada correctamente','ok');
     await Promise.allSettled([
       loadMisSolicitudesFromAPI(),
@@ -2740,16 +2779,19 @@ async function enviarSolicitudAPI() {
 async function validarReferenciaSolicitudUI() {
   if (!API_AVAILABLE) return;
   const ref = document.getElementById('solRef')?.value?.trim();
-  if (!ref) return;
+  if (!ref) { solRefClearWarn(); return; }
   try {
     const check = await API.solicitudes.validarReferencia(ref);
     if (check?.existe) {
-      const origenTexto = check.tipo === 'solicitud'
-        ? 'ya tiene una solicitud pendiente'
-        : `ya existe en ${check.origen}`;
-      toast(`La referencia ${ref} ${origenTexto}`, 'warn');
+      if (check.conPvp) {
+        solRefSetWarn(`⛔ La referencia "${ref}" ya tiene PVP asignado en ${check.origen}. No es necesaria una solicitud.`, true);
+      } else {
+        solRefSetWarn(`⚠️ Ya existe una solicitud pendiente para la referencia "${ref}".`, true);
+      }
+    } else {
+      solRefClearWarn();
     }
-  } catch (_) {}
+  } catch (_) { solRefClearWarn(); }
 }
 
 /** Autenticación real: verificar token al cargar la página */
