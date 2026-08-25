@@ -157,18 +157,19 @@ async function crear(req, res) {
   }
   const { referencia, descripcion, categoria, marca, modelo, coste, proveedor, observaciones } = req.body;
 
-  if (!referencia || !marca || !modelo || !coste) {
-    return res.status(400).json({ error: 'Referencia, marca, modelo y coste son obligatorios' });
+  if (!referencia || !coste) {
+    return res.status(400).json({ error: 'Referencia y coste son obligatorios' });
   }
 
   try {
     await ensureSolicitudesSchema();
     const existente = await buscarReferenciaExistente(referencia);
-    if (existente.existe) {
-      const msg = existente.tipo === 'solicitud'
-        ? 'Ya existe una solicitud pendiente para esa referencia'
-        : `La referencia ya existe en el catálogo ${existente.origen}`;
-      return res.status(409).json({ error: msg, ...existente });
+    // Solo bloqueamos si ya existe PVP en catálogo; si es solicitud pendiente, dejamos pasar
+    if (existente.existe && existente.conPvp) {
+      return res.status(409).json({
+        error: `La referencia ya existe con PVP en el catálogo ${existente.origen}`,
+        ...existente
+      });
     }
     const [result] = await db.execute(
       `INSERT INTO solicitudes_pvp
