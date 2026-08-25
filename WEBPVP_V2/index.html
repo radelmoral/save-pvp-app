@@ -4814,8 +4814,37 @@ function calcMount(){
     <div class="calc-grid">
       <section>
         <div class="calc-panel">
+          ${!isAdmin ? `
           <div class="calc-panel-head">
-            <span class="calc-eyebrow">1 · Coste de la pieza</span>
+            <span class="calc-eyebrow">0 · Identificación</span>
+            <span class="calc-eyebrow" style="color:var(--red-500)">Obligatorio</span>
+          </div>
+          <div style="margin-bottom:16px">
+            <label style="font-size:11px;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px">Referencia *</label>
+            <input id="calcSolRef" type="text" placeholder="Ej: SAM-S24-LCD-01"
+              style="width:100%;padding:10px 12px;border:1.5px solid var(--g700);border-radius:var(--r);background:var(--g100);font-size:14px;outline:none;transition:border-color .15s"
+              oninput="calcRefClearWarn()"
+              onblur="calcValidarRef()"
+              onfocus="this.style.borderColor='var(--save)'"
+              onblurCapture="this.style.borderColor='var(--g700)'" />
+            <div id="calcRefWarn" style="display:none;margin-top:6px;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.5;"></div>
+
+            <label style="font-size:11px;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px;margin-top:12px">Proveedor *</label>
+            <select id="calcSolProv"
+              style="width:100%;padding:10px 12px;border:1.5px solid var(--g700);border-radius:var(--r);background:var(--g100);font-size:14px;outline:none;appearance:none;cursor:pointer">
+              <option value="">— Selecciona proveedor —</option>
+              <option>Ecommerce</option>
+              <option>Stock red</option>
+              <option>GSMParts</option>
+              <option>PreciosAdictos</option>
+              <option>Esmovil</option>
+              <option>Apple</option>
+              <option>Otro</option>
+            </select>
+          </div>
+          ` : ''}
+          <div class="calc-panel-head" ${!isAdmin ? '' : ''}>
+            <span class="calc-eyebrow">${!isAdmin ? '1' : '1'} · Coste de la pieza</span>
             <span class="calc-eyebrow">Sin IVA</span>
           </div>
           <div class="calc-costfield">
@@ -4854,6 +4883,15 @@ function calcMount(){
           </div>
           <div id="calcDesglose"></div>
         </div>
+
+        ${!isAdmin ? `<div style="margin-top:12px">
+          <button type="button" id="calcBtnEnviar" onclick="calcEnviarSolicitud()"
+            style="width:100%;padding:14px;background:var(--save);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:700;cursor:pointer;letter-spacing:.02em;transition:background .2s"
+            onmouseover="this.style.background='var(--save-dk)'" onmouseout="this.style.background='var(--save)'">
+            📨 Enviar solicitud de PVP
+          </button>
+          <div id="calcEnviarStatus" style="margin-top:8px;font-size:12.5px;text-align:center;color:var(--g500);min-height:18px"></div>
+        </div>` : ''}
       </section>
     </div>
 
@@ -4997,6 +5035,104 @@ function calcMount(){
 
   calcSetModo('calc');
 }
+
+/* ── validación y envío de solicitud desde la calculadora ── */
+function calcRefSetWarn(msg, isBlocking){
+  const warnEl=document.getElementById('calcRefWarn');
+  const btnEl=document.getElementById('calcBtnEnviar');
+  if(!warnEl) return;
+  if(!msg){ warnEl.style.display='none'; warnEl.textContent=''; if(btnEl) btnEl.disabled=false; return; }
+  warnEl.style.display='block'; warnEl.textContent=msg;
+  if(isBlocking){
+    warnEl.style.cssText='display:block;margin-top:6px;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.5;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5';
+    if(btnEl) btnEl.disabled=true;
+  } else {
+    warnEl.style.cssText='display:block;margin-top:6px;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.5;background:#fef3c7;color:#92400e;border:1px solid #fcd34d';
+    if(btnEl) btnEl.disabled=false;
+  }
+}
+window.calcRefClearWarn = function(){ calcRefSetWarn(null, false); };
+window.calcValidarRef = async function(){
+  const ref=(document.getElementById('calcSolRef')?.value||'').trim();
+  if(!ref){ calcRefSetWarn(null,false); return; }
+  try{
+    const token=localStorage.getItem('savePvpToken');
+    const res=await fetch('/api/solicitudes/validar-referencia?referencia='+encodeURIComponent(ref),
+      {headers:{'Authorization':'Bearer '+token}});
+    if(!res.ok) return;
+    const check=await res.json();
+    if(check?.existe){
+      if(check.conPvp){
+        calcRefSetWarn('⛔ La referencia "'+ref+'" ya tiene PVP asignado en '+check.origen+'. No es necesaria una solicitud.',true);
+      } else {
+        calcRefSetWarn('⚠️ Ya existe una solicitud pendiente para esta referencia. Puedes enviarla igualmente si es necesario.',false);
+      }
+    } else { calcRefSetWarn(null,false); }
+  }catch(e){ calcRefSetWarn(null,false); }
+};
+window.calcEnviarSolicitud = async function(){
+  const ref=(document.getElementById('calcSolRef')?.value||'').trim();
+  const prov=(document.getElementById('calcSolProv')?.value||'').trim();
+  const costeEl=document.getElementById('calcCoste');
+  const coste=parseFloat(costeEl?.value||0);
+  if(!ref){ calcRefSetWarn('⛔ La referencia es obligatoria.',true); document.getElementById('calcSolRef')?.focus(); return; }
+  if(!prov){ calcToast('Selecciona un proveedor'); document.getElementById('calcSolProv')?.focus(); return; }
+  if(!coste||coste<=0){ calcToast('Indica el coste de la pieza'); costeEl?.focus(); return; }
+
+  // Verificar de nuevo por si el usuario no salió del campo
+  const token=localStorage.getItem('savePvpToken');
+  try{
+    const checkRes=await fetch('/api/solicitudes/validar-referencia?referencia='+encodeURIComponent(ref),
+      {headers:{'Authorization':'Bearer '+token}});
+    if(checkRes.ok){
+      const check=await checkRes.json();
+      if(check?.existe && check.conPvp){
+        calcRefSetWarn('⛔ La referencia "'+ref+'" ya tiene PVP asignado en '+check.origen+'. No es necesaria una solicitud.',true);
+        return;
+      }
+    }
+  }catch(e){}
+
+  // Obtener la reparación seleccionada para la descripción
+  const repIdx=+(document.getElementById('calcReparacion')?.value||0);
+  const rep=calcP.reparaciones[repIdx]||{n:'',g:''};
+  const pvpCalculado=document.getElementById('calcPvp')?.textContent||'';
+  const descSolicitud=rep.n+(rep.g?' ('+rep.g+')':'');
+  const obsSolicitud='PVP calculado: '+pvpCalculado+' € | Coste pieza: '+coste+' €';
+
+  const btnEl=document.getElementById('calcBtnEnviar');
+  const statusEl=document.getElementById('calcEnviarStatus');
+  if(btnEl){ btnEl.disabled=true; btnEl.textContent='Enviando…'; }
+  if(statusEl) statusEl.textContent='';
+
+  try{
+    const res=await fetch('/api/solicitudes',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({
+        referencia: ref,
+        proveedor:  prov,
+        coste:      coste,
+        descripcion: descSolicitud,
+        observaciones: obsSolicitud,
+        marca:  '',
+        modelo: ''
+      })
+    });
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error||'Error al enviar');
+    if(statusEl){ statusEl.style.color='var(--green-500)'; statusEl.textContent='✅ Solicitud enviada correctamente'; }
+    // Limpiar campos de identificación
+    const refEl=document.getElementById('calcSolRef'); if(refEl) refEl.value='';
+    const provEl=document.getElementById('calcSolProv'); if(provEl) provEl.value='';
+    calcRefSetWarn(null,false);
+    setTimeout(()=>{ if(statusEl) statusEl.textContent=''; },4000);
+  }catch(e){
+    if(statusEl){ statusEl.style.color='var(--red-500)'; statusEl.textContent='❌ '+e.message; }
+  }finally{
+    if(btnEl){ btnEl.disabled=false; btnEl.textContent='📨 Enviar solicitud de PVP'; }
+  }
+};
 
 /* ── exponer globalmente ── */
 window.calcSetModo = calcSetModo;
