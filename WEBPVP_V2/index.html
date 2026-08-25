@@ -4656,7 +4656,7 @@ function calcRender(){
   const pvpSubEl = document.getElementById("calcPvpSub");
   if(pvpSubEl) pvpSubEl.textContent = adminView
     ? "Banda "+r.banda.c+" · MO "+r.mo.c+" · "+r.mo.n
-    : r.mo.c+" · "+r.mo.n;
+    : '';
   document.getElementById("calcNivLbl").textContent=r.mo.c+" · "+r.mo.n;
 
   if(adminView){
