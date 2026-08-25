@@ -2749,10 +2749,8 @@ async function enviarSolicitudAPI() {
       if (check.conPvp) {
         solRefSetWarn(`⛔ La referencia "${ref}" ya tiene PVP asignado en ${check.origen}. No es necesaria una solicitud.`, true);
         return;
-      } else {
-        solRefSetWarn(`⚠️ Ya existe una solicitud pendiente para la referencia "${ref}".`, true);
-        return;
       }
+      // Solicitud pendiente: avisamos pero dejamos continuar
     }
     await API.solicitudes.crear({
       referencia:   ref,
@@ -2786,7 +2784,7 @@ async function validarReferenciaSolicitudUI() {
       if (check.conPvp) {
         solRefSetWarn(`⛔ La referencia "${ref}" ya tiene PVP asignado en ${check.origen}. No es necesaria una solicitud.`, true);
       } else {
-        solRefSetWarn(`⚠️ Ya existe una solicitud pendiente para la referencia "${ref}".`, true);
+        solRefSetWarn(`⚠️ Ya existe una solicitud pendiente para esta referencia. Puedes enviarla igualmente si es necesario.`, false);
       }
     } else {
       solRefClearWarn();
