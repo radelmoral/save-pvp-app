@@ -4592,22 +4592,41 @@ function calcRender(){
   const coste=Math.max(0,parseFloat(costeEl.value)||0);
   const r=calcCalcular(coste, rep.niv);
 
+  const adminView = window.__SAVE_CURRENT_ROLE === 'admin';
+
   document.getElementById("calcPvp").textContent=Math.round(r.pvp).toLocaleString("es-ES");
-  document.getElementById("calcPvpSub").textContent="Banda "+r.banda.c+" · MO "+r.mo.c+" · "+r.mo.n;
-  document.getElementById("calcMultLbl").textContent=calcNum(r.banda.mult)+"x";
+  const pvpSubEl = document.getElementById("calcPvpSub");
+  if(pvpSubEl) pvpSubEl.textContent = adminView
+    ? "Banda "+r.banda.c+" · MO "+r.mo.c+" · "+r.mo.n
+    : r.mo.c+" · "+r.mo.n;
   document.getElementById("calcNivLbl").textContent=r.mo.c+" · "+r.mo.n;
 
-  document.querySelectorAll("#calcBars .calc-bar").forEach(el=>el.classList.toggle("on",+el.dataset.i===r.bandaIdx));
-  document.getElementById("calcNeedle").style.left=calcPos(r.landed)+"%";
+  if(adminView){
+    const multEl=document.getElementById("calcMultLbl");
+    if(multEl) multEl.textContent=calcNum(r.banda.mult)+"x";
+    document.querySelectorAll("#calcBars .calc-bar").forEach(el=>el.classList.toggle("on",+el.dataset.i===r.bandaIdx));
+    const needle=document.getElementById("calcNeedle");
+    if(needle) needle.style.left=calcPos(r.landed)+"%";
+  }
 
-  const filas=[
-    ["Coste de la pieza en factura","",calcEur(coste)],
-    ["Coste aterrizado","+ "+calcNum(calcP.log)+"% logística · "+calcNum(calcP.merma)+"% merma",calcEur(r.landed)],
-    ["Pieza facturada","Banda "+r.banda.c+" · "+calcNum(r.banda.mult)+"x",calcEur(r.pieza)],
-    ["Mano de obra",r.mo.c+" · "+r.mo.n+" · "+calcNum(r.mo.h)+" h",calcEur(r.mo.e)],
-    ["Base imponible","",calcEur(r.baseFinal)],
-    ["IVA "+calcNum(calcP.iva)+"%","",calcEur(r.ivaEur)]
-  ];
+  let filas;
+  if(adminView){
+    filas=[
+      ["Coste de la pieza en factura","",calcEur(coste)],
+      ["Coste aterrizado","+ "+calcNum(calcP.log)+"% logística · "+calcNum(calcP.merma)+"% merma",calcEur(r.landed)],
+      ["Pieza facturada","Banda "+r.banda.c+" · "+calcNum(r.banda.mult)+"x",calcEur(r.pieza)],
+      ["Mano de obra",r.mo.c+" · "+r.mo.n+" · "+calcNum(r.mo.h)+" h",calcEur(r.mo.e)],
+      ["Base imponible","",calcEur(r.baseFinal)],
+      ["IVA "+calcNum(calcP.iva)+"%","",calcEur(r.ivaEur)]
+    ];
+  } else {
+    filas=[
+      ["Pieza facturada","",calcEur(r.pieza)],
+      ["Mano de obra",r.mo.n,calcEur(r.mo.e)],
+      ["Base imponible","",calcEur(r.baseFinal)],
+      ["IVA "+calcNum(calcP.iva)+"%","",calcEur(r.ivaEur)]
+    ];
+  }
   document.getElementById("calcDesglose").innerHTML=
     filas.map(([k,s,v])=>'<div class="calc-line"><span class="k">'+calcEsc(k)+(s?'<em>'+calcEsc(s)+'</em>':'')+
       '</span><span class="v">'+v+'</span></div>').join("")+
@@ -4778,23 +4797,23 @@ function calcMount(){
           <span class="calc-eyebrow">PVP al público · IVA incluido</span>
           <div class="calc-pvp"><span id="calcPvp">79</span><span class="cur">€</span></div>
           <div class="sub" id="calcPvpSub" style="font-family:var(--calc-mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.62);text-transform:uppercase;margin-top:4px"></div>
-          <div class="calc-ruler">
+          ${isAdmin ? `<div class="calc-ruler">
             <div class="calc-ruler-head">
               <span class="calc-eyebrow">Banda de coste aplicada</span>
               <span class="mult" id="calcMultLbl" style="font-weight:800;font-size:19px;color:var(--save-lt);letter-spacing:-.02em">2,10x</span>
             </div>
             <div class="calc-bars" id="calcBars"><div class="calc-needle" id="calcNeedle" style="left:0"></div></div>
             <div class="calc-scale"><span>1 €</span><span>5</span><span>15</span><span>30</span><span>60</span><span>100</span><span>150</span><span>250</span><span>400 €</span></div>
-          </div>
+          </div>` : '<span id="calcMultLbl" hidden></span><div id="calcBars" hidden><div id="calcNeedle"></div></div>'}
         </div>
 
-        ${isAdmin ? `<div class="calc-panel" style="margin-top:16px">
+        <div class="calc-panel" style="margin-top:16px">
           <div class="calc-panel-head">
             <span class="calc-eyebrow">Desglose de la factura</span>
             <span class="calc-eyebrow">Pieza y mano de obra por separado</span>
           </div>
           <div id="calcDesglose"></div>
-        </div>` : '<div id="calcDesglose" hidden></div>'}
+        </div>
       </section>
     </div>
 
