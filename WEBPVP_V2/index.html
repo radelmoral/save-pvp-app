@@ -4870,7 +4870,7 @@ function calcMount(){
             <input id="calcCoste" type="number" inputmode="decimal" min="0" step="0.01" value="18" aria-label="Coste de la pieza sin IVA">
             <span class="unit" style="position:absolute;right:18px;top:50%;transform:translateY(-50%);font-weight:600;font-size:24px;color:var(--g400)">€</span>
           </div>
-          <p class="calc-hint">Lo que cuesta la pieza en factura de proveedor. El transporte y la merma se añaden solos.</p>
+          ${isAdmin ? '<p class="calc-hint">Lo que cuesta la pieza en factura de proveedor. El transporte y la merma se añaden solos.</p>' : ''}
           <div class="calc-panel-head" style="margin-top:4px">
             <span class="calc-eyebrow">2 · Reparación</span>
             <span class="calc-eyebrow" id="calcNivLbl"></span>
@@ -5091,7 +5091,7 @@ window.calcValidarRef = async function(){
     const check=await res.json();
     if(check?.existe){
       if(check.conPvp){
-        calcRefSetWarn('⛔ La referencia "'+ref+'" ya tiene PVP asignado en '+check.origen+'. No puedes solicitar una consulta de PVP para esta referencia.',true);
+        calcRefSetWarn('⛔ La referencia "'+ref+'" ya tiene PVP asignado en '+check.origen+'. No puedes solicitar una consulta de PVP para esta referencia. Si crees que hay un error en el PVP puedes reportar la referencia desde el catálogo al que corresponda para su revisión.',true);
       } else {
         calcRefSetWarn('⚠️ Ya existe una solicitud pendiente para esta referencia. Se enviará igualmente.',false);
         calcRefValidadaOK = true;
@@ -5154,7 +5154,7 @@ window.calcEnviarSolicitud = async function(){
     const data=await res.json();
     if(!res.ok) throw new Error(data.error||'Error al registrar');
     if(statusEl){
-      statusEl.textContent='✅ Solicitud registrada. Un administrador asignará el PVP en breve.';
+      statusEl.textContent='✅ Esta consulta de PVP ha realizado una petición de registro de PVP en la base de datos.';
       statusEl.style.cssText='padding:10px 14px;font-size:13px;text-align:center;min-height:38px;border-radius:var(--r);background:#d1fae5;color:#065f46';
     }
   }catch(e){
