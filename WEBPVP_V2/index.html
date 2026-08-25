@@ -4642,11 +4642,18 @@ function calcRender(){
   if(!costeEl) return;
   const coste=Math.max(0,parseFloat(costeEl.value)||0);
 
-  // Ocultar el panel derecho si la referencia está bloqueada (ya tiene PVP en catálogo)
+  // Ocultar el panel derecho si: ref bloqueada, o si no-admin sin ref/coste
   const isAdminRol = window.__SAVE_CURRENT_ROLE === 'admin';
   const rightPanel = document.getElementById('calcRightPanel');
-  if(rightPanel) rightPanel.style.display = (!isAdminRol && calcRefBlocked) ? 'none' : '';
-  if(!isAdminRol && calcRefBlocked) return;
+  if(!isAdminRol){
+    const refVal=(document.getElementById('calcSolRef')?.value||'').trim();
+    const costeVal=parseFloat(document.getElementById('calcCoste')?.value||0);
+    if(calcRefBlocked || !refVal || !costeVal){
+      if(rightPanel) rightPanel.style.display='none';
+      return;
+    }
+  }
+  if(rightPanel) rightPanel.style.display='';
 
   const r=calcCalcular(coste, rep.niv);
 
@@ -4657,7 +4664,7 @@ function calcRender(){
   if(pvpSubEl) pvpSubEl.textContent = adminView
     ? "Banda "+r.banda.c+" · MO "+r.mo.c+" · "+r.mo.n
     : '';
-  document.getElementById("calcNivLbl").textContent=r.mo.c+" · "+r.mo.n;
+  document.getElementById("calcNivLbl").textContent=adminView ? r.mo.c+" · "+r.mo.n : '';
 
   if(adminView){
     const multEl=document.getElementById("calcMultLbl");
