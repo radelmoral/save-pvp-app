@@ -1256,7 +1256,8 @@ function setRole(role) {
       if (el) el.style.display = (currentRole === 'admin') ? '' : 'none';
     });
   const navCalculadoraBtn = document.getElementById('navCalculadoraBtn');
-  if (navCalculadoraBtn) navCalculadoraBtn.style.display = (currentRole === 'admin') ? '' : 'none';
+  const calcVisible = currentRole === 'admin' || (window.__SAVE_CURRENT_USERNAME || '') === 'test';
+  if (navCalculadoraBtn) navCalculadoraBtn.style.display = calcVisible ? '' : 'none';
   const navPedidosBtn = document.getElementById('navPedidosBtn');
   if (navPedidosBtn) navPedidosBtn.style.display = readOnlyRole ? 'none' : '';
   const navSolicitudPvpBtn = document.getElementById('navSolicitudPvpBtn');
@@ -1270,8 +1271,12 @@ function setRole(role) {
   const adminPages = ['usuarios','solicitudes-pvp-admin','reportes-referencias-admin','chat-logs','calculadora-pvp'];
   const restrictedPages = ['pedidos', 'solicitud-pvp', 'mis-reportes'];
   const active = document.querySelector('.page.active');
+  const isTestUser = (window.__SAVE_CURRENT_USERNAME || '') === 'test';
   if (active && adminPages.some(p => active.id === 'page-'+p) && currentRole !== 'admin') {
-    navById('dashboard');
+    // El usuario TEST puede acceder a calculadora-pvp aunque no sea admin
+    if (!(isTestUser && active.id === 'page-calculadora-pvp')) {
+      navById('dashboard');
+    }
   }
   if (active && readOnlyRole && restrictedPages.some(p => active.id === 'page-'+p)) {
     navById('repuestos');
@@ -2803,6 +2808,8 @@ async function checkAuth() {
       window.location.href = '/login.html?force=1';
       return false;
     }
+    // Guardar username para comprobaciones específicas por usuario
+    window.__SAVE_CURRENT_USERNAME = (user.username || '').toLowerCase();
     // Aplicar rol real primero (antes de eliminar los botones)
     setRole(user.rol);
     // Actualizar UI con datos reales del usuario (sobreescribe lo que puso setRole)
