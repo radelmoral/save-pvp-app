@@ -4513,14 +4513,22 @@ table.calc-reps .pvpref { font-family:var(--calc-mono);font-size:12px;color:var(
 (function(){
 "use strict";
 
-const CALC_STORE_KEY = "savestore:pricing:v2";
+const CALC_STORE_KEY = "savestore:pricing:v3";
 
-/* Modelo de pricing extraído de parametros_beta.xlsx (hoja "Pricing").
+/* Modelo de pricing extraído de parametros_beta_V0.2.xlsx (hoja "Pricing").
    Verificado al céntimo contra las 615 filas de "PVP Artículos".
+
    PVP pieza c/IVA = CEIL(MAX(coste × mult.tramo × factor cat., mínimo cat.)) − 0,01
-   PVP total c/IVA = PVP pieza + MO c/IVA del nivel de la categoría          */
+   PVP total c/IVA = PVP pieza + MO c/IVA del nivel de la categoría
+
+   Cada nivel de MO lleva además su coste interno y su provisión de riesgo:
+     MO s/IVA       = min/60 × tarifa
+     Coste interno  = min/60 × costeHora
+     Coste incidente= coste interno + pieza colateral
+     Provisión      = tasa incidencia × coste incidente
+     Margen real    = (base − coste pieza − coste interno − provisión) / base   */
 const CALC_FABRICA = {
-  iva:21,
+  iva:21, costeHora:24, costeBrutoTec:18, pctHoraProd:75,
   tramos:[
     {c:"T1",n:"Muy bajo",    desde:0,   hasta:3,   mult:17.5},
     {c:"T2",n:"Bajo",        desde:3,   hasta:10,  mult:8},
@@ -4530,34 +4538,36 @@ const CALC_FABRICA = {
     {c:"T6",n:"Alto",        desde:100, hasta:200, mult:2},
     {c:"T7",n:"Premium",     desde:200, hasta:1e9, mult:1.5}
   ],
+  /* min = minutos · tar = €/h facturados · e = MO c/IVA
+     tasa = tasa de incidencia · colat = coste medio de pieza colateral */
   mo:[
-    {c:"N1",n:"Básico",      d:"Sustitución directa, sin desmontaje",  min:20, tar:30, e:12.10},
-    {c:"N2",n:"Estándar",    d:"Apertura y desmontaje",                min:30, tar:36, e:21.78},
-    {c:"N3",n:"Avanzado",    d:"Calor/laminado, desmontaje completo",  min:45, tar:45, e:40.8375},
-    {c:"N4",n:"Especialista",d:"Microsoldadura básica",                min:60, tar:60, e:72.60},
-    {c:"N5",n:"Experto",     d:"Reballing, CPU/NAND",                  min:90, tar:80, e:145.20}
+    {c:"N1",n:"Sin apertura",     d:"No requiere abrir el equipo",             min:15,  tar:30, e:9.075,  tasa:0,    colat:0},
+    {c:"N2",n:"Apertura estándar",d:"Calor y cotización estándar",             min:40,  tar:36, e:29.04,  tasa:0.02, colat:25},
+    {c:"N3",n:"Apertura compleja",d:"Cristal trasero, laminado",               min:60,  tar:45, e:54.45,  tasa:0.03, colat:40},
+    {c:"N4",n:"Microsoldadura",   d:"Apertura compleja más microsoldadura",    min:75,  tar:60, e:90.75,  tasa:0.01, colat:60},
+    {c:"N5",n:"Reparación placa", d:"Diagnóstico y reparación de placa base",  min:105, tar:80, e:169.40, tasa:0.01, colat:120}
   ],
   defaults:{mult:3, min:29.99, niv:"N2", factor:1},
   categorias:[
     {n:"Pantalla",     min:39.99, niv:"N2", factor:1},
-    {n:"Bateria",      min:29.99, niv:"N1", factor:1},
-    {n:"Tapa",         min:29.99, niv:"N1", factor:1},
+    {n:"Bateria",      min:29.99, niv:"N2", factor:1},
+    {n:"Tapa",         min:29.99, niv:"N2", factor:1},
     {n:"Flex",         min:29.99, niv:"N2", factor:1},
     {n:"SubPCB",       min:29.99, niv:"N3", factor:1},
     {n:"Cámara",       min:29.99, niv:"N2", factor:1},
     {n:"Lente",        min:19.99, niv:"N2", factor:1},
-    {n:"Carcasa",      min:39.99, niv:"N1", factor:1},
-    {n:"Porta",        min:19.99, niv:"N2", factor:1},
+    {n:"Carcasa",      min:39.99, niv:"N3", factor:1},
+    {n:"Porta",        min:19.99, niv:"N1", factor:1},
     {n:"Resto Piezas", min:29.99, niv:"N5", factor:1},
-    {n:"Altavoz",      min:24.99, niv:"N1", factor:1},
-    {n:"Buzzer",       min:19.99, niv:"N1", factor:1},
-    {n:"Boton",        min:19.99, niv:"N1", factor:1},
+    {n:"Altavoz",      min:24.99, niv:"N2", factor:1},
+    {n:"Buzzer",       min:19.99, niv:"N2", factor:1},
+    {n:"Boton",        min:19.99, niv:"N2", factor:1},
     {n:"Lector",       min:29.99, niv:"N3", factor:1},
-    {n:"Auricular",    min:19.99, niv:"N1", factor:1},
+    {n:"Auricular",    min:19.99, niv:"N2", factor:1},
     {n:"Conector",     min:29.99, niv:"N4", factor:1},
     {n:"Tapa Trasera", min:39.99, niv:"N3", factor:1},
     {n:"PCB",          min:39.99, niv:"N4", factor:1},
-    {n:"Chasis",       min:39.99, niv:"N1", factor:1},
+    {n:"Chasis",       min:39.99, niv:"N3", factor:1},
     {n:"SPen",         min:39.99, niv:"N1", factor:1}
   ]
 };
@@ -4618,19 +4628,28 @@ function calcCalcular(coste, catNombre){
   const {t:tramo, i:tramoIdx}=calcTramo(coste);
   const multFinal=tramo.mult*(cat.factor||1);
 
-  const teorico=coste*multFinal;                       // PVP teórico c/IVA
+  const teorico=coste*multFinal;                          // PVP teórico c/IVA
   const pieza=calcRedondeo99(Math.max(teorico, cat.min)); // PVP pieza propuesto c/IVA
-  const minAplicado=teorico<cat.min;                   // ¿ha entrado el suelo?
+  const minAplicado=teorico<cat.min;                      // ¿ha entrado el suelo?
 
   const mo=calcP.mo.find(m=>m.c===cat.niv)||calcP.mo[1];
-  const pvp=Math.round((pieza+mo.e)*100)/100;          // PVP reparación total c/IVA
+  const pvp=Math.round((pieza+mo.e)*100)/100;             // PVP reparación total c/IVA
 
   const baseFinal=pvp/(1+iva);
   const piezaBase=pieza/(1+iva);
   const margen=piezaBase-coste;
 
+  // Coste interno y riesgo del nivel de MO
+  const moInterno = (mo.min/60)*calcP.costeHora;          // coste real del técnico
+  const costeIncidente = moInterno + (mo.colat||0);       // rehacer la reparación
+  const provision = (mo.tasa||0)*costeIncidente;          // provisión por incidencia
+  const margenReal = baseFinal>0
+    ? (baseFinal - coste - moInterno - provision)/baseFinal
+    : 0;
+
   return {coste, cat, tramo, tramoIdx, multFinal, teorico, pieza, piezaBase, minAplicado,
           mo, pvp, baseFinal, ivaEur:pvp-baseFinal, margen,
+          moInterno, costeIncidente, provision, margenReal,
           margenPct: piezaBase>0 ? margen/piezaBase : 0,
           margenHora: mo.min>0 ? margen/(mo.min/60) : 0};
 }
@@ -4722,7 +4741,10 @@ function calcRender(){
       ["Mano de obra",r.mo.c+" · "+r.mo.n+" · "+r.mo.min+" min",calcEur(r.mo.e)],
       ["Base imponible","",calcEur(r.baseFinal)],
       ["IVA "+calcNum(calcP.iva)+"%","",calcEur(r.ivaEur)],
-      ["Margen sobre la pieza",calcNum(r.margenPct*100)+"%",calcEur(r.margen)]
+      ["Coste interno de MO",r.mo.min+" min × "+calcNum(calcP.costeHora)+" €/h",calcEur(r.moInterno)],
+      ["Provisión por incidencia",calcNum((r.mo.tasa||0)*100)+"% × "+calcEur(r.costeIncidente),calcEur(r.provision)],
+      ["Margen sobre la pieza",calcNum(r.margenPct*100)+"%",calcEur(r.margen)],
+      ["Margen real esperado","descontando MO interna y riesgo",calcNum(r.margenReal*100)+"%"]
     ];
   } else {
     filas=[
@@ -4777,14 +4799,19 @@ function calcPintarReps(){
 function calcPintarAdmin(){
   const setmo=document.getElementById("calcSetMo"), setbandas=document.getElementById("calcSetBandas");
   if(!setmo||!setbandas) return;
-  setmo.innerHTML=calcP.mo.map((m,i)=>
-    '<div class="calc-set"><label for="calcMo'+i+'">'+calcEsc(m.c+' · '+m.n)+' <small style="color:var(--calc-ink-faint)">('+m.min+' min · '+m.tar+' €/h)</small></label>'+
-    '<input id="calcMo'+i+'" data-m="'+i+'" type="number" step="0.01" value="'+m.e+'"></div>').join("");
+  setmo.innerHTML=calcP.mo.map((m,i)=>{
+    const interno=(m.min/60)*calcP.costeHora;
+    const prov=(m.tasa||0)*(interno+(m.colat||0));
+    return '<div class="calc-set"><label for="calcMo'+i+'">'+calcEsc(m.c+' · '+m.n)+
+    ' <small style="color:var(--calc-ink-faint)">('+m.min+' min · '+m.tar+' €/h · coste interno '+calcEur(interno)+
+    ' · provisión '+calcEur(prov)+')</small></label>'+
+    '<input id="calcMo'+i+'" data-m="'+i+'" type="number" step="0.01" value="'+m.e+'"></div>';
+  }).join("");
   setbandas.innerHTML=calcP.tramos.map((t,i)=>
     '<div class="calc-set"><label for="calcBd'+i+'">'+t.c+' · '+calcEsc(t.n)+'<br><small style="color:var(--calc-ink-faint)">'+
     (t.hasta>1e8?"más de "+calcEur0(t.desde):calcEur0(t.desde)+"–"+calcEur0(t.hasta))+
     '</small></label><input id="calcBd'+i+'" data-b="'+i+'" type="number" step="0.05" value="'+t.mult+'"></div>').join("");
-  ["iva"].forEach(k=>{
+  ["iva","costeHora"].forEach(k=>{
     const el=document.getElementById("calcP_"+k);
     if(el) el.value=calcP[k];
   });
@@ -4998,7 +5025,9 @@ function calcMount(){
       <p class="calc-sec-title">Parámetros generales</p>
       <div class="calc-set-grid">
         <div class="calc-set"><label for="calcP_iva">IVA %</label><input id="calcP_iva" type="number" step="1"></div>
+        <div class="calc-set"><label for="calcP_costeHora">Coste hora productiva €/h</label><input id="calcP_costeHora" type="number" step="0.5"></div>
       </div>
+      <p class="calc-sec-sub" style="margin:10px 0 0">El coste hora productiva no altera el PVP: sirve para calcular el coste interno de la mano de obra y el margen real esperado.</p>
     </div>
 
     <div class="calc-panel" style="margin-top:16px">
@@ -5073,7 +5102,7 @@ function calcMount(){
       const i=e.target.dataset.b; if(i===undefined) return;
       calcP.tramos[+i].mult=parseFloat(e.target.value)||0.01; calcPintarReps(); calcGuardar();
     });
-    ["iva"].forEach(k=>{
+    ["iva","costeHora"].forEach(k=>{
       const el=document.getElementById("calcP_"+k);
       if(el) el.addEventListener("input", e=>{
         calcP[k]=parseFloat(e.target.value)||0; calcPintarReps(); calcGuardar();
