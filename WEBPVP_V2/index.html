@@ -1313,7 +1313,8 @@ function nav(id, btn) {
     'solicitudes-pvp-admin':'Solicitudes PVP — Admin',
     'reportes-referencias-admin':'Reportes referencias — Admin',
     'resultados-globales':'Resultados Globales',
-    'chat-logs':'Uso del Chatbot'
+    'chat-logs':'Uso del Chatbot',
+    'calculadora-pvp':'Calculadora de PVP'
   };
   document.getElementById('tbTitle').textContent = titles[id] || id;
 }
@@ -4679,7 +4680,7 @@ function calcRender(){
   } else {
     filas=[
       ["Pieza facturada","",calcEur(r.pieza)],
-      ["Mano de obra",r.mo.n,calcEur(r.mo.e)],
+      ["Mano de obra","",calcEur(r.mo.e)],
       ["Base imponible","",calcEur(r.baseFinal)],
       ["IVA "+calcNum(calcP.iva)+"%","",calcEur(r.ivaEur)]
     ];
@@ -4820,7 +4821,6 @@ function calcMount(){
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
     <div>
       <h2 style="font-size:20px;font-weight:800;margin:0">Calculadora de PVP</h2>
-      <p style="color:var(--g500);font-size:13px;margin:3px 0 0">Calcula el PVP de reparaciones aplicando multiplicadores por banda de coste</p>
     </div>
     ${isAdmin ? `<div class="calc-tab-bar" style="margin:0">
       <button id="calcTabCalc" class="active" onclick="calcSetModo('calc')">Calculadora</button>
