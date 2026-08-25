@@ -4513,51 +4513,54 @@ table.calc-reps .pvpref { font-family:var(--calc-mono);font-size:12px;color:var(
 (function(){
 "use strict";
 
-const CALC_STORE_KEY = "savestore:pricing:v1";
+const CALC_STORE_KEY = "savestore:pricing:v2";
 
+/* Modelo de pricing extraído de parametros_beta.xlsx (hoja "Pricing").
+   Verificado al céntimo contra las 615 filas de "PVP Artículos".
+   PVP pieza c/IVA = CEIL(MAX(coste × mult.tramo × factor cat., mínimo cat.)) − 0,01
+   PVP total c/IVA = PVP pieza + MO c/IVA del nivel de la categoría          */
 const CALC_FABRICA = {
-  iva:21, merma:4, log:3, minticket:25,
-  bandas:[
-    {c:"A",desde:0,hasta:5,mult:3.50},{c:"B",desde:5.01,hasta:15,mult:2.50},
-    {c:"C",desde:15.01,hasta:30,mult:2.10},{c:"D",desde:30.01,hasta:60,mult:1.80},
-    {c:"E",desde:60.01,hasta:100,mult:1.55},{c:"F",desde:100.01,hasta:150,mult:1.40},
-    {c:"G",desde:150.01,hasta:250,mult:1.28},{c:"H",desde:250.01,hasta:1e9,mult:1.22}
+  iva:21,
+  tramos:[
+    {c:"T1",n:"Muy bajo",    desde:0,   hasta:3,   mult:17.5},
+    {c:"T2",n:"Bajo",        desde:3,   hasta:10,  mult:8},
+    {c:"T3",n:"Medio-bajo",  desde:10,  hasta:25,  mult:4.5},
+    {c:"T4",n:"Medio",       desde:25,  hasta:50,  mult:3},
+    {c:"T5",n:"Medio-alto",  desde:50,  hasta:100, mult:2.5},
+    {c:"T6",n:"Alto",        desde:100, hasta:200, mult:2},
+    {c:"T7",n:"Premium",     desde:200, hasta:1e9, mult:1.5}
   ],
   mo:[
-    {c:"N1",n:"Rápida",h:0.25,e:15},{c:"N2",n:"Estándar",h:0.50,e:25},
-    {c:"N3",n:"Compleja",h:1.00,e:45},{c:"N4",n:"Microsoldadura",h:1.50,e:55},
-    {c:"N5",n:"Placa base",h:3.00,e:110}
+    {c:"N1",n:"Básico",      d:"Sustitución directa, sin desmontaje",  min:20, tar:30, e:12.10},
+    {c:"N2",n:"Estándar",    d:"Apertura y desmontaje",                min:30, tar:36, e:21.78},
+    {c:"N3",n:"Avanzado",    d:"Calor/laminado, desmontaje completo",  min:45, tar:45, e:40.8375},
+    {c:"N4",n:"Especialista",d:"Microsoldadura básica",                min:60, tar:60, e:72.60},
+    {c:"N5",n:"Experto",     d:"Reballing, CPU/NAND",                  min:90, tar:80, e:145.20}
   ],
-  reparaciones:[
-    {n:"Cambio de pantalla",g:"Móvil y tablet",niv:"N2"},
-    {n:"Cambio de batería",g:"Móvil y tablet",niv:"N2"},
-    {n:"Cambio de conector de carga",g:"Móvil y tablet",niv:"N2"},
-    {n:"Reparación de conector de carga (soldadura)",g:"Móvil y tablet",niv:"N4"},
-    {n:"Cambio de tapa trasera",g:"Móvil y tablet",niv:"N3"},
-    {n:"Cambio de cristal de cámara",g:"Móvil y tablet",niv:"N1"},
-    {n:"Cambio de cámara",g:"Móvil y tablet",niv:"N2"},
-    {n:"Cambio de altavoz o micrófono",g:"Móvil y tablet",niv:"N2"},
-    {n:"Cambio de botones",g:"Móvil y tablet",niv:"N2"},
-    {n:"Reparación de Face ID o Touch ID",g:"Móvil y tablet",niv:"N4"},
-    {n:"Reparación de placa base",g:"Móvil y tablet",niv:"N5"},
-    {n:"Reparación por daños de líquido",g:"Móvil y tablet",niv:"N5"},
-    {n:"Liberación o software",g:"Móvil y tablet",niv:"N1"},
-    {n:"Limpieza interna",g:"Móvil y tablet",niv:"N1"},
-    {n:"Cambio de pantalla de portátil",g:"Portátil",niv:"N2"},
-    {n:"Cambio de teclado o topcase",g:"Portátil",niv:"N3"},
-    {n:"Cambio de bisagras",g:"Portátil",niv:"N3"},
-    {n:"Ampliación de RAM o disco",g:"Portátil",niv:"N1"},
-    {n:"Cambio de pasta térmica",g:"Portátil",niv:"N2"},
-    {n:"Cambio de ventilador",g:"Portátil",niv:"N2"},
-    {n:"Reparación de puerto HDMI",g:"Consola",niv:"N4"},
-    {n:"Cambio de lector óptico",g:"Consola",niv:"N3"},
-    {n:"Reparación de drift de mando",g:"Consola",niv:"N3"},
-    {n:"Cambio de ventilador de consola",g:"Consola",niv:"N2"}
+  defaults:{mult:3, min:29.99, niv:"N2", factor:1},
+  categorias:[
+    {n:"Pantalla",     min:39.99, niv:"N2", factor:1},
+    {n:"Bateria",      min:29.99, niv:"N1", factor:1},
+    {n:"Tapa",         min:29.99, niv:"N1", factor:1},
+    {n:"Flex",         min:29.99, niv:"N2", factor:1},
+    {n:"SubPCB",       min:29.99, niv:"N3", factor:1},
+    {n:"Cámara",       min:29.99, niv:"N2", factor:1},
+    {n:"Lente",        min:19.99, niv:"N2", factor:1},
+    {n:"Carcasa",      min:39.99, niv:"N1", factor:1},
+    {n:"Porta",        min:19.99, niv:"N2", factor:1},
+    {n:"Resto Piezas", min:29.99, niv:"N5", factor:1},
+    {n:"Altavoz",      min:24.99, niv:"N1", factor:1},
+    {n:"Buzzer",       min:19.99, niv:"N1", factor:1},
+    {n:"Boton",        min:19.99, niv:"N1", factor:1},
+    {n:"Lector",       min:29.99, niv:"N3", factor:1},
+    {n:"Auricular",    min:19.99, niv:"N1", factor:1},
+    {n:"Conector",     min:29.99, niv:"N4", factor:1},
+    {n:"Tapa Trasera", min:39.99, niv:"N3", factor:1},
+    {n:"PCB",          min:39.99, niv:"N4", factor:1},
+    {n:"Chasis",       min:39.99, niv:"N1", factor:1},
+    {n:"SPen",         min:39.99, niv:"N1", factor:1}
   ]
 };
-const CALC_ESCALERA=[19,25,29,35,39,45,49,55,59,65,69,75,79,85,89,95,99,109,119,129,139,149,159,169,
-179,189,199,219,239,259,279,299,329,349,379,399,429,449,479,499,549,599,649,699,749,799,849,899,
-949,999,1099,1199,1299];
 
 let calcP = JSON.parse(JSON.stringify(CALC_FABRICA));
 let calcRepSel = 0;
@@ -4572,32 +4575,64 @@ const calcEur0 = n => Math.round(n).toLocaleString("es-ES")+" €";
 const calcNum  = n => n.toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2});
 function calcEsc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
-/* ── motor de precio ── */
-function calcSuelos(){
-  const out=[0];
-  for(let i=1;i<calcP.bandas.length;i++) out.push(calcP.bandas[i-1].hasta*calcP.bandas[i-1].mult);
-  return out;
+/* ── motor de precio (modelo parametros_beta.xlsx) ── */
+
+/* Redondeo comercial: al alza al entero y se le resta 1 céntimo → .99 */
+function calcRedondeo99(v){
+  return Math.round((Math.ceil(Math.round(v*1e6)/1e6) - 0.01) * 100) / 100;
 }
-function calcPeldano(v){
-  if(v<=CALC_ESCALERA[0]) return CALC_ESCALERA[0];
-  if(v>=CALC_ESCALERA[CALC_ESCALERA.length-1]) return CALC_ESCALERA[CALC_ESCALERA.length-1];
-  let lo=CALC_ESCALERA[0];
-  for(const r of CALC_ESCALERA){ if(r<=v) lo=r; else return (v-lo<=r-v)?lo:r; }
-  return lo;
+
+/* Localiza el tramo de coste aplicable */
+function calcTramo(coste){
+  for(let i=0;i<calcP.tramos.length;i++){
+    const t=calcP.tramos[i];
+    if(coste>=t.desde && (coste<t.hasta || i===calcP.tramos.length-1)) return {t,i};
+  }
+  return {t:calcP.tramos[calcP.tramos.length-1], i:calcP.tramos.length-1};
 }
-function calcCalcular(coste, nivCod){
+
+/* Normaliza el nombre de categoría: sin acentos, sin espacios, minúsculas.
+   Así "Sub PCB" ≡ "SubPCB" y "Camara" ≡ "Cámara" (erratas del catálogo). */
+function calcNormCat(s){
+  return String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"")
+    .replace(/[\s._-]/g,"").toLowerCase();
+}
+
+/* Devuelve la ficha de una categoría (o los valores por defecto) */
+function calcCategoria(nombre){
+  const k=calcNormCat(nombre);
+  return calcP.categorias.find(c=>calcNormCat(c.n)===k)
+      || {n:nombre||"Sin categoría", min:calcP.defaults.min, niv:calcP.defaults.niv, factor:calcP.defaults.factor};
+}
+
+/**
+ * catNombre: nombre de la categoría de pieza (Pantalla, Bateria, Flex…)
+ * coste:     coste de la pieza sin IVA en factura de proveedor
+ *
+ * PVP pieza c/IVA = CEIL(MAX(coste × mult.tramo × factor, mínimo cat.)) − 0,01
+ * PVP total c/IVA = PVP pieza + MO c/IVA
+ */
+function calcCalcular(coste, catNombre){
   const iva=calcP.iva/100;
-  const landed=coste*(1+calcP.log/100)/(1-calcP.merma/100);
-  let bi=0;
-  for(let j=0;j<calcP.bandas.length;j++) if(landed>=calcP.bandas[j].desde) bi=j;
-  const b=calcP.bandas[bi];
-  const pieza=Math.max(landed*b.mult, calcSuelos()[bi]);
-  const mo=calcP.mo.find(m=>m.c===nivCod)||calcP.mo[1];
-  const pvp=Math.max(calcPeldano((pieza+mo.e)*(1+iva)), calcP.minticket);
+  const cat=calcCategoria(catNombre);
+  const {t:tramo, i:tramoIdx}=calcTramo(coste);
+  const multFinal=tramo.mult*(cat.factor||1);
+
+  const teorico=coste*multFinal;                       // PVP teórico c/IVA
+  const pieza=calcRedondeo99(Math.max(teorico, cat.min)); // PVP pieza propuesto c/IVA
+  const minAplicado=teorico<cat.min;                   // ¿ha entrado el suelo?
+
+  const mo=calcP.mo.find(m=>m.c===cat.niv)||calcP.mo[1];
+  const pvp=Math.round((pieza+mo.e)*100)/100;          // PVP reparación total c/IVA
+
   const baseFinal=pvp/(1+iva);
-  const margen=baseFinal-landed;
-  return {landed,banda:b,bandaIdx:bi,pieza,mo,pvp,baseFinal,ivaEur:pvp-baseFinal,margen,
-          margenPct:baseFinal>0?margen/baseFinal:0, margenHora:mo.h>0?margen/mo.h:0};
+  const piezaBase=pieza/(1+iva);
+  const margen=piezaBase-coste;
+
+  return {coste, cat, tramo, tramoIdx, multFinal, teorico, pieza, piezaBase, minAplicado,
+          mo, pvp, baseFinal, ivaEur:pvp-baseFinal, margen,
+          margenPct: piezaBase>0 ? margen/piezaBase : 0,
+          margenHora: mo.min>0 ? margen/(mo.min/60) : 0};
 }
 
 const CALC_LMIN=Math.log10(1), CALC_LMAX=Math.log10(400);
@@ -4608,13 +4643,13 @@ function calcPintarBarras(){
   const bars=document.getElementById("calcBars"), needle=document.getElementById("calcNeedle");
   if(!bars) return;
   bars.querySelectorAll(".calc-bar").forEach(e=>e.remove());
-  const maxMult=Math.max(...calcP.bandas.map(b=>b.mult));
-  calcP.bandas.forEach((b,i)=>{
+  const maxMult=Math.max(...calcP.tramos.map(t=>t.mult));
+  calcP.tramos.forEach((t,i)=>{
     const el=document.createElement("div");
     el.className="calc-bar"; el.dataset.i=i;
-    el.style.width=Math.max(3,calcPos(Math.min(400,b.hasta))-calcPos(Math.max(1,b.desde||1)))+"%";
-    el.style.height=Math.max(9,(b.mult/(maxMult*1.05))*100)+"%";
-    el.innerHTML="<b>"+b.c+"</b>";
+    el.style.width=Math.max(3,calcPos(Math.min(400,t.hasta))-calcPos(Math.max(1,t.desde||1)))+"%";
+    el.style.height=Math.max(9,(t.mult/(maxMult*1.05))*100)+"%";
+    el.innerHTML="<b>"+t.c+"</b>";
     bars.insertBefore(el,needle);
   });
 }
@@ -4622,22 +4657,15 @@ function calcPintarBarras(){
 function calcPintarSelector(){
   const sel=document.getElementById("calcReparacion");
   if(!sel) return;
-  const orden=[...calcP.reparaciones.keys()].sort((a,b)=>
-    calcP.reparaciones[a].g.localeCompare(calcP.reparaciones[b].g,"es")||a-b);
-  let html="", grupo=null;
-  orden.forEach(i=>{
-    const r=calcP.reparaciones[i];
-    if(r.g!==grupo){ if(grupo!==null) html+="</optgroup>"; html+='<optgroup label="'+calcEsc(r.g)+'">'; grupo=r.g; }
-    html+='<option value="'+i+'">'+calcEsc(r.n)+'</option>';
-  });
-  sel.innerHTML=html+(grupo!==null?"</optgroup>":"");
-  if(!calcP.reparaciones[calcRepSel]) calcRepSel=orden[0]||0;
+  sel.innerHTML=calcP.categorias.map((c,i)=>
+    '<option value="'+i+'">'+calcEsc(c.n)+'</option>').join("");
+  if(!calcP.categorias[calcRepSel]) calcRepSel=0;
   sel.value=String(calcRepSel);
 }
 
 function calcRender(){
-  const rep=calcP.reparaciones[calcRepSel];
-  if(!rep) return;
+  const cat=calcP.categorias[calcRepSel];
+  if(!cat) return;
   const costeEl=document.getElementById("calcCoste");
   if(!costeEl) return;
   const coste=Math.max(0,parseFloat(costeEl.value)||0);
@@ -4664,34 +4692,37 @@ function calcRender(){
     }
   }
 
-  const r=calcCalcular(coste, rep.niv);
+  const r=calcCalcular(coste, cat.n);
 
   const adminView = window.__SAVE_CURRENT_ROLE === 'admin';
 
   document.getElementById("calcPvp").textContent=Math.round(r.pvp).toLocaleString("es-ES");
   const pvpSubEl = document.getElementById("calcPvpSub");
   if(pvpSubEl) pvpSubEl.textContent = adminView
-    ? "Banda "+r.banda.c+" · MO "+r.mo.c+" · "+r.mo.n
+    ? r.tramo.c+" "+r.tramo.n+" · MO "+r.mo.c+" · "+r.mo.n
     : '';
   document.getElementById("calcNivLbl").textContent=adminView ? r.mo.c+" · "+r.mo.n : '';
 
   if(adminView){
     const multEl=document.getElementById("calcMultLbl");
-    if(multEl) multEl.textContent=calcNum(r.banda.mult)+"x";
-    document.querySelectorAll("#calcBars .calc-bar").forEach(el=>el.classList.toggle("on",+el.dataset.i===r.bandaIdx));
+    if(multEl) multEl.textContent=calcNum(r.multFinal)+"x";
+    document.querySelectorAll("#calcBars .calc-bar").forEach(el=>el.classList.toggle("on",+el.dataset.i===r.tramoIdx));
     const needle=document.getElementById("calcNeedle");
-    if(needle) needle.style.left=calcPos(r.landed)+"%";
+    if(needle) needle.style.left=calcPos(r.coste)+"%";
   }
 
   let filas;
   if(adminView){
     filas=[
-      ["Coste de la pieza en factura","",calcEur(coste)],
-      ["Coste aterrizado","+ "+calcNum(calcP.log)+"% logística · "+calcNum(calcP.merma)+"% merma",calcEur(r.landed)],
-      ["Pieza facturada","Banda "+r.banda.c+" · "+calcNum(r.banda.mult)+"x",calcEur(r.pieza)],
-      ["Mano de obra",r.mo.c+" · "+r.mo.n+" · "+calcNum(r.mo.h)+" h",calcEur(r.mo.e)],
+      ["Coste de la pieza en factura","Sin IVA",calcEur(coste)],
+      ["Multiplicador aplicado",r.tramo.c+" "+r.tramo.n+" · "+calcNum(r.tramo.mult)+"x"+(r.cat.factor!==1?" · factor cat. "+calcNum(r.cat.factor):""),calcNum(r.multFinal)+"x"],
+      ["PVP teórico c/IVA","",calcEur(r.teorico)],
+      ["Precio mínimo de "+r.cat.n,r.minAplicado?"⚠️ aplicado":"no aplicado",calcEur(r.cat.min)],
+      ["Pieza facturada c/IVA","",calcEur(r.pieza)],
+      ["Mano de obra",r.mo.c+" · "+r.mo.n+" · "+r.mo.min+" min",calcEur(r.mo.e)],
       ["Base imponible","",calcEur(r.baseFinal)],
-      ["IVA "+calcNum(calcP.iva)+"%","",calcEur(r.ivaEur)]
+      ["IVA "+calcNum(calcP.iva)+"%","",calcEur(r.ivaEur)],
+      ["Margen sobre la pieza",calcNum(r.margenPct*100)+"%",calcEur(r.margen)]
     ];
   } else {
     filas=[
@@ -4712,29 +4743,31 @@ function calcRender(){
 function calcPintarTarifa(){
   const head=document.getElementById("calcTablaHead"), tbody=document.querySelector("#calcTabla tbody");
   if(!head||!tbody) return;
-  head.innerHTML='<th>Coste pieza</th><th>Banda</th>'+
-    calcP.mo.map(m=>'<th>'+calcEsc(m.n)+'<br><small style="font-size:8px;color:var(--calc-ink-faint)">'+m.c+'</small></th>').join("");
+  head.innerHTML='<th>Coste pieza</th><th>Tramo</th>'+
+    calcP.categorias.slice(0,6).map(c=>'<th>'+calcEsc(c.n)+'</th>').join("");
   const costes=[0,2,4,5,8,12,15,18,22,26,30,36,45,55,60,70,85,100,115,130,150,175,200,230,250,300];
   let prev=null;
   tbody.innerHTML=costes.map(c=>{
-    const base=calcCalcular(c,calcP.mo[1]?calcP.mo[1].c:calcP.mo[0].c);
-    const brk=prev!==null && base.banda.c!==prev; prev=base.banda.c;
-    return '<tr'+(brk?' class="brk"':'')+'><td>'+calcEur0(c)+'</td><td class="bnd">'+base.banda.c+'</td>'+
-      calcP.mo.map(m=>'<td class="pv">'+calcEur0(calcCalcular(c,m.c).pvp)+'</td>').join("")+'</tr>';
+    const base=calcCalcular(c, calcP.categorias[0]?calcP.categorias[0].n:"");
+    const brk=prev!==null && base.tramo.c!==prev; prev=base.tramo.c;
+    return '<tr'+(brk?' class="brk"':'')+'><td>'+calcEur0(c)+'</td><td class="bnd">'+base.tramo.c+'</td>'+
+      calcP.categorias.slice(0,6).map(ct=>'<td class="pv">'+calcEur0(calcCalcular(c,ct.n).pvp)+'</td>').join("")+'</tr>';
   }).join("");
 }
 
+/* Tabla editable de categorías (panel de administración) */
 function calcPintarReps(){
   const tb=document.querySelector("#calcTablaReps tbody");
   if(!tb) return;
-  tb.innerHTML=calcP.reparaciones.map((r,i)=>{
-    const ref=calcCalcular(20,r.niv).pvp;
+  tb.innerHTML=calcP.categorias.map((c,i)=>{
+    const ref=calcCalcular(20,c.n).pvp;
     return '<tr>'+
-      '<td><input type="text" data-f="n" data-i="'+i+'" value="'+calcEsc(r.n)+'" aria-label="Nombre"></td>'+
-      '<td><input type="text" data-f="g" data-i="'+i+'" value="'+calcEsc(r.g)+'" aria-label="Grupo"></td>'+
+      '<td><input type="text" data-f="n" data-i="'+i+'" value="'+calcEsc(c.n)+'" aria-label="Categoría"></td>'+
+      '<td><input type="number" step="0.01" min="0" data-f="min" data-i="'+i+'" value="'+c.min+'" aria-label="Precio mínimo c/IVA"></td>'+
       '<td><select data-f="niv" data-i="'+i+'" aria-label="Nivel MO">'+
-        calcP.mo.map(m=>'<option value="'+m.c+'"'+(m.c===r.niv?' selected':'')+'>'+m.c+' · '+calcEsc(m.n)+'</option>').join("")+
+        calcP.mo.map(m=>'<option value="'+m.c+'"'+(m.c===c.niv?' selected':'')+'>'+m.c+' · '+calcEsc(m.n)+'</option>').join("")+
       '</select></td>'+
+      '<td><input type="number" step="0.05" min="0" data-f="factor" data-i="'+i+'" value="'+c.factor+'" aria-label="Factor categoría"></td>'+
       '<td><span class="pvpref">'+calcEur0(ref)+'</span></td>'+
       '<td><button type="button" class="calc-del" data-del="'+i+'">×</button></td>'+
     '</tr>';
@@ -4745,13 +4778,13 @@ function calcPintarAdmin(){
   const setmo=document.getElementById("calcSetMo"), setbandas=document.getElementById("calcSetBandas");
   if(!setmo||!setbandas) return;
   setmo.innerHTML=calcP.mo.map((m,i)=>
-    '<div class="calc-set"><label for="calcMo'+i+'">'+calcEsc(m.c+' · '+m.n)+'</label>'+
-    '<input id="calcMo'+i+'" data-m="'+i+'" type="number" step="1" value="'+m.e+'"></div>').join("");
-  setbandas.innerHTML=calcP.bandas.map((b,i)=>
-    '<div class="calc-set"><label for="calcBd'+i+'">'+b.c+' · '+
-    (b.hasta>1e8?"más de "+calcEur0(b.desde):calcEur0(b.desde)+"–"+calcEur0(b.hasta))+
-    '</label><input id="calcBd'+i+'" data-b="'+i+'" type="number" step="0.05" value="'+b.mult+'"></div>').join("");
-  ["iva","merma","log","minticket"].forEach(k=>{
+    '<div class="calc-set"><label for="calcMo'+i+'">'+calcEsc(m.c+' · '+m.n)+' <small style="color:var(--calc-ink-faint)">('+m.min+' min · '+m.tar+' €/h)</small></label>'+
+    '<input id="calcMo'+i+'" data-m="'+i+'" type="number" step="0.01" value="'+m.e+'"></div>').join("");
+  setbandas.innerHTML=calcP.tramos.map((t,i)=>
+    '<div class="calc-set"><label for="calcBd'+i+'">'+t.c+' · '+calcEsc(t.n)+'<br><small style="color:var(--calc-ink-faint)">'+
+    (t.hasta>1e8?"más de "+calcEur0(t.desde):calcEur0(t.desde)+"–"+calcEur0(t.hasta))+
+    '</small></label><input id="calcBd'+i+'" data-b="'+i+'" type="number" step="0.05" value="'+t.mult+'"></div>').join("");
+  ["iva"].forEach(k=>{
     const el=document.getElementById("calcP_"+k);
     if(el) el.value=calcP[k];
   });
@@ -4784,7 +4817,7 @@ async function calcCargar(){
     });
     if(res.ok){
       const c = await res.json();
-      if(c && c.reparaciones && c.bandas && c.mo){
+      if(c && c.categorias && c.tramos && c.mo){
         calcP = c;
         // Actualizar caché local con la config del servidor
         try{ localStorage.setItem(CALC_STORE_KEY, JSON.stringify(calcP)); }catch(e){}
@@ -4795,7 +4828,7 @@ async function calcCargar(){
   // Fallback: cargar desde localStorage
   try{
     const raw=localStorage.getItem(CALC_STORE_KEY);
-    if(raw){ const c=JSON.parse(raw); if(c&&c.reparaciones&&c.bandas&&c.mo) calcP=c; }
+    if(raw){ const c=JSON.parse(raw); if(c&&c.categorias&&c.tramos&&c.mo) calcP=c; }
   }catch(e){}
 }
 
@@ -4886,13 +4919,13 @@ function calcMount(){
             <input id="calcCoste" type="number" inputmode="decimal" min="0" step="0.01" value="${isAdmin ? '18' : ''}" aria-label="Coste de la pieza sin IVA">
             <span class="unit" style="position:absolute;right:18px;top:50%;transform:translateY(-50%);font-weight:600;font-size:24px;color:var(--g400)">€</span>
           </div>
-          ${isAdmin ? '<p class="calc-hint">Lo que cuesta la pieza en factura de proveedor. El transporte y la merma se añaden solos.</p>' : ''}
+          ${isAdmin ? '<p class="calc-hint">Lo que cuesta la pieza en factura de proveedor, sin IVA.</p>' : ''}
           <div class="calc-panel-head" style="margin-top:4px">
-            <span class="calc-eyebrow">2 · Reparación</span>
+            <span class="calc-eyebrow">2 · Categoría de la pieza</span>
             <span class="calc-eyebrow" id="calcNivLbl"></span>
           </div>
-          <select class="calc-rep" id="calcReparacion" aria-label="Tipo de reparación"></select>
-          <p class="calc-hint" style="margin-top:10px;margin-bottom:0">Elige la reparación de la orden de trabajo.</p>
+          <select class="calc-rep" id="calcReparacion" aria-label="Categoría de la pieza"></select>
+          <p class="calc-hint" style="margin-top:10px;margin-bottom:0">Elige la categoría de la pieza que vas a facturar.</p>
         </div>
       </section>
 
@@ -4935,17 +4968,17 @@ function calcMount(){
     <p class="calc-admin-note"><strong>Panel de administración.</strong> Lo que definas aquí fija el PVP de toda la red. Cuando termines, exporta la configuración y distribúyela.</p>
 
     <div class="calc-panel">
-      <p class="calc-sec-title">Catálogo de reparaciones</p>
-      <p class="calc-sec-sub">La columna PVP ref. usa 20 € de coste y sirve para ver el efecto de cambiar el nivel.</p>
+      <p class="calc-sec-title">Categorías de pieza</p>
+      <p class="calc-sec-sub">Cada categoría fija su precio mínimo (c/IVA), su nivel de mano de obra y su factor multiplicador. La columna PVP ref. usa 20 € de coste.</p>
       <table class="calc-reps" id="calcTablaReps">
         <thead><tr>
-          <th>Reparación</th><th class="colgrp">Grupo</th><th class="colniv">Mano de obra</th>
+          <th>Categoría</th><th class="colgrp">Mínimo c/IVA</th><th class="colniv">Mano de obra</th><th class="colgrp">Factor</th>
           <th class="colpvp" style="text-align:right">PVP ref.</th><th class="colx"></th>
         </tr></thead>
         <tbody></tbody>
       </table>
       <div class="calc-btnrow">
-        <button type="button" class="calc-btn pri" id="calcAddRep">+ Añadir reparación</button>
+        <button type="button" class="calc-btn pri" id="calcAddRep">+ Añadir categoría</button>
       </div>
     </div>
 
@@ -4956,8 +4989,8 @@ function calcMount(){
     </div>
 
     <div class="calc-panel" style="margin-top:16px">
-      <p class="calc-sec-title">Multiplicadores por banda de coste</p>
-      <p class="calc-sec-sub">Degresivos: la pieza barata aguanta multiplicador alto, la cara no.</p>
+      <p class="calc-sec-title">Multiplicadores por tramo de coste</p>
+      <p class="calc-sec-sub">Degresivos: la pieza barata aguanta multiplicador alto, la cara no. El multiplicador se aplica sobre el coste y devuelve precio <strong>con IVA</strong>.</p>
       <div class="calc-set-grid" id="calcSetBandas"></div>
     </div>
 
@@ -4965,9 +4998,6 @@ function calcMount(){
       <p class="calc-sec-title">Parámetros generales</p>
       <div class="calc-set-grid">
         <div class="calc-set"><label for="calcP_iva">IVA %</label><input id="calcP_iva" type="number" step="1"></div>
-        <div class="calc-set"><label for="calcP_merma">Merma / DOA %</label><input id="calcP_merma" type="number" step="0.5"></div>
-        <div class="calc-set"><label for="calcP_log">Logística %</label><input id="calcP_log" type="number" step="0.5"></div>
-        <div class="calc-set"><label for="calcP_minticket">Ticket mínimo €</label><input id="calcP_minticket" type="number" step="1"></div>
       </div>
     </div>
 
@@ -5011,21 +5041,23 @@ function calcMount(){
       tablaRepsEl.addEventListener("input", e=>{
         const i=e.target.dataset.i, f=e.target.dataset.f;
         if(i===undefined||!f) return;
-        calcP.reparaciones[+i][f]=e.target.value;
+        const val=(f==="min"||f==="factor") ? (parseFloat(e.target.value)||0) : e.target.value;
+        calcP.categorias[+i][f]=val;
         if(f==="niv") calcPintarReps();
         calcGuardar();
       });
       tablaRepsEl.addEventListener("click", e=>{
         const i=e.target.dataset.del; if(i===undefined) return;
-        if(calcP.reparaciones.length<=1){ calcToast("Tiene que quedar al menos una reparación"); return; }
-        calcP.reparaciones.splice(+i,1);
-        if(calcRepSel>=calcP.reparaciones.length) calcRepSel=calcP.reparaciones.length-1;
+        if(calcP.categorias.length<=1){ calcToast("Tiene que quedar al menos una categoría"); return; }
+        calcP.categorias.splice(+i,1);
+        if(calcRepSel>=calcP.categorias.length) calcRepSel=calcP.categorias.length-1;
         calcPintarReps(); calcGuardar();
       });
     }
     const addRepEl=document.getElementById("calcAddRep");
     if(addRepEl) addRepEl.addEventListener("click", ()=>{
-      calcP.reparaciones.push({n:"Nueva reparación",g:"Móvil y tablet",niv:calcP.mo[1]?calcP.mo[1].c:calcP.mo[0].c});
+      calcP.categorias.push({n:"Nueva categoría", min:calcP.defaults.min,
+                             niv:calcP.defaults.niv, factor:calcP.defaults.factor});
       calcPintarReps(); calcGuardar();
       const inputs=document.querySelectorAll('#calcTablaReps input[data-f="n"]');
       const last=inputs[inputs.length-1]; if(last){ last.focus(); last.select(); }
@@ -5039,9 +5071,9 @@ function calcMount(){
     const setbandasEl=document.getElementById("calcSetBandas");
     if(setbandasEl) setbandasEl.addEventListener("input", e=>{
       const i=e.target.dataset.b; if(i===undefined) return;
-      calcP.bandas[+i].mult=parseFloat(e.target.value)||0.01; calcPintarReps(); calcGuardar();
+      calcP.tramos[+i].mult=parseFloat(e.target.value)||0.01; calcPintarReps(); calcGuardar();
     });
-    ["iva","merma","log","minticket"].forEach(k=>{
+    ["iva"].forEach(k=>{
       const el=document.getElementById("calcP_"+k);
       if(el) el.addEventListener("input", e=>{
         calcP[k]=parseFloat(e.target.value)||0; calcPintarReps(); calcGuardar();
@@ -5065,7 +5097,7 @@ function calcMount(){
       try{
         const ta=document.getElementById("calcCfg");
         const c=JSON.parse(ta?ta.value:'{}');
-        if(!c.reparaciones||!c.bandas||!c.mo) throw new Error("faltan bloques");
+        if(!c.categorias||!c.tramos||!c.mo) throw new Error("faltan bloques");
         calcP=c; calcRepSel=0; calcPintarAdmin();
         calcToast("JSON importado. Pulsa 'Guardar y aplicar a todos' para distribuirlo.");
       }catch(err){ calcToast("Ese texto no es una configuración válida"); }
@@ -5147,10 +5179,10 @@ window.calcEnviarSolicitud = async function(){
   const coste=parseFloat(costeEl?.value||0);
   if(!ref || !prov) return;
 
-  const repIdx=+(document.getElementById('calcReparacion')?.value||0);
-  const rep=calcP.reparaciones[repIdx]||{n:'',g:''};
+  const catIdx=+(document.getElementById('calcReparacion')?.value||0);
+  const cat=calcP.categorias[catIdx]||{n:''};
   const pvpCalculado=document.getElementById('calcPvp')?.textContent||'';
-  const descSolicitud=rep.n+(rep.g?' ('+rep.g+')':'');
+  const descSolicitud=cat.n;
   const obsSolicitud='PVP calculado: '+pvpCalculado+' € | Coste pieza: '+coste+' €';
 
   const statusEl=document.getElementById('calcEnviarStatus');
