@@ -4519,7 +4519,7 @@ table.calc-reps .pvpref { font-family:var(--calc-mono);font-size:12px;color:var(
 (function(){
 "use strict";
 
-const CALC_STORE_KEY = "savestore:pricing:v3";
+const CALC_STORE_KEY = "savestore:pricing:v4";
 
 /* Modelo de pricing extraído de parametros_beta_V0.2.xlsx (hoja "Pricing").
    Verificado al céntimo contra las 615 filas de "PVP Artículos".
@@ -4554,27 +4554,42 @@ const CALC_FABRICA = {
     {c:"N5",n:"Reparación placa", d:"Diagnóstico y reparación de placa base",  min:105, tar:80, e:169.40, tasa:0.01, colat:120}
   ],
   defaults:{mult:3, min:29.99, niv:"N2", factor:1},
+  /* Categorías por familia de dispositivo.
+     SmartDevices: niveles y mínimos tomados del Excel (593 artículos de respaldo).
+     Portátil y Consolas: el Excel solo tiene 20 y 2 artículos, así que el nivel de MO
+     se asigna por carga real de trabajo, no por dato.                              */
   categorias:[
-    {n:"Pantalla",     min:39.99, niv:"N2", factor:1},
-    {n:"Bateria",      min:29.99, niv:"N2", factor:1},
-    {n:"Tapa",         min:29.99, niv:"N2", factor:1},
-    {n:"Flex",         min:29.99, niv:"N2", factor:1},
-    {n:"SubPCB",       min:29.99, niv:"N3", factor:1},
-    {n:"Cámara",       min:29.99, niv:"N2", factor:1},
-    {n:"Lente",        min:19.99, niv:"N2", factor:1},
-    {n:"Carcasa",      min:39.99, niv:"N3", factor:1},
-    {n:"Porta",        min:19.99, niv:"N1", factor:1},
-    {n:"Resto Piezas", min:29.99, niv:"N5", factor:1},
-    {n:"Altavoz",      min:24.99, niv:"N2", factor:1},
-    {n:"Buzzer",       min:19.99, niv:"N2", factor:1},
-    {n:"Boton",        min:19.99, niv:"N2", factor:1},
-    {n:"Lector",       min:29.99, niv:"N3", factor:1},
-    {n:"Auricular",    min:19.99, niv:"N2", factor:1},
-    {n:"Conector",     min:29.99, niv:"N4", factor:1},
-    {n:"Tapa Trasera", min:39.99, niv:"N3", factor:1},
-    {n:"PCB",          min:39.99, niv:"N4", factor:1},
-    {n:"Chasis",       min:39.99, niv:"N3", factor:1},
-    {n:"SPen",         min:39.99, niv:"N1", factor:1}
+    /* ── SmartDevices ── */
+    {n:"SmartDevices · Pantalla",                   min:39.99, niv:"N2", factor:1},
+    {n:"SmartDevices · Bateria",                    min:29.99, niv:"N2", factor:1},
+    {n:"SmartDevices · Flex",                       min:29.99, niv:"N2", factor:1},
+    {n:"SmartDevices · SubPCB / Flex Carga",        min:29.99, niv:"N3", factor:1},
+    {n:"SmartDevices · Cámara Trasera",             min:29.99, niv:"N2", factor:1},
+    {n:"SmartDevices · Lente Camara",               min:19.99, niv:"N2", factor:1},
+    {n:"SmartDevices · Carcasa / Chasis",           min:39.99, niv:"N3", factor:1},
+    {n:"SmartDevices · Tapa/Cristal Trasera",       min:29.99, niv:"N2", factor:1},
+    {n:"SmartDevices · Altavoz",                    min:24.99, niv:"N2", factor:1},
+    {n:"SmartDevices · Buzzer",                     min:19.99, niv:"N2", factor:1},
+    {n:"SmartDevices · Boton",                      min:19.99, niv:"N2", factor:1},
+    {n:"SmartDevices · Lector",                     min:29.99, niv:"N3", factor:1},
+    {n:"SmartDevices · Auricular",                  min:19.99, niv:"N2", factor:1},
+    {n:"SmartDevices · Conector",                   min:29.99, niv:"N4", factor:1},
+    {n:"SmartDevices · Accesorios (Spen,Portasim)", min:19.99, niv:"N1", factor:1},
+    {n:"SmartDevices · Otros",                      min:29.99, niv:"N5", factor:1},
+    /* ── Portátil ── */
+    {n:"Portatil · Pantalla",                       min:39.99, niv:"N3", factor:1},
+    {n:"Portatil · Bateria",                        min:29.99, niv:"N2", factor:1},
+    {n:"Portatil · Teclado",                        min:39.99, niv:"N3", factor:1},
+    {n:"Portatil · Disco Duro",                     min:29.99, niv:"N1", factor:1},
+    {n:"Portatil · Carcasa",                        min:39.99, niv:"N3", factor:1},
+    {n:"Portatil · Otros",                          min:29.99, niv:"N2", factor:1},
+    /* ── Consolas ── */
+    {n:"Consolas · Pantalla",                       min:29.99, niv:"N2", factor:1},
+    {n:"Consolas · Bateria",                        min:29.99, niv:"N2", factor:1},
+    {n:"Consolas · Carcasa",                        min:29.99, niv:"N3", factor:1},
+    {n:"Consolas · Joystick",                       min:29.99, niv:"N2", factor:1},
+    {n:"Consolas · Microsoldadura",                 min:29.99, niv:"N4", factor:1},
+    {n:"Consolas · Otros",                          min:29.99, niv:"N2", factor:1}
   ]
 };
 
@@ -4593,8 +4608,10 @@ function calcEsc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
 
 /* ── motor de precio (modelo parametros_beta.xlsx) ── */
 
-/* Redondeo comercial: al alza al entero y se le resta 1 céntimo → .99 */
+/* Redondeo comercial: al alza al entero y se le resta 1 céntimo → .99
+   Con valor nulo o negativo devuelve 0 (evita piezas a −0,01 €). */
 function calcRedondeo99(v){
+  if(!(v>0)) return 0;
   return Math.round((Math.ceil(Math.round(v*1e6)/1e6) - 0.01) * 100) / 100;
 }
 
@@ -4682,8 +4699,20 @@ function calcPintarBarras(){
 function calcPintarSelector(){
   const sel=document.getElementById("calcReparacion");
   if(!sel) return;
-  sel.innerHTML=calcP.categorias.map((c,i)=>
-    '<option value="'+i+'">'+calcEsc(c.n)+'</option>').join("");
+  // Agrupa por familia: el nombre "Familia · Pieza" se parte por el separador.
+  let html="", grupo=null;
+  calcP.categorias.forEach((c,i)=>{
+    const p=String(c.n).split("·");
+    const fam=p.length>1 ? p[0].trim() : "";
+    const pieza=p.length>1 ? p.slice(1).join("·").trim() : c.n;
+    if(fam!==grupo){
+      if(grupo) html+="</optgroup>";
+      if(fam) html+='<optgroup label="'+calcEsc(fam)+'">';
+      grupo=fam;
+    }
+    html+='<option value="'+i+'">'+calcEsc(pieza)+'</option>';
+  });
+  sel.innerHTML=html+(grupo?"</optgroup>":"");
   if(!calcP.categorias[calcRepSel]) calcRepSel=0;
   sel.value=String(calcRepSel);
 }
@@ -5002,7 +5031,7 @@ function calcMount(){
 
     <div class="calc-panel">
       <p class="calc-sec-title">Categorías de pieza</p>
-      <p class="calc-sec-sub">Cada categoría fija su precio mínimo (c/IVA), su nivel de mano de obra y su factor. El <strong>factor</strong> multiplica al del tramo de coste: 1 lo deja igual, 1,10 encarece esa categoría un 10 % y 0,90 la abarata un 10 %. La columna PVP ref. usa 20 € de coste.</p>
+      <p class="calc-sec-sub">Cada categoría fija su precio mínimo de pieza (c/IVA), su nivel de mano de obra y su factor. El <strong>factor</strong> multiplica al del tramo de coste: 1 lo deja igual, 1,10 encarece esa categoría un 10 % y 0,90 la abarata un 10 %. La columna PVP ref. usa 20 € de coste.</p>
       <div class="calc-reps-wrap">
         <table class="calc-reps" id="calcTablaReps">
           <thead><tr>
