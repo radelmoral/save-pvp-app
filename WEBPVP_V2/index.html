@@ -4482,10 +4482,13 @@ table.calc-reps input[type=text]:hover { border-color:var(--calc-rule); }
 table.calc-reps input[type=text]:focus { outline:none;border-color:var(--save);background:var(--save-xlt); }
 table.calc-reps select { font-family:var(--calc-mono);font-size:12px;padding:6px 7px;border:1.5px solid var(--calc-rule);background:var(--calc-field);color:var(--calc-ink);border-radius:4px;width:100%; }
 table.calc-reps select:focus { outline:none;border-color:var(--save); }
-table.calc-reps { table-layout:fixed; }
-table.calc-reps .colcat{width:auto} table.calc-reps .colmin{width:110px} table.calc-reps .colniv{width:20%}
-table.calc-reps .colfac{width:80px} table.calc-reps .colpvp{width:90px} table.calc-reps .colx{width:38px}
-table.calc-reps td input[type=text] { min-width:0; }
+.calc-reps-wrap { overflow-x:auto; }
+table.calc-reps { min-width:760px; }
+table.calc-reps .colcat{width:auto;min-width:190px} table.calc-reps .colmin{width:104px}
+table.calc-reps .colniv{width:210px} table.calc-reps .colfac{width:78px}
+table.calc-reps .colpvp{width:86px} table.calc-reps .colx{width:38px}
+table.calc-reps th,table.calc-reps td { white-space:nowrap; }
+table.calc-reps td input,table.calc-reps td select { min-width:0; }
 table.calc-reps .pvpref { font-family:var(--calc-mono);font-size:12px;color:var(--calc-ink-faint);text-align:right;display:block; }
 .calc-del { border:0;background:transparent;color:var(--calc-ink-faint);font-family:var(--calc-mono);font-size:16px;cursor:pointer;padding:4px 8px;line-height:1; }
 .calc-del:hover { color:var(--calc-stop); }
@@ -4999,14 +5002,16 @@ function calcMount(){
 
     <div class="calc-panel">
       <p class="calc-sec-title">Categorías de pieza</p>
-      <p class="calc-sec-sub">Cada categoría fija su precio mínimo (c/IVA), su nivel de mano de obra y su factor multiplicador. La columna PVP ref. usa 20 € de coste.</p>
-      <table class="calc-reps" id="calcTablaReps">
-        <thead><tr>
-          <th class="colcat">Categoría</th><th class="colmin">Mínimo c/IVA</th><th class="colniv">Mano de obra</th><th class="colfac">Factor</th>
-          <th class="colpvp" style="text-align:right">PVP ref.</th><th class="colx"></th>
-        </tr></thead>
-        <tbody></tbody>
-      </table>
+      <p class="calc-sec-sub">Cada categoría fija su precio mínimo (c/IVA), su nivel de mano de obra y su factor. El <strong>factor</strong> multiplica al del tramo de coste: 1 lo deja igual, 1,10 encarece esa categoría un 10 % y 0,90 la abarata un 10 %. La columna PVP ref. usa 20 € de coste.</p>
+      <div class="calc-reps-wrap">
+        <table class="calc-reps" id="calcTablaReps">
+          <thead><tr>
+            <th class="colcat">Categoría</th><th class="colmin">Mínimo c/IVA</th><th class="colniv">Mano de obra</th><th class="colfac">Factor</th>
+            <th class="colpvp" style="text-align:right">PVP ref.</th><th class="colx"></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
       <div class="calc-btnrow">
         <button type="button" class="calc-btn pri" id="calcAddRep">+ Añadir categoría</button>
       </div>
