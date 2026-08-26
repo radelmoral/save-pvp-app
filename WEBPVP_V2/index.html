@@ -4430,6 +4430,15 @@ async function enviarChat() {
 .calc-hint { font-size:12.5px;color:var(--calc-ink-soft);margin:0 0 16px; }
 .calc-rep { width:100%;font-family:inherit;font-size:15px;font-weight:500;color:var(--calc-ink);padding:12px 15px;border:1.5px solid var(--calc-rule-hard);border-radius:var(--r);background:var(--calc-field);appearance:none;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,var(--calc-ink) 50%),linear-gradient(135deg,var(--calc-ink) 50%,transparent 50%);background-position:calc(100% - 20px) 22px,calc(100% - 14px) 22px;background-size:6px 6px,6px 6px;background-repeat:no-repeat; }
 .calc-rep:focus { outline:none;border-color:var(--calc-teal);background-color:var(--calc-teal-wash); }
+/* Campos del flujo por pasos (usuarios no administradores) */
+.calc-campo { width:100%;padding:10px 12px;border:1.5px solid var(--calc-rule-hard);border-radius:var(--r);
+  background:var(--calc-field);color:var(--calc-ink);font-family:inherit;font-size:14px;outline:none;
+  transition:border-color .15s,background .15s,opacity .15s; }
+.calc-campo:focus { border-color:var(--calc-teal);background:var(--calc-teal-wash); }
+select.calc-campo { appearance:none;cursor:pointer; }
+.calc-campo:disabled, .calc-rep:disabled, .calc-costfield input:disabled {
+  opacity:.45;cursor:not-allowed;background:var(--g200);border-color:var(--calc-rule);color:var(--calc-ink-faint); }
+.calc-campo.ok { border-color:var(--calc-teal); }
 .calc-rep optgroup { font-family:var(--calc-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--calc-ink-faint); }
 .calc-readout { border:1.5px solid var(--calc-rule-hard);border-radius:var(--r);background:var(--calc-rule-hard);color:#fff;padding:18px 20px 16px;box-shadow:var(--sh2); }
 .calc-readout .calc-eyebrow { color:rgba(255,255,255,.6); }
@@ -4699,8 +4708,10 @@ function calcPintarBarras(){
 function calcPintarSelector(){
   const sel=document.getElementById("calcReparacion");
   if(!sel) return;
+  const isAdmin = window.__SAVE_CURRENT_ROLE === 'admin';
   // Agrupa por familia: el nombre "Familia · Pieza" se parte por el separador.
-  let html="", grupo=null;
+  let html = isAdmin ? "" : '<option value="">— Selecciona categoría —</option>';
+  let grupo=null;
   calcP.categorias.forEach((c,i)=>{
     const p=String(c.n).split("·");
     const fam=p.length>1 ? p[0].trim() : "";
@@ -4713,31 +4724,39 @@ function calcPintarSelector(){
     html+='<option value="'+i+'">'+calcEsc(pieza)+'</option>';
   });
   sel.innerHTML=html+(grupo?"</optgroup>":"");
-  if(!calcP.categorias[calcRepSel]) calcRepSel=0;
-  sel.value=String(calcRepSel);
+  if(isAdmin){
+    if(!calcP.categorias[calcRepSel]) calcRepSel=0;
+    sel.value=String(calcRepSel);
+  } else {
+    // Sin categoría preseleccionada: el usuario tiene que elegirla
+    if(calcRepSel<0 || !calcP.categorias[calcRepSel]) { calcRepSel=-1; sel.value=''; }
+    else sel.value=String(calcRepSel);
+  }
 }
 
 function calcRender(){
-  const cat=calcP.categorias[calcRepSel];
-  if(!cat) return;
   const costeEl=document.getElementById("calcCoste");
   if(!costeEl) return;
   const coste=Math.max(0,parseFloat(costeEl.value)||0);
 
-  // Ocultar el panel derecho solo si la referencia está bloqueada (ya tiene PVP en catálogo)
   const isAdminRol = window.__SAVE_CURRENT_ROLE === 'admin';
   const rightPanel = document.getElementById('calcRightPanel');
+
+  // Mantener el estado de bloqueo de los pasos al día
+  calcActualizarPasos();
+
+  // Referencia con PVP ya asignado: se oculta el panel del PVP
   if(!isAdminRol && calcRefBlocked){
     if(rightPanel) rightPanel.style.display='none';
     return;
   }
   if(rightPanel) rightPanel.style.display='';
 
-  // Si no-admin y falta referencia o coste, mostrar PVP = 0
+  // Para no-admin hacen falta los cuatro pasos completos; si no, PVP = 0
   if(!isAdminRol){
-    const refVal=(document.getElementById('calcSolRef')?.value||'').trim();
-    const costeVal=parseFloat(document.getElementById('calcCoste')?.value||0);
-    if(!refVal || !costeVal){
+    const refVal =(document.getElementById('calcSolRef')?.value||'').trim();
+    const provVal=(document.getElementById('calcSolProv')?.value||'').trim();
+    if(!refVal || !calcRefValidadaOK || !provVal || !coste || calcRepSel<0){
       document.getElementById("calcPvp").textContent='0';
       const pvpSubEl=document.getElementById("calcPvpSub"); if(pvpSubEl) pvpSubEl.textContent='';
       document.getElementById("calcNivLbl").textContent='';
@@ -4746,6 +4765,8 @@ function calcRender(){
     }
   }
 
+  const cat=calcP.categorias[calcRepSel];
+  if(!cat) return;
   const r=calcCalcular(coste, cat.n);
 
   const adminView = window.__SAVE_CURRENT_ROLE === 'admin';
@@ -4946,22 +4967,21 @@ function calcMount(){
         <div class="calc-panel">
           ${!isAdmin ? `
           <div class="calc-panel-head">
-            <span class="calc-eyebrow">0 · Identificación</span>
-            <span class="calc-eyebrow" style="color:var(--red-500)">Obligatorio</span>
+            <span class="calc-eyebrow">1 · Referencia</span>
+            <span class="calc-eyebrow" id="calcPaso1Est" style="color:var(--red-500)">Obligatorio</span>
           </div>
           <div style="margin-bottom:16px">
-            <label style="font-size:11px;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px">Referencia *</label>
-            <input id="calcSolRef" type="text" placeholder="Ej: SAM-S24-LCD-01"
-              style="width:100%;padding:10px 12px;border:1.5px solid var(--g700);border-radius:var(--r);background:var(--g100);font-size:14px;outline:none;transition:border-color .15s"
-              oninput="calcRefClearWarn()"
-              onblur="calcValidarRef()"
-              onfocus="this.style.borderColor='var(--save)'"
-              onblurCapture="this.style.borderColor='var(--g700)'" />
+            <input id="calcSolRef" type="text" placeholder="Ej: SAM-S24-LCD-01" class="calc-campo"
+              oninput="calcRefClearWarn()" onblur="calcValidarRef()" />
             <div id="calcRefWarn" style="display:none;margin-top:6px;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.5;"></div>
+          </div>
 
-            <label style="font-size:11px;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px;margin-top:12px">Proveedor *</label>
-            <select id="calcSolProv"
-              style="width:100%;padding:10px 12px;border:1.5px solid var(--g700);border-radius:var(--r);background:var(--g100);font-size:14px;outline:none;appearance:none;cursor:pointer">
+          <div class="calc-panel-head">
+            <span class="calc-eyebrow">2 · Proveedor</span>
+            <span class="calc-eyebrow" id="calcPaso2Est" style="color:var(--g400)">Bloqueado</span>
+          </div>
+          <div style="margin-bottom:16px">
+            <select id="calcSolProv" class="calc-campo" disabled>
               <option value="">— Selecciona proveedor —</option>
               <option>Ecommerce</option>
               <option>Stock red</option>
@@ -4973,21 +4993,21 @@ function calcMount(){
             </select>
           </div>
           ` : ''}
-          <div class="calc-panel-head" ${!isAdmin ? '' : ''}>
-            <span class="calc-eyebrow">${!isAdmin ? '1' : '1'} · Coste de la pieza</span>
-            <span class="calc-eyebrow">Sin IVA</span>
+          <div class="calc-panel-head">
+            <span class="calc-eyebrow">${isAdmin ? '1' : '3'} · Coste de la pieza</span>
+            <span class="calc-eyebrow" id="calcPaso3Est">${isAdmin ? 'Sin IVA' : 'Bloqueado'}</span>
           </div>
           <div class="calc-costfield">
-            <input id="calcCoste" type="number" inputmode="decimal" min="0" step="0.01" value="${isAdmin ? '18' : ''}" aria-label="Coste de la pieza sin IVA">
+            <input id="calcCoste" type="number" inputmode="decimal" min="0" step="0.01" value="${isAdmin ? '18' : ''}" ${isAdmin ? '' : 'disabled'} aria-label="Coste de la pieza sin IVA">
             <span class="unit" style="position:absolute;right:18px;top:50%;transform:translateY(-50%);font-weight:600;font-size:24px;color:var(--g400)">€</span>
           </div>
-          ${isAdmin ? '<p class="calc-hint">Lo que cuesta la pieza en factura de proveedor, sin IVA.</p>' : ''}
+          ${isAdmin ? '<p class="calc-hint">Lo que cuesta la pieza en factura de proveedor, sin IVA.</p>' : '<div style="height:12px"></div>'}
           <div class="calc-panel-head" style="margin-top:4px">
-            <span class="calc-eyebrow">2 · Categoría de la pieza</span>
+            <span class="calc-eyebrow">${isAdmin ? '2' : '4'} · Categoría de la pieza</span>
             <span class="calc-eyebrow" id="calcNivLbl"></span>
           </div>
-          <select class="calc-rep" id="calcReparacion" aria-label="Categoría de la pieza"></select>
-          <p class="calc-hint" style="margin-top:10px;margin-bottom:0">Elige la categoría de la pieza que vas a facturar.</p>
+          <select class="calc-rep" id="calcReparacion" ${isAdmin ? '' : 'disabled'} aria-label="Categoría de la pieza"></select>
+          ${isAdmin ? '<p class="calc-hint" style="margin-top:10px;margin-bottom:0">Elige la categoría de la pieza que vas a facturar.</p>' : ''}
         </div>
       </section>
 
@@ -5085,21 +5105,30 @@ function calcMount(){
 
   /* ── eventos ── */
   const costeEl=document.getElementById("calcCoste");
-  if(costeEl) costeEl.addEventListener("input", calcRender);
   const repEl=document.getElementById("calcReparacion");
-  if(repEl) repEl.addEventListener("change", e=>{ calcRepSel=+e.target.value; calcRender(); });
-  // Proveedor: intentar auto-envío al seleccionar
   const provEl=document.getElementById("calcSolProv");
-  if(provEl) provEl.addEventListener("change", ()=>{ calcCheckAutoSend(); });
-  // Referencia: resetear estado al cambiar texto
   const solRefEl=document.getElementById("calcSolRef");
-  if(solRefEl) solRefEl.addEventListener("input", ()=>{ calcRefValidadaOK=false; calcAutoSendKey=''; });
-  // Coste: intentar auto-envío cuando el usuario introduce un valor (con pequeño debounce)
+
+  if(repEl) repEl.addEventListener("change", e=>{
+    calcRepSel = e.target.value==='' ? -1 : +e.target.value;
+    calcRender();
+  });
+  // Proveedor: desbloquea el coste e intenta el auto-envío
+  if(provEl) provEl.addEventListener("change", ()=>{ calcRender(); calcCheckAutoSend(); });
+  // Referencia: al editarla se invalida y se bloquea todo lo posterior
+  if(solRefEl) solRefEl.addEventListener("input", ()=>{
+    calcRefValidadaOK=false; calcAutoSendKey='';
+    calcRender();
+  });
+  // Coste: recalcula al instante y lanza el auto-envío con un pequeño retardo
   let calcCosteAutoTimer=null;
   if(costeEl) costeEl.addEventListener("input", ()=>{
+    calcRender();
     clearTimeout(calcCosteAutoTimer);
     calcCosteAutoTimer=setTimeout(()=>{ calcCheckAutoSend(); }, 800);
   });
+
+  if(!isAdmin) calcRepSel=-1;   // sin categoría preseleccionada
 
   if(isAdmin){
     const tablaRepsEl=document.getElementById("calcTablaReps");
@@ -5178,6 +5207,41 @@ function calcMount(){
   calcSetModo('calc');
 }
 
+/* ── flujo por pasos (solo usuarios no administradores) ──
+   Cada campo se desbloquea cuando el anterior está relleno y validado.
+   Si se invalida un paso, los siguientes se bloquean y se limpian.      */
+function calcActualizarPasos(){
+  if(window.__SAVE_CURRENT_ROLE === 'admin') return;
+  const refEl =document.getElementById('calcSolRef');
+  const provEl=document.getElementById('calcSolProv');
+  const costEl=document.getElementById('calcCoste');
+  const catEl =document.getElementById('calcReparacion');
+  if(!refEl||!provEl||!costEl||!catEl) return;
+
+  const okRef  = !!refEl.value.trim() && calcRefValidadaOK && !calcRefBlocked;
+  const okProv = okRef  && !!provEl.value;
+  const okCost = okProv && parseFloat(costEl.value)>0;
+
+  // Bloquear y limpiar en cascada
+  provEl.disabled=!okRef;   if(!okRef  && provEl.value){ provEl.value=''; }
+  costEl.disabled=!okProv;  if(!okProv && costEl.value){ costEl.value=''; }
+  catEl.disabled =!okCost;  if(!okCost && calcRepSel>=0){ calcRepSel=-1; catEl.value=''; }
+
+  // Marca visual de campo completado
+  refEl.classList.toggle('ok', okRef);
+  provEl.classList.toggle('ok', okProv);
+
+  // Etiquetas de estado de cada paso
+  const est=(id,ok,pend)=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.textContent = ok ? '✓ Completado' : pend;
+    el.style.color = ok ? 'var(--save)' : (pend==='Bloqueado' ? 'var(--g400)' : 'var(--red-500)');
+  };
+  est('calcPaso1Est', okRef,  'Obligatorio');
+  est('calcPaso2Est', okProv, okRef  ? 'Obligatorio' : 'Bloqueado');
+  est('calcPaso3Est', okCost, okProv ? 'Obligatorio' : 'Bloqueado');
+}
+
 /* ── validación y envío de solicitud desde la calculadora ── */
 function calcRefSetWarn(msg, isBlocking){
   calcRefBlocked = !!(isBlocking && msg);
@@ -5197,7 +5261,7 @@ window.calcRefClearWarn = function(){
   calcRefValidadaOK = false;
   const warnEl=document.getElementById('calcRefWarn');
   if(warnEl){ warnEl.style.display='none'; warnEl.textContent=''; }
-  calcRender();
+  calcRender();   // calcRender ya invoca calcActualizarPasos()
 };
 window.calcValidarRef = async function(){
   calcRefValidadaOK = false;
@@ -5207,22 +5271,23 @@ window.calcValidarRef = async function(){
     const token=localStorage.getItem('savePvpToken');
     const res=await fetch('/api/solicitudes/validar-referencia?referencia='+encodeURIComponent(ref),
       {headers:{'Authorization':'Bearer '+token}});
-    if(!res.ok) return;
+    if(!res.ok){ calcRefSetWarn(null,false); return; }
     const check=await res.json();
+    // Importante: marcar la referencia como válida ANTES de pintar el aviso,
+    // porque calcRefSetWarn re-renderiza y ahí se decide el desbloqueo del paso 2.
+    if(check?.existe && check.conPvp){
+      calcRefValidadaOK = false;
+      calcRefSetWarn('⛔ La referencia "'+ref+'" ya tiene PVP asignado en '+check.origen+'. No puedes solicitar una consulta de PVP para esta referencia. Si crees que hay un error en el PVP puedes reportar la referencia desde el catálogo al que corresponda para su revisión.',true);
+      return;
+    }
+    calcRefValidadaOK = true;
     if(check?.existe){
-      if(check.conPvp){
-        calcRefSetWarn('⛔ La referencia "'+ref+'" ya tiene PVP asignado en '+check.origen+'. No puedes solicitar una consulta de PVP para esta referencia. Si crees que hay un error en el PVP puedes reportar la referencia desde el catálogo al que corresponda para su revisión.',true);
-      } else {
-        calcRefSetWarn('⚠️ Ya existe una solicitud pendiente para esta referencia. Se enviará igualmente.',false);
-        calcRefValidadaOK = true;
-        calcCheckAutoSend();
-      }
+      calcRefSetWarn('⚠️ Ya existe una solicitud pendiente para esta referencia. Se enviará igualmente.',false);
     } else {
       calcRefSetWarn(null,false);
-      calcRefValidadaOK = true;
-      calcCheckAutoSend();
     }
-  }catch(e){ calcRefSetWarn(null,false); }
+    calcCheckAutoSend();
+  }catch(e){ calcRefValidadaOK=false; calcRefSetWarn(null,false); }
 };
 
 /* Auto-envío: se dispara cuando ref+prov+coste están completos y la ref no está bloqueada */
@@ -5232,7 +5297,7 @@ function calcCheckAutoSend(){
   const ref=(document.getElementById('calcSolRef')?.value||'').trim();
   const prov=(document.getElementById('calcSolProv')?.value||'').trim();
   const coste=parseFloat(document.getElementById('calcCoste')?.value||0);
-  if(!ref || !prov || !coste) return;
+  if(!ref || !prov || !coste || calcRepSel<0) return;   // los 4 pasos completos
   const key = ref + '||' + prov;
   if(key === calcAutoSendKey) return; // ya enviada esta combinación
   calcAutoSendKey = key;
@@ -5243,10 +5308,9 @@ window.calcEnviarSolicitud = async function(){
   const prov=(document.getElementById('calcSolProv')?.value||'').trim();
   const costeEl=document.getElementById('calcCoste');
   const coste=parseFloat(costeEl?.value||0);
-  if(!ref || !prov) return;
+  if(!ref || !prov || !coste || calcRepSel<0) return;
 
-  const catIdx=+(document.getElementById('calcReparacion')?.value||0);
-  const cat=calcP.categorias[catIdx]||{n:''};
+  const cat=calcP.categorias[calcRepSel]||{n:''};
   const pvpCalculado=document.getElementById('calcPvp')?.textContent||'';
   const descSolicitud=cat.n;
   const obsSolicitud='PVP calculado: '+pvpCalculado+' € | Coste pieza: '+coste+' €';
