@@ -5109,9 +5109,11 @@ function calcMount(){
   const provEl=document.getElementById("calcSolProv");
   const solRefEl=document.getElementById("calcSolRef");
 
+  // Categoría: es el último paso del flujo, así que aquí se cierra el auto-envío
   if(repEl) repEl.addEventListener("change", e=>{
     calcRepSel = e.target.value==='' ? -1 : +e.target.value;
     calcRender();
+    calcCheckAutoSend();
   });
   // Proveedor: desbloquea el coste e intenta el auto-envío
   if(provEl) provEl.addEventListener("change", ()=>{ calcRender(); calcCheckAutoSend(); });
