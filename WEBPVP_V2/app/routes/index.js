@@ -86,8 +86,8 @@ router.post('/chat', auth, role('admin','carrefour','eci'), chatCtrl.chat);
 router.get('/chat-logs',         auth, role('admin'), chatLogsCtrl.listar);
 router.get('/chat-logs/resumen', auth, role('admin'), chatLogsCtrl.resumen);
 
-// ── Pedidos (mismos roles que el módulo en la web) ────────
-router.post('/pedidos', auth, role('admin','carrefour','eci'), pedidosCtrl.enviarPedido);
+// ── Pedidos: solo traza en el log, no interviene en el envío ──
+router.post('/pedidos/log', auth, pedidosCtrl.registrarPedido);
 
 // ── Settings ──────────────────────────────────────────────
 router.get('/settings/calculadora', auth, settingsCtrl.getCalcConfig);
