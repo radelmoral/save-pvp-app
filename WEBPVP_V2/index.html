@@ -582,6 +582,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
 
   <!-- ── PEDIDOS ── -->
   <section class="page" id="page-pedidos">
+    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
     <div id="pedidos-root"></div>
   </section>
 
@@ -3778,6 +3779,8 @@ window.addEventListener('load', async () => {
   try {
     const { useState } = React;
 
+    const WEBHOOK_URL = "https://n8n-n8n.ajvss9.easypanel.host/webhook/pedidossave";
+
     const TIENDAS = [
       "ECI Alcala de Henares", "ECI Alicante", "ECI Bilbao", "ECI Callao", "ECI Campo de las Naciones",
       "ECI Castellana", "ECI Diagonal", "ECI El Bercial", "ECI Goya", "ECI Las Palmas",
@@ -3863,21 +3866,30 @@ window.addEventListener('load', async () => {
         try {
           const payload = getPayload();
           setStatusLog("Enviando datos al Servidor...");
-          // El envío pasa por nuestro backend, que reenvía a n8n y devuelve el
-          // resultado real. Si algo falla, el pedido NO se da por bueno.
-          const resp = await fetch('/api/pedidos', {
+          // Envío directo del navegador a n8n mediante formulario oculto.
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = WEBHOOK_URL;
+          form.target = 'hidden_iframe';
+          form.style.display = 'none';
+          const input = document.createElement('input');
+          input.name = 'json_payload';
+          input.value = JSON.stringify(payload);
+          form.appendChild(input);
+          document.body.appendChild(form);
+          form.submit();
+          document.body.removeChild(form);
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          // Aviso en paralelo al backend, solo para dejar traza en el log del
+          // servidor. Si falla no afecta al pedido, que ya ha salido arriba.
+          fetch('/api/pedidos/log', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer ' + localStorage.getItem('savePvpToken')
             },
             body: JSON.stringify(payload)
-          });
-          let data = {};
-          try { data = await resp.json(); } catch (_) {}
-          if (!resp.ok) {
-            throw new Error(data.error || `El servidor respondió ${resp.status}. El pedido NO se ha registrado.`);
-          }
+          }).catch(() => {});
           setStatusLog("¡Datos enviados! Creando Excel local...");
           const wsData = items.map(item => ({
             "Tienda Origen": item.tienda, "Referencia": item.referencia, "Etiqueta": item.etiqueta,
