@@ -12,6 +12,7 @@ const stockCtrl     = require('../controllers/stockController');
 const chatCtrl      = require('../controllers/chatController');
 const chatLogsCtrl  = require('../controllers/chatLogsController');
 const settingsCtrl  = require('../controllers/settingsController');
+const pedidosCtrl   = require('../controllers/pedidosController');
 
 // ── Auth ──────────────────────────────────────────────────
 router.post('/auth/login', authCtrl.login);
@@ -84,6 +85,9 @@ router.post('/chat', auth, role('admin','carrefour','eci'), chatCtrl.chat);
 // ── Chat logs (admin only) ────────────────────────────────
 router.get('/chat-logs',         auth, role('admin'), chatLogsCtrl.listar);
 router.get('/chat-logs/resumen', auth, role('admin'), chatLogsCtrl.resumen);
+
+// ── Pedidos (mismos roles que el módulo en la web) ────────
+router.post('/pedidos', auth, role('admin','carrefour','eci'), pedidosCtrl.enviarPedido);
 
 // ── Settings ──────────────────────────────────────────────
 router.get('/settings/calculadora', auth, settingsCtrl.getCalcConfig);
