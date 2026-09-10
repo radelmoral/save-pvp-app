@@ -32,7 +32,9 @@ async function setCalcConfig(req, res) {
   try {
     await ensureSettingsTable();
     const config = req.body;
-    if (!config || !config.reparaciones || !config.bandas || !config.mo) {
+    // La calculadora actual envía { categorias, tramos, mo, ... } — no { reparaciones, bandas }.
+    // Esa validación antigua rechazaba SIEMPRE el guardado, de cualquier admin.
+    if (!config || !config.categorias || !config.tramos || !config.mo) {
       return res.status(400).json({ error: 'Configuración inválida' });
     }
     await db.execute(
