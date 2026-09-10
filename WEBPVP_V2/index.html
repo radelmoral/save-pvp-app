@@ -4856,17 +4856,28 @@ async function calcGuardar(){
   try{ localStorage.setItem(CALC_STORE_KEY, JSON.stringify(calcP)); }catch(e){}
 }
 async function calcGuardarGlobal(){
-  // Guardar en el servidor (solo admin, se aplica a todos los usuarios)
+  // Guardar en el servidor (solo admin, se aplica a todos los usuarios).
+  // Devuelve true/false: el botón que llama a esto necesita saber si de verdad
+  // se ha guardado, en vez de asumir éxito solo porque el fetch no lanzó una excepción
+  // (fetch no lanza excepción por un 4xx/5xx, solo por fallo de red).
   try{
     const token = localStorage.getItem('savePvpToken');
-    await fetch('/api/settings/calculadora', {
+    const res = await fetch('/api/settings/calculadora', {
       method: 'PUT',
       headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+token },
       body: JSON.stringify(calcP)
     });
+    if(!res.ok){
+      const data = await res.json().catch(()=>({}));
+      throw new Error(data.error || ('HTTP '+res.status));
+    }
     // También actualizar caché local
     calcGuardar();
-  }catch(e){ console.warn('No se pudo guardar config en servidor:', e.message); }
+    return true;
+  }catch(e){
+    console.warn('No se pudo guardar config en servidor:', e.message);
+    return false;
+  }
 }
 async function calcCargar(){
   // Intentar cargar desde el servidor primero
@@ -5156,9 +5167,13 @@ function calcMount(){
     const guardarTodosEl=document.getElementById("calcGuardarTodos");
     if(guardarTodosEl) guardarTodosEl.addEventListener("click", async ()=>{
       guardarTodosEl.disabled=true; guardarTodosEl.textContent="Guardando…";
-      await calcGuardarGlobal();
+      const ok = await calcGuardarGlobal();
       guardarTodosEl.disabled=false; guardarTodosEl.textContent="💾 Guardar y aplicar a todos";
-      calcToast("✅ Configuración guardada. Todos los usuarios verán estos cambios.");
+      if(ok){
+        calcToast("✅ Configuración guardada. Todos los usuarios verán estos cambios.");
+      }else{
+        calcToast("❌ No se ha guardado — el servidor ha rechazado la configuración. Revisa la consola.");
+      }
     });
     const expEl=document.getElementById("calcExportar");
     if(expEl) expEl.addEventListener("click", ()=>{
