@@ -4595,6 +4595,18 @@ function calcTramo(coste){
   return {t:calcP.tramos[calcP.tramos.length-1], i:calcP.tramos.length-1};
 }
 
+/* Suelo de continuidad entre tramos: el techo (coste × mult, SIN factor de
+   categoría) del tramo anterior. Evita que una pieza más cara caiga a un
+   PVP más bajo solo por cruzar de tramo — sin esto, el multiplicador
+   degresivo (17.5x → 1.5x) provoca una caída de precio en cada frontera
+   (3 €, 10 €, 25 €, 50 €, 100 €, 200 €). El factor de categoría se aplica
+   después, junto con el multiplicador final, para no romper la proporción. */
+function calcSueloTramo(tramoIdx){
+  if(tramoIdx<=0) return 0;
+  const prev=calcP.tramos[tramoIdx-1];
+  return prev.hasta*prev.mult;
+}
+
 /* Normaliza el nombre de categoría: sin acentos, sin espacios, minúsculas.
    Así "Sub PCB" ≡ "SubPCB" y "Camara" ≡ "Cámara" (erratas del catálogo). */
 function calcNormCat(s){
@@ -4622,9 +4634,12 @@ function calcCalcular(coste, catNombre){
   const {t:tramo, i:tramoIdx}=calcTramo(coste);
   const multFinal=tramo.mult*(cat.factor||1);
 
-  const teorico=coste*multFinal;                          // PVP teórico c/IVA
-  const pieza=calcRedondeo99(Math.max(teorico, cat.min)); // PVP pieza propuesto c/IVA
-  const minAplicado=teorico<cat.min;                      // ¿ha entrado el suelo?
+  const teoricoBruto=coste*multFinal;                          // PVP teórico c/IVA, sin suelo entre tramos
+  const sueloTramo=calcSueloTramo(tramoIdx)*(cat.factor||1);   // techo del tramo anterior, con el mismo factor
+  const teorico=Math.max(teoricoBruto, sueloTramo);            // nunca baja al cruzar de tramo
+  const pieza=calcRedondeo99(Math.max(teorico, cat.min));      // PVP pieza propuesto c/IVA
+  const minAplicado=teorico<cat.min;                           // ¿ha entrado el suelo de categoría?
+  const sueloTramoAplicado=teoricoBruto<sueloTramo;             // ¿ha entrado el suelo de tramo?
 
   const mo=calcP.mo.find(m=>m.c===cat.niv)||calcP.mo[1];
   const pvp=Math.round((pieza+mo.e)*100)/100;             // PVP reparación total c/IVA
