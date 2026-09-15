@@ -339,6 +339,10 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <span class="ic">🚩</span> Reportes referencias
         <span class="sb-badge" id="badgeReportesPendientes">0</span>
       </button>
+      <button class="sb-item" onclick="nav('modelos-por-clasificar',this)">
+        <span class="ic">🏷️</span> Modelos por clasificar
+        <span class="sb-badge" id="badgeModelosPendientes">0</span>
+      </button>
       <button class="sb-item" id="btnSubirStock" onclick="abrirModalStock()">
         <span class="ic">📦</span> Subir Stock ERP
       </button>
@@ -587,6 +591,40 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
   </section>
 
   <!-- ── CALCULADORA PVP (solo Admin) ── -->
+  <section class="page" id="page-modelos-por-clasificar">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div>
+        <h2 style="font-size:20px;font-weight:800;">Modelos por clasificar</h2>
+        <p style="color:var(--g500);font-size:13px;margin-top:3px;">Equipos que los técnicos han tecleado a mano en la calculadora porque no estaban en la tabla de gamas. Asígnales una gama y quedarán fijados para toda la red.</p>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <span class="pvp-status-pending" style="padding:6px 14px;" id="mpcPendBadge">⏳ 0 pendientes</span>
+      </div>
+    </div>
+
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 14px;margin:14px 0;font-size:13px;color:#1e40af;line-height:1.5">
+      Al asignar una gama aquí, el modelo se añade a la configuración de la calculadora. <strong>Recuerda pulsar "Guardar y aplicar a todos"</strong> en la pestaña Administración de la calculadora para que el cambio llegue a las tiendas.
+    </div>
+
+    <div class="card" style="overflow:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:13px" id="mpcTabla">
+        <thead>
+          <tr style="text-align:left;border-bottom:2px solid var(--g200)">
+            <th style="padding:8px 10px">Marca</th>
+            <th style="padding:8px 10px">Modelo</th>
+            <th style="padding:8px 10px">Veces</th>
+            <th style="padding:8px 10px">Solicitado por</th>
+            <th style="padding:8px 10px">Asignar gama</th>
+            <th style="padding:8px 10px"></th>
+          </tr>
+        </thead>
+        <tbody id="mpcTbody">
+          <tr><td colspan="6" style="padding:20px;text-align:center;color:var(--g400)">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   <section class="page" id="page-calculadora-pvp">
     <div id="calc-pvp-root"></div>
   </section>
@@ -1268,7 +1306,7 @@ function setRole(role) {
   if (navTelefonosBtn) navTelefonosBtn.style.display = hideTelefonosForRole ? 'none' : '';
   syncDashboardRoleVisibility();
   // If on an admin-only page, redirect to dashboard
-  const adminPages = ['usuarios','solicitudes-pvp-admin','reportes-referencias-admin','chat-logs','calculadora-pvp'];
+  const adminPages = ['usuarios','solicitudes-pvp-admin','reportes-referencias-admin','modelos-por-clasificar','chat-logs','calculadora-pvp'];
   const restrictedPages = ['pedidos', 'solicitud-pvp', 'mis-reportes'];
   const active = document.querySelector('.page.active');
   const isTestUser = (window.__SAVE_CURRENT_USERNAME || '') === 'test';
@@ -1314,7 +1352,8 @@ function nav(id, btn) {
     'reportes-referencias-admin':'Reportes referencias — Admin',
     'resultados-globales':'Resultados Globales',
     'chat-logs':'Uso del Chatbot',
-    'calculadora-pvp':'Calculadora de PVP'
+    'calculadora-pvp':'Calculadora de PVP',
+    'modelos-por-clasificar':'Modelos por clasificar'
   };
   document.getElementById('tbTitle').textContent = titles[id] || id;
 }
@@ -1336,6 +1375,119 @@ function navById(id) {
     cargarChatLogsResumen();
     cargarChatLogs(1);
   }
+  if (id === 'modelos-por-clasificar') {
+    cargarModelosPorClasificar();
+  }
+}
+
+const GAMAS_DISPONIBLES = [
+  {c:'G1',n:'Entrada'},{c:'G2',n:'Media'},{c:'G3',n:'Alta'},{c:'G4',n:'Premium'},{c:'G5',n:'Ultra'}
+];
+
+async function cargarBadgeModelosPorClasificar(){
+  try{
+    const token=localStorage.getItem('savePvpToken');
+    const res=await fetch('/api/modelos-por-clasificar/conteo',{headers:{'Authorization':'Bearer '+token}});
+    if(!res.ok) return;
+    const d=await res.json();
+    const b=document.getElementById('badgeModelosPendientes');
+    if(b){ b.textContent=d.pendientes||0; b.style.display=(d.pendientes>0)?'':'none'; }
+  }catch(e){}
+}
+
+async function cargarModelosPorClasificar(){
+  const tbody=document.getElementById('mpcTbody');
+  if(!tbody) return;
+  tbody.innerHTML='<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--g400)">Cargando…</td></tr>';
+  try{
+    const token=localStorage.getItem('savePvpToken');
+    const res=await fetch('/api/modelos-por-clasificar?estado=pendiente',{headers:{'Authorization':'Bearer '+token}});
+    if(!res.ok) throw new Error('No se pudo cargar');
+    const {data}=await res.json();
+    const badge=document.getElementById('mpcPendBadge');
+    if(badge) badge.textContent='⏳ '+(data.length)+' pendientes';
+    if(!data.length){
+      tbody.innerHTML='<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--g400)">No hay modelos pendientes de clasificar. 🎉</td></tr>';
+      return;
+    }
+    const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    tbody.innerHTML=data.map(r=>{
+      const opts=GAMAS_DISPONIBLES.map(g=>'<option value="'+g.c+'"'+(g.c==='G2'?' selected':'')+'>'+g.c+' · '+g.n+'</option>').join('');
+      const marcaTxt=r.marca ? esc(r.marca)+(r.marca_nueva?' <span style="font-size:11px;color:#b45309">(marca nueva)</span>':'') : '<em style="color:var(--g400)">sin marca</em>';
+      return '<tr style="border-bottom:1px solid var(--g100)" data-id="'+r.id+'">'+
+        '<td style="padding:8px 10px">'+marcaTxt+'</td>'+
+        '<td style="padding:8px 10px;font-weight:600">'+esc(r.modelo)+'</td>'+
+        '<td style="padding:8px 10px">'+(r.veces>1?'<strong>'+r.veces+'</strong>':r.veces)+'</td>'+
+        '<td style="padding:8px 10px;color:var(--g500)">'+esc(r.usuario||'—')+'</td>'+
+        '<td style="padding:8px 10px"><select class="mpc-gama" style="padding:5px 8px;border:1px solid var(--g300);border-radius:6px">'+opts+'</select></td>'+
+        '<td style="padding:8px 10px;white-space:nowrap">'+
+          '<button class="mpc-asignar" style="padding:5px 10px;background:var(--save);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Asignar</button> '+
+          '<button class="mpc-descartar" style="padding:5px 10px;background:transparent;color:var(--g500);border:1px solid var(--g300);border-radius:6px;cursor:pointer;font-size:12px">Descartar</button>'+
+        '</td>'+
+      '</tr>';
+    }).join('');
+
+    tbody.querySelectorAll('.mpc-asignar').forEach(btn=>btn.addEventListener('click',async e=>{
+      const tr=e.target.closest('tr'); const id=tr.dataset.id;
+      const gama=tr.querySelector('.mpc-gama').value;
+      const marca=tr.children[0].textContent.replace(/\(marca nueva\)/,'').trim();
+      const modelo=tr.children[1].textContent.trim();
+      e.target.disabled=true; e.target.textContent='…';
+      try{
+        const token=localStorage.getItem('savePvpToken');
+        const res=await fetch('/api/modelos-por-clasificar/'+id+'/clasificar',{
+          method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+          body:JSON.stringify({gama})});
+        if(!res.ok) throw new Error();
+        // añadir el modelo a la config de la calculadora en memoria y guardarlo en el servidor
+        await mpcAgregarModeloAConfig(marca, modelo, gama);
+        tr.style.transition='opacity .3s'; tr.style.opacity='0';
+        setTimeout(()=>{ cargarModelosPorClasificar(); cargarBadgeModelosPorClasificar(); }, 300);
+        if(typeof toast==='function') toast('Modelo clasificado como '+gama+'. Recuerda "Guardar y aplicar a todos" en la calculadora.','ok');
+      }catch(err){ e.target.disabled=false; e.target.textContent='Asignar'; if(typeof toast==='function') toast('No se pudo clasificar','error'); }
+    }));
+
+    tbody.querySelectorAll('.mpc-descartar').forEach(btn=>btn.addEventListener('click',async e=>{
+      const tr=e.target.closest('tr'); const id=tr.dataset.id;
+      if(!confirm('¿Descartar este modelo? No se le asignará gama.')) return;
+      try{
+        const token=localStorage.getItem('savePvpToken');
+        const res=await fetch('/api/modelos-por-clasificar/'+id+'/descartar',{
+          method:'PUT',headers:{'Authorization':'Bearer '+token}});
+        if(!res.ok) throw new Error();
+        tr.style.transition='opacity .3s'; tr.style.opacity='0';
+        setTimeout(()=>{ cargarModelosPorClasificar(); cargarBadgeModelosPorClasificar(); }, 300);
+      }catch(err){ if(typeof toast==='function') toast('No se pudo descartar','error'); }
+    }));
+  }catch(e){
+    tbody.innerHTML='<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--red-500)">Error al cargar los modelos.</td></tr>';
+  }
+}
+
+/* Añade el modelo recién clasificado a la configuración de la calculadora y la
+   guarda en el servidor. Reutiliza la config que ya maneja la calculadora
+   (calcP); si aún no está cargada, la trae del servidor primero. */
+async function mpcAgregarModeloAConfig(marca, modelo, gama){
+  try{
+    const token=localStorage.getItem('savePvpToken');
+    let cfg = (typeof calcP!=='undefined' && calcP && calcP.categorias) ? calcP : null;
+    if(!cfg){
+      const res=await fetch('/api/settings/calculadora',{headers:{'Authorization':'Bearer '+token}});
+      cfg = res.ok ? await res.json() : null;
+    }
+    if(!cfg || !cfg.modelos) return; // sin config no hay dónde añadirlo
+    if(!cfg.marcas) cfg.marcas=[];
+    if(marca && !cfg.marcas.includes(marca)) cfg.marcas.push(marca);
+    // no duplicar
+    const ya=cfg.modelos.find(m=>String(m.mo).toLowerCase()===String(modelo).toLowerCase()
+      && String(m.ma||'').toLowerCase()===String(marca||'').toLowerCase());
+    if(ya){ ya.g=gama; }
+    else { cfg.modelos.unshift({ma:marca||(cfg.marcas[0]||''), mo:modelo, g:gama}); }
+    if(typeof calcP!=='undefined') calcP=cfg;
+    await fetch('/api/settings/calculadora',{
+      method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify(cfg)});
+  }catch(e){ /* si falla, el admin siempre puede añadirlo a mano en la calculadora */ }
 }
 
 function openGlobalResultsPage() {
@@ -3762,6 +3914,7 @@ window.addEventListener('load', async () => {
   loadMisSolicitudesFromAPI();
   loadDashboard();
   refreshSidebarCatalogCounts();
+  cargarBadgeModelosPorClasificar();
 });
 </script>
 
@@ -5059,9 +5212,10 @@ function calcPintarSelector(){
 /* Gama derivada de los desplegables de marca y modelo. Si no hay modelo
    elegido, devuelve la gama neutra, que no altera el precio. */
 function calcGamaSeleccionada(){
-  const ma=(document.getElementById('calcMarca')?.value||'').trim();
-  const mo=(document.getElementById('calcModelo')?.value||'').trim();
+  const ma=calcMarcaValor();
+  const mo=calcModeloValor();
   if(!mo) return calcP.gamaDefecto||"G2";
+  // Un modelo tecleado a mano no está en la tabla → gama neutra, y se enviará a clasificar
   return calcGamaDeModelo(ma||null, mo);
 }
 
@@ -5072,9 +5226,12 @@ function calcPintarMarcas(){
   const prev=sel.value;
   const marcas=(calcP.marcas&&calcP.marcas.length) ? calcP.marcas
               : [...new Set((calcP.modelos||[]).map(m=>m.ma))];
+  const esTecnico = window.__SAVE_CURRENT_ROLE !== 'admin';
   sel.innerHTML='<option value="">— Sin especificar —</option>'+
-    marcas.map(m=>'<option value="'+calcEsc(m)+'">'+calcEsc(m)+'</option>').join('');
-  if(prev && marcas.includes(prev)) sel.value=prev;
+    marcas.map(m=>'<option value="'+calcEsc(m)+'">'+calcEsc(m)+'</option>').join('')+
+    (esTecnico ? '<option value="__OTRO__">✎ No está en la lista…</option>' : '');
+  if(prev && (marcas.includes(prev)||prev==='__OTRO__')) sel.value=prev;
+  calcSyncOtro();
   calcPintarModelos();
 }
 function calcPintarModelos(){
@@ -5082,10 +5239,44 @@ function calcPintarModelos(){
   if(!sel) return;
   const marca=(selMa?.value||'').trim();
   const prev=sel.value;
-  const lista=(calcP.modelos||[]).filter(m=>!marca || m.ma===marca);
+  const marcaOtro = marca==='__OTRO__';
+  const lista=(calcP.modelos||[]).filter(m=>marcaOtro ? false : (!marca || m.ma===marca));
+  const esTecnico = window.__SAVE_CURRENT_ROLE !== 'admin';
   sel.innerHTML='<option value="">— Sin especificar —</option>'+
-    lista.map(m=>'<option value="'+calcEsc(m.mo)+'">'+calcEsc(m.mo)+'</option>').join('');
-  if(prev && lista.some(m=>m.mo===prev)) sel.value=prev;
+    lista.map(m=>'<option value="'+calcEsc(m.mo)+'">'+calcEsc(m.mo)+'</option>').join('')+
+    (esTecnico ? '<option value="__OTRO__">✎ No está en la lista…</option>' : '');
+  if(prev && (lista.some(m=>m.mo===prev)||prev==='__OTRO__')) sel.value=prev;
+  // Si la marca es nueva, el modelo también es forzosamente nuevo
+  if(marcaOtro) sel.value='__OTRO__';
+  calcSyncOtro();
+}
+
+/* Muestra u oculta los campos de texto según si se ha elegido "No está en la
+   lista" en marca o en modelo. El valor real que usa el resto del código lo
+   devuelven calcMarcaValor() y calcModeloValor(). */
+function calcSyncOtro(){
+  const selMa=document.getElementById('calcMarca'), txtMa=document.getElementById('calcMarcaTxt');
+  const selMo=document.getElementById('calcModelo'), txtMo=document.getElementById('calcModeloTxt');
+  if(txtMa){ const on=selMa&&selMa.value==='__OTRO__'; txtMa.style.display=on?'block':'none'; if(!on)txtMa.value=''; }
+  if(txtMo){ const on=selMo&&selMo.value==='__OTRO__'; txtMo.style.display=on?'block':'none'; if(!on)txtMo.value=''; }
+}
+/* La marca elegida: o la del desplegable, o la tecleada si eligió "otro". */
+function calcMarcaValor(){
+  const sel=document.getElementById('calcMarca');
+  if(!sel) return '';
+  if(sel.value==='__OTRO__') return (document.getElementById('calcMarcaTxt')?.value||'').trim();
+  return sel.value;
+}
+function calcModeloValor(){
+  const sel=document.getElementById('calcModelo');
+  if(!sel) return '';
+  if(sel.value==='__OTRO__') return (document.getElementById('calcModeloTxt')?.value||'').trim();
+  return sel.value;
+}
+/* ¿Se ha introducido algún dato nuevo que haya que mandar a clasificar? */
+function calcHayModeloNuevo(){
+  const selMa=document.getElementById('calcMarca'), selMo=document.getElementById('calcModelo');
+  return (selMa&&selMa.value==='__OTRO__') || (selMo&&selMo.value==='__OTRO__');
 }
 
 function calcRender(){
@@ -5109,8 +5300,8 @@ function calcRender(){
   // Para no-admin hacen falta los cuatro pasos completos; si no, PVP = 0
   if(!isAdminRol){
     const refVal =(document.getElementById('calcSolRef')?.value||'').trim();
-    const maVal  =(document.getElementById('calcMarca')?.value||'').trim();
-    const moVal  =(document.getElementById('calcModelo')?.value||'').trim();
+    const maVal  =calcMarcaValor();
+    const moVal  =calcModeloValor();
     const provVal=(document.getElementById('calcSolProv')?.value||'').trim();
     if(!refVal || !calcRefValidadaOK || !maVal || !moVal || !provVal || !coste || calcRepSel<0){
       document.getElementById("calcPvp").textContent='0';
@@ -5437,6 +5628,7 @@ function calcMount(){
           </div>
           <div style="margin-bottom:16px">
             <select id="calcMarca" class="calc-campo" disabled></select>
+            <input id="calcMarcaTxt" class="calc-campo" type="text" placeholder="Escribe la marca nueva" style="margin-top:8px;display:none">
           </div>
 
           <div class="calc-panel-head">
@@ -5445,6 +5637,7 @@ function calcMount(){
           </div>
           <div style="margin-bottom:16px">
             <select id="calcModelo" class="calc-campo" disabled></select>
+            <input id="calcModeloTxt" class="calc-campo" type="text" placeholder="Escribe el modelo exacto" style="margin-top:8px;display:none">
           </div>
 
           <div class="calc-panel-head">
@@ -5783,11 +5976,27 @@ function calcMount(){
   // ── marca y modelo en la calculadora (para TODOS los roles, no solo admin) ──
   const marcaEl=document.getElementById("calcMarca");
   if(marcaEl) marcaEl.addEventListener("change",()=>{
-    calcPintarModelos(); calcRender();
+    calcSyncOtro(); calcPintarModelos(); calcRender();
+    // al elegir "No está en la lista" en marca, el foco va al campo de texto
+    const txt=document.getElementById('calcMarcaTxt');
+    if(marcaEl.value==='__OTRO__' && txt){ txt.style.display='block'; txt.focus(); }
     if(window.__SAVE_CURRENT_ROLE !== 'admin') calcCheckAutoSend();
   });
   const modeloEl=document.getElementById("calcModelo");
   if(modeloEl) modeloEl.addEventListener("change",()=>{
+    calcSyncOtro(); calcRender();
+    const txt=document.getElementById('calcModeloTxt');
+    if(modeloEl.value==='__OTRO__' && txt){ txt.style.display='block'; txt.focus(); }
+    if(window.__SAVE_CURRENT_ROLE !== 'admin') calcCheckAutoSend();
+  });
+  // Campos de texto de "No está en la lista": recalcular al escribir
+  const marcaTxtEl=document.getElementById("calcMarcaTxt");
+  if(marcaTxtEl) marcaTxtEl.addEventListener("input",()=>{
+    calcRender();
+    if(window.__SAVE_CURRENT_ROLE !== 'admin') calcCheckAutoSend();
+  });
+  const modeloTxtEl=document.getElementById("calcModeloTxt");
+  if(modeloTxtEl) modeloTxtEl.addEventListener("input",()=>{
     calcRender();
     if(window.__SAVE_CURRENT_ROLE !== 'admin') calcCheckAutoSend();
   });
@@ -5809,17 +6018,23 @@ function calcActualizarPasos(){
   if(!refEl||!maEl||!moEl||!provEl||!costEl||!catEl) return;
 
   const okRef  = !!refEl.value.trim() && calcRefValidadaOK && !calcRefBlocked;
-  const okMa   = okRef  && !!maEl.value;
-  const okMo   = okMa   && !!moEl.value;
+  // Un paso queda completo si hay valor real: del desplegable, o del campo de
+  // texto cuando se ha elegido "No está en la lista".
+  const okMa   = okRef  && !!calcMarcaValor();
+  const okMo   = okMa   && !!calcModeloValor();
   const okProv = okMo   && !!provEl.value;
   const okCost = okProv && parseFloat(costEl.value)>0;
 
   // Bloquear y limpiar en cascada
-  maEl.disabled  =!okRef;   if(!okRef  && maEl.value){ maEl.value=''; calcPintarModelos(); }
-  moEl.disabled  =!okMa;    if(!okMa   && moEl.value){ moEl.value=''; }
+  maEl.disabled  =!okRef;   if(!okRef  && maEl.value){ maEl.value=''; calcSyncOtro(); calcPintarModelos(); }
+  moEl.disabled  =!okMa;    if(!okMa   && moEl.value){ moEl.value=''; calcSyncOtro(); }
   provEl.disabled=!okMo;    if(!okMo   && provEl.value){ provEl.value=''; }
   costEl.disabled=!okProv;  if(!okProv && costEl.value){ costEl.value=''; }
   catEl.disabled =!okCost;  if(!okCost && calcRepSel>=0){ calcRepSel=-1; catEl.value=''; }
+
+  // Mantener visibles/ocultos los campos de texto según el estado de los desplegables
+  const txtMa=document.getElementById('calcMarcaTxt'); if(txtMa) txtMa.disabled=!okRef;
+  const txtMo=document.getElementById('calcModeloTxt'); if(txtMo) txtMo.disabled=!okMa;
 
   // Marca visual de campo completado
   refEl.classList.toggle('ok', okRef);
@@ -5895,6 +6110,29 @@ window.calcValidarRef = async function(){
   }catch(e){ calcRefValidadaOK=false; calcRefSetWarn(null,false); }
 };
 
+/* Registra en la cola de clasificación el equipo tecleado a mano. Solo actúa
+   si se usó "No está en la lista"; un modelo elegido del desplegable ya tiene
+   gama y no genera aviso. */
+let calcModeloNuevoKey='';
+async function calcRegistrarModeloNuevo(referencia){
+  if(!calcHayModeloNuevo()) return;
+  const marca=calcMarcaValor(), modelo=calcModeloValor();
+  if(!modelo) return;
+  const key=(marca+'||'+modelo).toLowerCase();
+  if(key===calcModeloNuevoKey) return;   // no repetir en la misma sesión
+  calcModeloNuevoKey=key;
+  const selMa=document.getElementById('calcMarca');
+  const marcaNueva = selMa && selMa.value==='__OTRO__';
+  try{
+    const token=localStorage.getItem('savePvpToken');
+    await fetch('/api/modelos-por-clasificar',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({ marca, modelo, marcaNueva, referencia })
+    });
+  }catch(e){ /* si falla, no bloquea el presupuesto: el PVP ya se ha dado */ }
+}
+
 /* Auto-envío: se dispara cuando ref+prov+coste están completos y la ref no está bloqueada */
 function calcCheckAutoSend(){
   if(window.__SAVE_CURRENT_ROLE === 'admin') return;
@@ -5903,8 +6141,8 @@ function calcCheckAutoSend(){
   const prov=(document.getElementById('calcSolProv')?.value||'').trim();
   const coste=parseFloat(document.getElementById('calcCoste')?.value||0);
   if(!ref || !prov || !coste || calcRepSel<0) return;   // los 4 pasos completos
-  const maSel=(document.getElementById('calcMarca')?.value||'').trim();
-  const moSel=(document.getElementById('calcModelo')?.value||'').trim();
+  const maSel=calcMarcaValor();
+  const moSel=calcModeloValor();
   if(!maSel || !moSel) return;                          // marca y modelo también obligatorios
   const key = ref + '||' + prov;
   if(key === calcAutoSendKey) return; // ya enviada esta combinación
@@ -5940,12 +6178,16 @@ window.calcEnviarSolicitud = async function(){
         coste:      coste||0,
         descripcion: descSolicitud,
         observaciones: obsSolicitud,
-        marca:  '',
-        modelo: ''
+        marca:  calcMarcaValor(),
+        modelo: calcModeloValor()
       })
     });
     const data=await res.json();
     if(!res.ok) throw new Error(data.error||'Error al registrar');
+
+    // Si el equipo no estaba en la tabla de gamas, se manda a la cola de
+    // "Modelos por clasificar" para que un admin le asigne gama más tarde.
+    calcRegistrarModeloNuevo(ref);
     if(statusEl){
       statusEl.textContent='✅ Esta consulta de PVP ha realizado una petición de registro de PVP en la base de datos.';
       statusEl.style.cssText='padding:10px 14px;font-size:13px;text-align:center;min-height:38px;border-radius:var(--r);background:#d1fae5;color:#065f46';
