@@ -4561,7 +4561,331 @@ const CALC_FABRICA = {
     {n:"Consolas · Joystick",                       min:29.99, niv:"N2", factor:1},
     {n:"Consolas · Microsoldadura",                 min:29.99, niv:"N4", factor:1},
     {n:"Consolas · Otros",                          min:29.99, niv:"N2", factor:1}
-  ]
+  ],
+
+  /* ---- Gamas de dispositivo ----------------------------------------------
+     El factor de gama multiplica igual que el factor de categoría. Sirve para
+     las piezas cuyo coste no distingue la gama del equipo (lente, buzzer,
+     botón, altavoz): sin esto, una lente de un A15 sale al mismo precio que
+     la de un iPhone 18 Pro Max. Un modelo que no esté en la tabla cae en
+     gamaDefecto, que tiene factor 1,00 y por tanto no altera el precio. */
+  gamas:[
+    {c:"G1",n:"Entrada",factor:0.85,ref:"menos de 150 €"},
+    {c:"G2",n:"Media",factor:1.0,ref:"150 – 350 €"},
+    {c:"G3",n:"Alta",factor:1.15,ref:"350 – 700 €"},
+    {c:"G4",n:"Premium",factor:1.3,ref:"700 – 1.100 €"},
+    {c:"G5",n:"Ultra",factor:1.5,ref:"más de 1.100 €"},
+  ],
+  gamaDefecto:"G2",
+  marcas:["Apple","Samsung","Xiaomi","Honor","Motorola","Oppo","Huawei"],
+  modelos:[
+    {ma:"Apple",mo:"iPhone 18 Pro Max",g:"G5"},
+    {ma:"Apple",mo:"iPhone 18 Pro",g:"G5"},
+    {ma:"Apple",mo:"iPhone Fold / Ultra",g:"G5"},
+    {ma:"Apple",mo:"iPhone 17 Pro Max",g:"G5"},
+    {ma:"Apple",mo:"iPhone 17 Pro",g:"G4"},
+    {ma:"Apple",mo:"iPhone Air",g:"G4"},
+    {ma:"Apple",mo:"iPhone 17",g:"G4"},
+    {ma:"Apple",mo:"iPhone 17e",g:"G3"},
+    {ma:"Apple",mo:"iPhone 16 Pro Max",g:"G4"},
+    {ma:"Apple",mo:"iPhone 16 Pro",g:"G4"},
+    {ma:"Apple",mo:"iPhone 16 Plus",g:"G3"},
+    {ma:"Apple",mo:"iPhone 16",g:"G3"},
+    {ma:"Apple",mo:"iPhone 16e",g:"G3"},
+    {ma:"Apple",mo:"iPhone 15 Pro Max",g:"G3"},
+    {ma:"Apple",mo:"iPhone 15 Pro",g:"G3"},
+    {ma:"Apple",mo:"iPhone 15 Plus",g:"G3"},
+    {ma:"Apple",mo:"iPhone 15",g:"G3"},
+    {ma:"Apple",mo:"iPhone 14 Pro Max",g:"G3"},
+    {ma:"Apple",mo:"iPhone 14 Pro",g:"G3"},
+    {ma:"Apple",mo:"iPhone 14 Plus",g:"G3"},
+    {ma:"Apple",mo:"iPhone 14",g:"G2"},
+    {ma:"Apple",mo:"iPhone 13 Pro Max",g:"G3"},
+    {ma:"Apple",mo:"iPhone 13 Pro",g:"G2"},
+    {ma:"Apple",mo:"iPhone 13",g:"G2"},
+    {ma:"Apple",mo:"iPhone 13 mini",g:"G2"},
+    {ma:"Apple",mo:"iPhone 12 Pro Max",g:"G2"},
+    {ma:"Apple",mo:"iPhone 12 Pro",g:"G2"},
+    {ma:"Apple",mo:"iPhone 12",g:"G2"},
+    {ma:"Apple",mo:"iPhone 12 mini",g:"G2"},
+    {ma:"Apple",mo:"iPhone SE 3ª gen",g:"G2"},
+    {ma:"Apple",mo:"iPhone 11 Pro Max",g:"G2"},
+    {ma:"Apple",mo:"iPhone 11 Pro",g:"G2"},
+    {ma:"Apple",mo:"iPhone 11",g:"G2"},
+    {ma:"Apple",mo:"iPhone XS Max",g:"G2"},
+    {ma:"Apple",mo:"iPhone XS",g:"G1"},
+    {ma:"Apple",mo:"iPhone XR",g:"G1"},
+    {ma:"Apple",mo:"iPhone X",g:"G1"},
+    {ma:"Apple",mo:"iPhone SE 2ª gen",g:"G1"},
+    {ma:"Apple",mo:"iPhone 8 Plus",g:"G1"},
+    {ma:"Apple",mo:"iPhone 8",g:"G1"},
+    {ma:"Apple",mo:"iPhone 7 Plus",g:"G1"},
+    {ma:"Apple",mo:"iPhone 7",g:"G1"},
+    {ma:"Apple",mo:"iPhone SE 1ª gen",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy S26 Ultra",g:"G5"},
+    {ma:"Samsung",mo:"Galaxy S26+",g:"G5"},
+    {ma:"Samsung",mo:"Galaxy S26",g:"G4"},
+    {ma:"Samsung",mo:"Galaxy S26 FE",g:"G4"},
+    {ma:"Samsung",mo:"Galaxy S25 Ultra",g:"G4"},
+    {ma:"Samsung",mo:"Galaxy S25 Edge",g:"G4"},
+    {ma:"Samsung",mo:"Galaxy S25+",g:"G4"},
+    {ma:"Samsung",mo:"Galaxy S25",g:"G3"},
+    {ma:"Samsung",mo:"Galaxy S25 FE",g:"G3"},
+    {ma:"Samsung",mo:"Galaxy S24 Ultra",g:"G4"},
+    {ma:"Samsung",mo:"Galaxy S24+",g:"G3"},
+    {ma:"Samsung",mo:"Galaxy S24",g:"G3"},
+    {ma:"Samsung",mo:"Galaxy S24 FE",g:"G3"},
+    {ma:"Samsung",mo:"Galaxy S23 Ultra",g:"G3"},
+    {ma:"Samsung",mo:"Galaxy S23+",g:"G3"},
+    {ma:"Samsung",mo:"Galaxy S23",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy S23 FE",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy S22 Ultra",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy S22+",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy S22",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy S21 Ultra",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy S21+",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy S21",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy S21 FE",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy S20 Ultra",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy S20+",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy S20",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy S20 FE",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy S10+",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy S10",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy S10e",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy S9+",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy S9",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy Note 20 Ultra",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy Note 20",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy Note 10+",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy Note 10",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy Note 9",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy Z Fold8",g:"G5"},
+    {ma:"Samsung",mo:"Galaxy Z Fold7",g:"G5"},
+    {ma:"Samsung",mo:"Galaxy Z Fold6",g:"G4"},
+    {ma:"Samsung",mo:"Galaxy Z Fold5",g:"G4"},
+    {ma:"Samsung",mo:"Galaxy Z Fold4",g:"G3"},
+    {ma:"Samsung",mo:"Galaxy Z Fold3",g:"G3"},
+    {ma:"Samsung",mo:"Galaxy Z Fold2",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy Z Flip8",g:"G5"},
+    {ma:"Samsung",mo:"Galaxy Z Flip7",g:"G4"},
+    {ma:"Samsung",mo:"Galaxy Z Flip6",g:"G4"},
+    {ma:"Samsung",mo:"Galaxy Z Flip5",g:"G3"},
+    {ma:"Samsung",mo:"Galaxy Z Flip4",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy Z Flip3",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy A57",g:"G3"},
+    {ma:"Samsung",mo:"Galaxy A37",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy A27",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy A17",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy A07",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A56",g:"G3"},
+    {ma:"Samsung",mo:"Galaxy A36",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy A26",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy A16",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy A06",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A55",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy A35",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy A25",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy A15",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy A05",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A54",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy A34",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy A24",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy A14",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A04",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A53",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy A33",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy A23",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A13",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A03",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A52 / A52s",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy A32",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A22",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A12",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A02s",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A71",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A51",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A41",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A31",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A21s",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A11",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A50",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A40",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A30",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A20e",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy A10",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy M55",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy M35",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy M15",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy M54",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy M34",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy M14",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy M53",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy M33",g:"G2"},
+    {ma:"Samsung",mo:"Galaxy M23",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy M13",g:"G1"},
+    {ma:"Samsung",mo:"Galaxy M12",g:"G1"},
+    {ma:"Xiaomi",mo:"Xiaomi 17 Ultra",g:"G5"},
+    {ma:"Xiaomi",mo:"Xiaomi 17 Pro",g:"G4"},
+    {ma:"Xiaomi",mo:"Xiaomi 17",g:"G4"},
+    {ma:"Xiaomi",mo:"Xiaomi 17T Pro",g:"G4"},
+    {ma:"Xiaomi",mo:"Xiaomi 17T",g:"G3"},
+    {ma:"Xiaomi",mo:"Xiaomi 15 Ultra",g:"G4"},
+    {ma:"Xiaomi",mo:"Xiaomi 15",g:"G4"},
+    {ma:"Xiaomi",mo:"Xiaomi 15T Pro",g:"G3"},
+    {ma:"Xiaomi",mo:"Xiaomi 15T",g:"G3"},
+    {ma:"Xiaomi",mo:"Xiaomi 14 Ultra",g:"G3"},
+    {ma:"Xiaomi",mo:"Xiaomi 14",g:"G3"},
+    {ma:"Xiaomi",mo:"Xiaomi 14T Pro",g:"G3"},
+    {ma:"Xiaomi",mo:"Xiaomi 14T",g:"G3"},
+    {ma:"Xiaomi",mo:"Xiaomi 13",g:"G3"},
+    {ma:"Xiaomi",mo:"Xiaomi 13T Pro",g:"G2"},
+    {ma:"Xiaomi",mo:"Xiaomi 13T",g:"G2"},
+    {ma:"Xiaomi",mo:"Xiaomi 12T Pro",g:"G2"},
+    {ma:"Xiaomi",mo:"Xiaomi 12T",g:"G2"},
+    {ma:"Xiaomi",mo:"Xiaomi 12",g:"G2"},
+    {ma:"Xiaomi",mo:"Xiaomi 11T Pro",g:"G2"},
+    {ma:"Xiaomi",mo:"Xiaomi 11T",g:"G2"},
+    {ma:"Xiaomi",mo:"Redmi Note 15 Pro+",g:"G3"},
+    {ma:"Xiaomi",mo:"Redmi Note 15 Pro",g:"G2"},
+    {ma:"Xiaomi",mo:"Redmi Note 15",g:"G2"},
+    {ma:"Xiaomi",mo:"Redmi Note 14 Pro+",g:"G2"},
+    {ma:"Xiaomi",mo:"Redmi Note 14 Pro",g:"G2"},
+    {ma:"Xiaomi",mo:"Redmi Note 14",g:"G2"},
+    {ma:"Xiaomi",mo:"Redmi Note 13 Pro+",g:"G2"},
+    {ma:"Xiaomi",mo:"Redmi Note 13 Pro",g:"G2"},
+    {ma:"Xiaomi",mo:"Redmi Note 13",g:"G1"},
+    {ma:"Xiaomi",mo:"Redmi Note 12 Pro",g:"G2"},
+    {ma:"Xiaomi",mo:"Redmi Note 12",g:"G1"},
+    {ma:"Xiaomi",mo:"Redmi Note 11",g:"G1"},
+    {ma:"Xiaomi",mo:"Redmi Note 10",g:"G1"},
+    {ma:"Xiaomi",mo:"Redmi 15",g:"G1"},
+    {ma:"Xiaomi",mo:"Redmi 14C",g:"G1"},
+    {ma:"Xiaomi",mo:"Redmi 13C",g:"G1"},
+    {ma:"Xiaomi",mo:"Redmi 12C",g:"G1"},
+    {ma:"Xiaomi",mo:"Redmi A3",g:"G1"},
+    {ma:"Xiaomi",mo:"POCO F7 Pro / Ultra",g:"G3"},
+    {ma:"Xiaomi",mo:"POCO F6 Pro",g:"G3"},
+    {ma:"Xiaomi",mo:"POCO X7 Pro",g:"G2"},
+    {ma:"Xiaomi",mo:"POCO X6 Pro",g:"G2"},
+    {ma:"Xiaomi",mo:"POCO M7",g:"G1"},
+    {ma:"Xiaomi",mo:"POCO M6",g:"G1"},
+    {ma:"Honor",mo:"Honor Magic V6",g:"G5"},
+    {ma:"Honor",mo:"Honor Magic V5",g:"G5"},
+    {ma:"Honor",mo:"Honor Magic V3",g:"G4"},
+    {ma:"Honor",mo:"Honor Magic8 Pro",g:"G5"},
+    {ma:"Honor",mo:"Honor Magic8",g:"G4"},
+    {ma:"Honor",mo:"Honor Magic8 Lite",g:"G3"},
+    {ma:"Honor",mo:"Honor Magic7 Pro",g:"G4"},
+    {ma:"Honor",mo:"Honor Magic7 Lite",g:"G2"},
+    {ma:"Honor",mo:"Honor Magic6 Pro",g:"G3"},
+    {ma:"Honor",mo:"Honor Magic5 Pro",g:"G3"},
+    {ma:"Honor",mo:"Honor 400 Pro",g:"G3"},
+    {ma:"Honor",mo:"Honor 400",g:"G3"},
+    {ma:"Honor",mo:"Honor 400 Lite",g:"G2"},
+    {ma:"Honor",mo:"Honor 200 Pro",g:"G3"},
+    {ma:"Honor",mo:"Honor 200",g:"G2"},
+    {ma:"Honor",mo:"Honor 90",g:"G2"},
+    {ma:"Honor",mo:"Honor 90 Lite",g:"G2"},
+    {ma:"Honor",mo:"Honor X8 / X8b",g:"G1"},
+    {ma:"Honor",mo:"Honor X7",g:"G1"},
+    {ma:"Honor",mo:"Honor X6",g:"G1"},
+    {ma:"Motorola",mo:"Motorola Razr Fold",g:"G5"},
+    {ma:"Motorola",mo:"Motorola Razr 60 Ultra",g:"G4"},
+    {ma:"Motorola",mo:"Motorola Razr 60",g:"G3"},
+    {ma:"Motorola",mo:"Motorola Razr 50 Ultra",g:"G3"},
+    {ma:"Motorola",mo:"Motorola Razr 50",g:"G3"},
+    {ma:"Motorola",mo:"Motorola Razr 40 Ultra",g:"G3"},
+    {ma:"Motorola",mo:"Motorola Razr 40",g:"G2"},
+    {ma:"Motorola",mo:"Motorola Edge 70",g:"G3"},
+    {ma:"Motorola",mo:"Motorola Edge 70 Fusion",g:"G3"},
+    {ma:"Motorola",mo:"Motorola Edge (2026)",g:"G3"},
+    {ma:"Motorola",mo:"Motorola Edge 60 Ultra",g:"G3"},
+    {ma:"Motorola",mo:"Motorola Edge 60 Pro",g:"G3"},
+    {ma:"Motorola",mo:"Motorola Edge 60",g:"G3"},
+    {ma:"Motorola",mo:"Motorola Edge 60 Fusion",g:"G2"},
+    {ma:"Motorola",mo:"Motorola Edge 50 Ultra",g:"G3"},
+    {ma:"Motorola",mo:"Motorola Edge 50 Pro",g:"G3"},
+    {ma:"Motorola",mo:"Motorola Edge 50 Fusion",g:"G2"},
+    {ma:"Motorola",mo:"Motorola Edge 40",g:"G2"},
+    {ma:"Motorola",mo:"Motorola moto g86",g:"G2"},
+    {ma:"Motorola",mo:"Motorola moto g67",g:"G2"},
+    {ma:"Motorola",mo:"Motorola moto g56",g:"G2"},
+    {ma:"Motorola",mo:"Motorola moto g55",g:"G2"},
+    {ma:"Motorola",mo:"Motorola moto g35",g:"G1"},
+    {ma:"Motorola",mo:"Motorola moto g24",g:"G1"},
+    {ma:"Motorola",mo:"Motorola moto g23",g:"G1"},
+    {ma:"Motorola",mo:"Motorola moto g14",g:"G1"},
+    {ma:"Motorola",mo:"Motorola moto g05",g:"G1"},
+    {ma:"Motorola",mo:"Motorola moto e14",g:"G1"},
+    {ma:"Oppo",mo:"Oppo Find X9 Ultra",g:"G5"},
+    {ma:"Oppo",mo:"Oppo Find X9 Pro",g:"G5"},
+    {ma:"Oppo",mo:"Oppo Find X9",g:"G4"},
+    {ma:"Oppo",mo:"Oppo Find X8 Pro",g:"G4"},
+    {ma:"Oppo",mo:"Oppo Find X8",g:"G4"},
+    {ma:"Oppo",mo:"Oppo Find X7 Ultra",g:"G4"},
+    {ma:"Oppo",mo:"Oppo Find X5 Pro",g:"G3"},
+    {ma:"Oppo",mo:"Oppo Find N5",g:"G5"},
+    {ma:"Oppo",mo:"Oppo Find N3",g:"G4"},
+    {ma:"Oppo",mo:"Oppo Reno 16 Pro",g:"G3"},
+    {ma:"Oppo",mo:"Oppo Reno 16 F",g:"G3"},
+    {ma:"Oppo",mo:"Oppo Reno 15",g:"G3"},
+    {ma:"Oppo",mo:"Oppo Reno 14",g:"G3"},
+    {ma:"Oppo",mo:"Oppo Reno 14 F",g:"G3"},
+    {ma:"Oppo",mo:"Oppo Reno 13",g:"G3"},
+    {ma:"Oppo",mo:"Oppo Reno 12",g:"G3"},
+    {ma:"Oppo",mo:"Oppo Reno 11",g:"G2"},
+    {ma:"Oppo",mo:"Oppo Reno 10",g:"G2"},
+    {ma:"Oppo",mo:"Oppo Reno 8",g:"G2"},
+    {ma:"Oppo",mo:"Oppo Reno 6",g:"G2"},
+    {ma:"Oppo",mo:"Oppo A6 Pro 5G",g:"G2"},
+    {ma:"Oppo",mo:"Oppo A5",g:"G2"},
+    {ma:"Oppo",mo:"Oppo A98",g:"G2"},
+    {ma:"Oppo",mo:"Oppo A79",g:"G2"},
+    {ma:"Oppo",mo:"Oppo A78",g:"G2"},
+    {ma:"Oppo",mo:"Oppo A58",g:"G2"},
+    {ma:"Oppo",mo:"Oppo A57",g:"G1"},
+    {ma:"Oppo",mo:"Oppo A38",g:"G1"},
+    {ma:"Oppo",mo:"Oppo A18",g:"G1"},
+    {ma:"Oppo",mo:"Oppo A16",g:"G1"},
+    {ma:"Oppo",mo:"Oppo A15",g:"G1"},
+    {ma:"Huawei",mo:"Huawei Mate X7",g:"G5"},
+    {ma:"Huawei",mo:"Huawei Mate X6",g:"G5"},
+    {ma:"Huawei",mo:"Huawei Mate X5",g:"G5"},
+    {ma:"Huawei",mo:"Huawei Mate X3",g:"G4"},
+    {ma:"Huawei",mo:"Huawei Pura 80 Ultra",g:"G5"},
+    {ma:"Huawei",mo:"Huawei Pura 80 Pro",g:"G4"},
+    {ma:"Huawei",mo:"Huawei Pura 80",g:"G4"},
+    {ma:"Huawei",mo:"Huawei Mate 80 Pro",g:"G5"},
+    {ma:"Huawei",mo:"Huawei Mate 80",g:"G4"},
+    {ma:"Huawei",mo:"Huawei Pura 70 Ultra",g:"G4"},
+    {ma:"Huawei",mo:"Huawei Pura 70 Pro",g:"G4"},
+    {ma:"Huawei",mo:"Huawei Pura 70",g:"G3"},
+    {ma:"Huawei",mo:"Huawei Mate 60 Pro",g:"G4"},
+    {ma:"Huawei",mo:"Huawei Mate 50 Pro",g:"G3"},
+    {ma:"Huawei",mo:"Huawei P60 Pro",g:"G3"},
+    {ma:"Huawei",mo:"Huawei P50 Pro",g:"G3"},
+    {ma:"Huawei",mo:"Huawei P40 Pro",g:"G2"},
+    {ma:"Huawei",mo:"Huawei P40 Lite",g:"G1"},
+    {ma:"Huawei",mo:"Huawei P30 Pro",g:"G2"},
+    {ma:"Huawei",mo:"Huawei P30",g:"G2"},
+    {ma:"Huawei",mo:"Huawei P30 Lite",g:"G1"},
+    {ma:"Huawei",mo:"Huawei Mate 20 Pro",g:"G2"},
+    {ma:"Huawei",mo:"Huawei Mate 20 Lite",g:"G1"},
+    {ma:"Huawei",mo:"Huawei nova 15",g:"G3"},
+    {ma:"Huawei",mo:"Huawei nova 14 Pro",g:"G3"},
+    {ma:"Huawei",mo:"Huawei nova 14",g:"G3"},
+    {ma:"Huawei",mo:"Huawei nova 13",g:"G2"},
+    {ma:"Huawei",mo:"Huawei nova 12s",g:"G2"},
+    {ma:"Huawei",mo:"Huawei nova 11",g:"G2"},
+    {ma:"Huawei",mo:"Huawei nova 9",g:"G2"},
+    {ma:"Huawei",mo:"Huawei nova Y73",g:"G2"},
+    {ma:"Huawei",mo:"Huawei nova Y72",g:"G2"},
+    {ma:"Huawei",mo:"Huawei nova Y61",g:"G1"},
+    {ma:"Huawei",mo:"Huawei P smart 2021",g:"G1"},
+    {ma:"Huawei",mo:"Huawei P smart 2019",g:"G1"},
+    {ma:"Huawei",mo:"Huawei Y7 / Y6",g:"G1"},
+  ],
 };
 
 let calcP = JSON.parse(JSON.stringify(CALC_FABRICA));
@@ -4628,15 +4952,36 @@ function calcCategoria(nombre){
  * PVP pieza c/IVA = CEIL(MAX(coste × mult.tramo × factor, mínimo cat.)) − 0,01
  * PVP total c/IVA = PVP pieza + MO c/IVA
  */
-function calcCalcular(coste, catNombre){
+/* Devuelve el objeto gama a partir de su código. Si no se reconoce (modelo no
+   catalogado, o tabla de gamas vacía), cae en gamaDefecto, cuyo factor es 1,00:
+   el precio sale exactamente igual que antes de existir las gamas. */
+function calcGama(gamaCod){
+  const lista=calcP.gamas||[];
+  if(!lista.length) return {c:"", n:"", factor:1};
+  return lista.find(g=>g.c===gamaCod)
+      || lista.find(g=>g.c===(calcP.gamaDefecto||"G2"))
+      || {c:"", n:"", factor:1};
+}
+
+/* Busca la gama de un modelo concreto. marca es opcional: si se pasa, se exige
+   que coincida, para no confundir modelos homónimos de marcas distintas. */
+function calcGamaDeModelo(marca, modelo){
+  const lista=calcP.modelos||[];
+  const m=lista.find(x => x.mo===modelo && (!marca || x.ma===marca));
+  return m ? m.g : (calcP.gamaDefecto||"G2");
+}
+
+function calcCalcular(coste, catNombre, gamaCod){
   const iva=calcP.iva/100;
   const cat=calcCategoria(catNombre);
+  const gama=calcGama(gamaCod);
   const {t:tramo, i:tramoIdx}=calcTramo(coste);
-  const multFinal=tramo.mult*(cat.factor||1);
+  const factores=(cat.factor||1)*(gama.factor||1);
+  const multFinal=tramo.mult*factores;
 
-  const teoricoBruto=coste*multFinal;                          // PVP teórico c/IVA, sin suelo entre tramos
-  const sueloTramo=calcSueloTramo(tramoIdx)*(cat.factor||1);   // techo del tramo anterior, con el mismo factor
-  const teorico=Math.max(teoricoBruto, sueloTramo);            // nunca baja al cruzar de tramo
+  const teoricoBruto=coste*multFinal;                     // PVP teórico c/IVA, sin suelo entre tramos
+  const sueloTramo=calcSueloTramo(tramoIdx)*factores;     // techo del tramo anterior, con los mismos factores
+  const teorico=Math.max(teoricoBruto, sueloTramo);       // nunca baja al cruzar de tramo
   const pieza=calcRedondeo99(Math.max(teorico, cat.min));      // PVP pieza propuesto c/IVA
   const minAplicado=teorico<cat.min;                           // ¿ha entrado el suelo de categoría?
   const sueloTramoAplicado=teoricoBruto<sueloTramo;             // ¿ha entrado el suelo de tramo?
@@ -4656,7 +5001,7 @@ function calcCalcular(coste, catNombre){
     ? (baseFinal - coste - moInterno - provision)/baseFinal
     : 0;
 
-  return {coste, cat, tramo, tramoIdx, multFinal, teorico, pieza, piezaBase, minAplicado,
+  return {coste, cat, gama, tramo, tramoIdx, multFinal, teorico, pieza, piezaBase, minAplicado,
           mo, pvp, baseFinal, ivaEur:pvp-baseFinal, margen,
           moInterno, costeIncidente, provision, margenReal,
           margenPct: piezaBase>0 ? margen/piezaBase : 0,
@@ -4711,6 +5056,38 @@ function calcPintarSelector(){
   }
 }
 
+/* Gama derivada de los desplegables de marca y modelo. Si no hay modelo
+   elegido, devuelve la gama neutra, que no altera el precio. */
+function calcGamaSeleccionada(){
+  const ma=(document.getElementById('calcMarca')?.value||'').trim();
+  const mo=(document.getElementById('calcModelo')?.value||'').trim();
+  if(!mo) return calcP.gamaDefecto||"G2";
+  return calcGamaDeModelo(ma||null, mo);
+}
+
+/* Rellena el desplegable de marcas y, en cascada, el de modelos. */
+function calcPintarMarcas(){
+  const sel=document.getElementById('calcMarca');
+  if(!sel) return;
+  const prev=sel.value;
+  const marcas=(calcP.marcas&&calcP.marcas.length) ? calcP.marcas
+              : [...new Set((calcP.modelos||[]).map(m=>m.ma))];
+  sel.innerHTML='<option value="">— Sin especificar —</option>'+
+    marcas.map(m=>'<option value="'+calcEsc(m)+'">'+calcEsc(m)+'</option>').join('');
+  if(prev && marcas.includes(prev)) sel.value=prev;
+  calcPintarModelos();
+}
+function calcPintarModelos(){
+  const selMa=document.getElementById('calcMarca'), sel=document.getElementById('calcModelo');
+  if(!sel) return;
+  const marca=(selMa?.value||'').trim();
+  const prev=sel.value;
+  const lista=(calcP.modelos||[]).filter(m=>!marca || m.ma===marca);
+  sel.innerHTML='<option value="">— Sin especificar —</option>'+
+    lista.map(m=>'<option value="'+calcEsc(m.mo)+'">'+calcEsc(m.mo)+'</option>').join('');
+  if(prev && lista.some(m=>m.mo===prev)) sel.value=prev;
+}
+
 function calcRender(){
   const costeEl=document.getElementById("calcCoste");
   if(!costeEl) return;
@@ -4732,8 +5109,10 @@ function calcRender(){
   // Para no-admin hacen falta los cuatro pasos completos; si no, PVP = 0
   if(!isAdminRol){
     const refVal =(document.getElementById('calcSolRef')?.value||'').trim();
+    const maVal  =(document.getElementById('calcMarca')?.value||'').trim();
+    const moVal  =(document.getElementById('calcModelo')?.value||'').trim();
     const provVal=(document.getElementById('calcSolProv')?.value||'').trim();
-    if(!refVal || !calcRefValidadaOK || !provVal || !coste || calcRepSel<0){
+    if(!refVal || !calcRefValidadaOK || !maVal || !moVal || !provVal || !coste || calcRepSel<0){
       document.getElementById("calcPvp").textContent='0';
       const pvpSubEl=document.getElementById("calcPvpSub"); if(pvpSubEl) pvpSubEl.textContent='';
       document.getElementById("calcNivLbl").textContent='';
@@ -4744,7 +5123,13 @@ function calcRender(){
 
   const cat=calcP.categorias[calcRepSel];
   if(!cat) return;
-  const r=calcCalcular(coste, cat.n);
+  const r=calcCalcular(coste, cat.n, calcGamaSeleccionada());
+
+  const gamaLbl=document.getElementById('calcGamaLbl');
+  if(gamaLbl){
+    const moSel=(document.getElementById('calcModelo')?.value||'').trim();
+    gamaLbl.textContent = moSel ? (r.gama.c+' · '+r.gama.n) : 'Gama neutra';
+  }
 
   const adminView = window.__SAVE_CURRENT_ROLE === 'admin';
 
@@ -4849,6 +5234,85 @@ function calcPintarAdmin(){
     if(el) el.value=calcP[k];
   });
   calcPintarReps();
+  calcPintarGamas();
+  calcPintarFiltroMarca();
+  calcPintarTablaModelos();
+}
+
+/* ── gamas de dispositivo ── */
+function calcPintarGamas(){
+  const cont=document.getElementById("calcSetGamas");
+  if(!cont) return;
+  const gamas=calcP.gamas||[];
+  const def=calcP.gamaDefecto||"G2";
+  cont.innerHTML=gamas.map((g,i)=>
+    '<div class="calc-set"><label for="calcGm'+i+'">'+calcEsc(g.c+' · '+g.n)+
+    (g.c===def ? ' <small style="color:var(--save)">(neutra)</small>' : '')+
+    '<br><small style="color:var(--calc-ink-faint)">'+calcEsc(g.ref||'')+'</small></label>'+
+    '<input id="calcGm'+i+'" data-g="'+i+'" type="number" step="0.05" min="0.05" value="'+g.factor+'"></div>').join("");
+}
+
+/* ── marcas y modelos ── */
+function calcPintarFiltroMarca(){
+  const sel=document.getElementById("calcFiltroMarca");
+  if(!sel) return;
+  const prev=sel.value;
+  const marcas=(calcP.marcas&&calcP.marcas.length) ? calcP.marcas
+              : [...new Set((calcP.modelos||[]).map(m=>m.ma))];
+  sel.innerHTML='<option value="">Todas las marcas</option>'+
+    marcas.map(m=>'<option value="'+calcEsc(m)+'">'+calcEsc(m)+'</option>').join('');
+  if(prev && marcas.includes(prev)) sel.value=prev;
+}
+
+function calcPintarTablaModelos(){
+  const tb=document.querySelector("#calcTablaModelos tbody");
+  if(!tb) return;
+  const q=(document.getElementById("calcBuscaModelo")?.value||'').trim().toLowerCase();
+  const filtroMa=(document.getElementById("calcFiltroMarca")?.value||'').trim();
+  const gamas=calcP.gamas||[];
+  const marcas=(calcP.marcas&&calcP.marcas.length) ? calcP.marcas
+              : [...new Set((calcP.modelos||[]).map(m=>m.ma))];
+
+  // Se conserva el índice real para poder editar y borrar tras filtrar
+  const filas=(calcP.modelos||[]).map((m,i)=>({m,i}))
+    .filter(({m}) => (!filtroMa || m.ma===filtroMa) &&
+                     (!q || (m.mo+' '+m.ma).toLowerCase().includes(q)));
+
+  const cnt=document.getElementById("calcModelosCount");
+  if(cnt) cnt.textContent = filas.length===(calcP.modelos||[]).length
+    ? filas.length+' modelos'
+    : filas.length+' de '+(calcP.modelos||[]).length;
+
+  // Con muchos resultados se recorta el pintado: la tabla sigue siendo usable
+  const TOPE=250;
+  const visibles=filas.slice(0,TOPE);
+  tb.innerHTML=visibles.map(({m,i})=>
+    '<tr>'+
+    '<td><select data-mm="'+i+'" data-f="ma">'+
+      marcas.map(x=>'<option value="'+calcEsc(x)+'"'+(x===m.ma?' selected':'')+'>'+calcEsc(x)+'</option>').join('')+
+    '</select></td>'+
+    '<td><input type="text" data-mm="'+i+'" data-f="mo" value="'+calcEsc(m.mo)+'"></td>'+
+    '<td><select data-mm="'+i+'" data-f="g">'+
+      gamas.map(g=>'<option value="'+g.c+'"'+(g.c===m.g?' selected':'')+'>'+g.c+' · '+calcEsc(g.n)+'</option>').join('')+
+    '</select></td>'+
+    '<td><button type="button" class="calc-del" data-delmm="'+i+'" aria-label="Eliminar">×</button></td>'+
+    '</tr>').join('') +
+    (filas.length>TOPE
+      ? '<tr><td colspan="4" style="text-align:center;color:var(--calc-ink-faint);font-size:12px;padding:10px">'+
+        (filas.length-TOPE)+' modelos más. Usa el buscador o el filtro de marca para acotar.</td></tr>'
+      : '');
+}
+
+/* Una configuración guardada antes de existir las gamas no las trae. Se
+   completan desde CALC_FABRICA para que la calculadora no se quede sin tabla
+   (sin esto, todo caería en gama neutra sin que nadie lo notara). */
+function calcMigrarConfig(c){
+  if(!c || typeof c!=='object') return c;
+  if(!Array.isArray(c.gamas)   || !c.gamas.length)   c.gamas   = calcClonar(CALC_FABRICA.gamas);
+  if(!Array.isArray(c.modelos))                      c.modelos = calcClonar(CALC_FABRICA.modelos);
+  if(!Array.isArray(c.marcas)  || !c.marcas.length)  c.marcas  = calcClonar(CALC_FABRICA.marcas);
+  if(!c.gamaDefecto)                                 c.gamaDefecto = CALC_FABRICA.gamaDefecto;
+  return c;
 }
 
 async function calcGuardar(){
@@ -4889,7 +5353,7 @@ async function calcCargar(){
     if(res.ok){
       const c = await res.json();
       if(c && c.categorias && c.tramos && c.mo){
-        calcP = c;
+        calcP = calcMigrarConfig(c);
         // Actualizar caché local con la config del servidor
         try{ localStorage.setItem(CALC_STORE_KEY, JSON.stringify(calcP)); }catch(e){}
         return;
@@ -4899,7 +5363,7 @@ async function calcCargar(){
   // Fallback: cargar desde localStorage
   try{
     const raw=localStorage.getItem(CALC_STORE_KEY);
-    if(raw){ const c=JSON.parse(raw); if(c&&c.categorias&&c.tramos&&c.mo) calcP=c; }
+    if(raw){ const c=JSON.parse(raw); if(c&&c.categorias&&c.tramos&&c.mo) calcP=calcMigrarConfig(c); }
   }catch(e){}
 }
 
@@ -4925,7 +5389,7 @@ function calcSetModo(modo){
   else calcPintarAdmin();
 }
 
-function calcRefrescar(){ calcPintarSelector(); calcPintarBarras(); calcRender(); }
+function calcRefrescar(){ calcPintarSelector(); calcPintarMarcas(); calcPintarBarras(); calcRender(); }
 
 /* ── renderizar la estructura HTML completa en el mount point ── */
 function calcMount(){
@@ -4965,7 +5429,23 @@ function calcMount(){
           </div>
 
           <div class="calc-panel-head">
-            <span class="calc-eyebrow">2 · Proveedor</span>
+            <span class="calc-eyebrow">2 · Marca del equipo</span>
+            <span class="calc-eyebrow" id="calcPasoMarcaEst" style="color:var(--g400)">Bloqueado</span>
+          </div>
+          <div style="margin-bottom:16px">
+            <select id="calcMarca" class="calc-campo" disabled></select>
+          </div>
+
+          <div class="calc-panel-head">
+            <span class="calc-eyebrow">3 · Modelo del equipo</span>
+            <span class="calc-eyebrow" id="calcPasoModeloEst" style="color:var(--g400)">Bloqueado</span>
+          </div>
+          <div style="margin-bottom:16px">
+            <select id="calcModelo" class="calc-campo" disabled></select>
+          </div>
+
+          <div class="calc-panel-head">
+            <span class="calc-eyebrow">4 · Proveedor</span>
             <span class="calc-eyebrow" id="calcPaso2Est" style="color:var(--g400)">Bloqueado</span>
           </div>
           <div style="margin-bottom:16px">
@@ -4982,7 +5462,7 @@ function calcMount(){
           </div>
           ` : ''}
           <div class="calc-panel-head">
-            <span class="calc-eyebrow">${isAdmin ? '1' : '3'} · Coste de la pieza</span>
+            <span class="calc-eyebrow">${isAdmin ? '1' : '5'} · Coste de la pieza</span>
             <span class="calc-eyebrow" id="calcPaso3Est">${isAdmin ? 'Sin IVA' : 'Bloqueado'}</span>
           </div>
           <div class="calc-costfield">
@@ -4991,11 +5471,20 @@ function calcMount(){
           </div>
           ${isAdmin ? '<p class="calc-hint">Lo que cuesta la pieza en factura de proveedor, sin IVA.</p>' : '<div style="height:12px"></div>'}
           <div class="calc-panel-head" style="margin-top:4px">
-            <span class="calc-eyebrow">${isAdmin ? '2' : '4'} · Categoría de la pieza</span>
+            <span class="calc-eyebrow">${isAdmin ? '2' : '6'} · Categoría de la pieza</span>
             <span class="calc-eyebrow" id="calcNivLbl"></span>
           </div>
           <select class="calc-rep" id="calcReparacion" ${isAdmin ? '' : 'disabled'} aria-label="Categoría de la pieza"></select>
-          ${isAdmin ? '<p class="calc-hint" style="margin-top:10px;margin-bottom:0">Elige la categoría de la pieza que vas a facturar.</p>' : ''}
+          ${isAdmin ? `<p class="calc-hint" style="margin-top:10px">Elige la categoría de la pieza que vas a facturar.</p>
+          <div class="calc-panel-head" style="margin-top:4px">
+            <span class="calc-eyebrow">3 · Equipo</span>
+            <span class="calc-eyebrow" id="calcGamaLbl"></span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <select id="calcMarca" class="calc-campo" aria-label="Marca del equipo"></select>
+            <select id="calcModelo" class="calc-campo" aria-label="Modelo del equipo"></select>
+          </div>
+          <p class="calc-hint" style="margin-top:10px;margin-bottom:0">La gama del equipo ajusta el precio de las piezas cuyo coste no distingue la gama (lente, buzzer, botón). Déjalo sin especificar para gama neutra.</p>` : ''}
         </div>
       </section>
 
@@ -5064,6 +5553,34 @@ function calcMount(){
       <p class="calc-sec-title">Multiplicadores por tramo de coste</p>
       <p class="calc-sec-sub">Degresivos: la pieza barata aguanta multiplicador alto, la cara no. El multiplicador se aplica sobre el coste y devuelve precio <strong>con IVA</strong>.</p>
       <div class="calc-set-grid" id="calcSetBandas"></div>
+    </div>
+
+    <div class="calc-panel" style="margin-top:16px">
+      <p class="calc-sec-title">Gamas de dispositivo</p>
+      <p class="calc-sec-sub">El factor de gama multiplica igual que el factor de categoría. Resuelve las piezas cuyo coste no dice nada de la gama del equipo: sin esto, la lente de un Galaxy A15 sale al mismo precio que la de un iPhone 18 Pro Max. La gama neutra tiene factor 1,00 y no altera el precio.</p>
+      <div class="calc-set-grid" id="calcSetGamas"></div>
+    </div>
+
+    <div class="calc-panel" style="margin-top:16px">
+      <p class="calc-sec-title">Marcas y modelos</p>
+      <p class="calc-sec-sub">Cada modelo lleva asignada su gama. Un modelo que no esté en esta lista cae en la gama neutra y mantiene el precio actual, así que nunca bloquea un presupuesto. Revisa la tabla una vez al año: los equipos pierden valor y van bajando de gama.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+        <input id="calcBuscaModelo" class="calc-campo" style="flex:1;min-width:200px" type="text" placeholder="Buscar modelo o marca…">
+        <select id="calcFiltroMarca" class="calc-campo" style="width:auto;min-width:150px"></select>
+        <span class="calc-eyebrow" id="calcModelosCount"></span>
+      </div>
+      <div class="calc-reps-wrap" style="max-height:420px;overflow:auto">
+        <table class="calc-reps" id="calcTablaModelos">
+          <thead><tr>
+            <th style="width:28%">Marca</th><th style="width:44%">Modelo</th><th style="width:22%">Gama</th><th class="colx"></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="calc-btnrow">
+        <button type="button" class="calc-btn pri" id="calcAddModelo">+ Añadir modelo</button>
+        <button type="button" class="calc-btn" id="calcAddMarca">+ Añadir marca</button>
+      </div>
     </div>
 
     <div class="calc-panel" style="margin-top:16px">
@@ -5139,7 +5656,81 @@ function calcMount(){
         calcPintarReps(); calcGuardar();
       });
     }
-    const addRepEl=document.getElementById("calcAddRep");
+    // ── gamas ──
+  const setGamasEl=document.getElementById("calcSetGamas");
+  if(setGamasEl) setGamasEl.addEventListener("input",e=>{
+    const i=e.target.dataset.g; if(i===undefined) return;
+    const v=parseFloat(e.target.value);
+    calcP.gamas[+i].factor = (isFinite(v)&&v>0) ? v : 1;
+    calcPintarReps(); calcRender(); calcGuardar();
+  });
+
+  // ── marcas y modelos ──
+  const buscaEl=document.getElementById("calcBuscaModelo");
+  if(buscaEl) buscaEl.addEventListener("input", calcPintarTablaModelos);
+  const filtroEl=document.getElementById("calcFiltroMarca");
+  if(filtroEl) filtroEl.addEventListener("change", calcPintarTablaModelos);
+
+  const tablaMmEl=document.getElementById("calcTablaModelos");
+  if(tablaMmEl){
+    tablaMmEl.addEventListener("input",e=>{
+      const i=e.target.dataset.mm, f=e.target.dataset.f;
+      if(i===undefined||!f) return;
+      calcP.modelos[+i][f]=e.target.value;
+      calcPintarMarcas(); calcRender(); calcGuardar();
+    });
+    tablaMmEl.addEventListener("change",e=>{
+      const i=e.target.dataset.mm, f=e.target.dataset.f;
+      if(i===undefined||!f) return;
+      calcP.modelos[+i][f]=e.target.value;
+      calcPintarMarcas(); calcRender(); calcGuardar();
+    });
+    tablaMmEl.addEventListener("click",e=>{
+      const i=e.target.dataset.delmm; if(i===undefined) return;
+      const m=calcP.modelos[+i];
+      if(!confirm('¿Eliminar "'+m.ma+' '+m.mo+'" de la tabla de gamas?\n\nLas reparaciones de ese modelo pasarán a gama neutra.')) return;
+      calcP.modelos.splice(+i,1);
+      calcPintarTablaModelos(); calcPintarMarcas(); calcRender(); calcGuardar();
+    });
+  }
+
+  const addModeloEl=document.getElementById("calcAddModelo");
+  if(addModeloEl) addModeloEl.addEventListener("click",()=>{
+    const marcas=(calcP.marcas&&calcP.marcas.length) ? calcP.marcas
+                : [...new Set((calcP.modelos||[]).map(m=>m.ma))];
+    if(!marcas.length){ calcToast("Añade primero una marca"); return; }
+    const maSel=(document.getElementById("calcFiltroMarca")?.value||'').trim() || marcas[0];
+    calcP.modelos.unshift({ma:maSel, mo:"Nuevo modelo", g:(calcP.gamaDefecto||"G2")});
+    const busca=document.getElementById("calcBuscaModelo"); if(busca) busca.value='';
+    calcPintarTablaModelos(); calcPintarMarcas(); calcGuardar();
+    const primero=document.querySelector('#calcTablaModelos input[data-f="mo"]');
+    if(primero){ primero.focus(); primero.select(); }
+  });
+
+  const addMarcaEl=document.getElementById("calcAddMarca");
+  if(addMarcaEl) addMarcaEl.addEventListener("click",()=>{
+    const nombre=(prompt("Nombre de la marca nueva:")||'').trim();
+    if(!nombre) return;
+    if(!calcP.marcas) calcP.marcas=[];
+    if(calcP.marcas.includes(nombre)){ calcToast("Esa marca ya existe"); return; }
+    calcP.marcas.push(nombre);
+    calcPintarFiltroMarca(); calcPintarMarcas(); calcPintarTablaModelos(); calcGuardar();
+    calcToast('Marca "'+nombre+'" añadida. Ya puedes asignarle modelos.');
+  });
+
+  // ── marca y modelo en la calculadora ──
+  const marcaEl=document.getElementById("calcMarca");
+  if(marcaEl) marcaEl.addEventListener("change",()=>{
+    calcPintarModelos(); calcRender();
+    if(window.__SAVE_CURRENT_ROLE !== 'admin') calcCheckAutoSend();
+  });
+  const modeloEl=document.getElementById("calcModelo");
+  if(modeloEl) modeloEl.addEventListener("change",()=>{
+    calcRender();
+    if(window.__SAVE_CURRENT_ROLE !== 'admin') calcCheckAutoSend();
+  });
+
+  const addRepEl=document.getElementById("calcAddRep");
     if(addRepEl) addRepEl.addEventListener("click", ()=>{
       calcP.categorias.push({n:"Nueva categoría", min:calcP.defaults.min,
                              niv:calcP.defaults.niv, factor:calcP.defaults.factor});
@@ -5187,7 +5778,7 @@ function calcMount(){
         const ta=document.getElementById("calcCfg");
         const c=JSON.parse(ta?ta.value:'{}');
         if(!c.categorias||!c.tramos||!c.mo) throw new Error("faltan bloques");
-        calcP=c; calcRepSel=0; calcPintarAdmin();
+        calcP=calcMigrarConfig(c); calcRepSel=0; calcPintarAdmin();
         calcToast("JSON importado. Pulsa 'Guardar y aplicar a todos' para distribuirlo.");
       }catch(err){ calcToast("Ese texto no es una configuración válida"); }
     });
@@ -5207,22 +5798,30 @@ function calcMount(){
 function calcActualizarPasos(){
   if(window.__SAVE_CURRENT_ROLE === 'admin') return;
   const refEl =document.getElementById('calcSolRef');
+  const maEl  =document.getElementById('calcMarca');
+  const moEl  =document.getElementById('calcModelo');
   const provEl=document.getElementById('calcSolProv');
   const costEl=document.getElementById('calcCoste');
   const catEl =document.getElementById('calcReparacion');
-  if(!refEl||!provEl||!costEl||!catEl) return;
+  if(!refEl||!maEl||!moEl||!provEl||!costEl||!catEl) return;
 
   const okRef  = !!refEl.value.trim() && calcRefValidadaOK && !calcRefBlocked;
-  const okProv = okRef  && !!provEl.value;
+  const okMa   = okRef  && !!maEl.value;
+  const okMo   = okMa   && !!moEl.value;
+  const okProv = okMo   && !!provEl.value;
   const okCost = okProv && parseFloat(costEl.value)>0;
 
   // Bloquear y limpiar en cascada
-  provEl.disabled=!okRef;   if(!okRef  && provEl.value){ provEl.value=''; }
+  maEl.disabled  =!okRef;   if(!okRef  && maEl.value){ maEl.value=''; calcPintarModelos(); }
+  moEl.disabled  =!okMa;    if(!okMa   && moEl.value){ moEl.value=''; }
+  provEl.disabled=!okMo;    if(!okMo   && provEl.value){ provEl.value=''; }
   costEl.disabled=!okProv;  if(!okProv && costEl.value){ costEl.value=''; }
   catEl.disabled =!okCost;  if(!okCost && calcRepSel>=0){ calcRepSel=-1; catEl.value=''; }
 
   // Marca visual de campo completado
   refEl.classList.toggle('ok', okRef);
+  maEl.classList.toggle('ok', okMa);
+  moEl.classList.toggle('ok', okMo);
   provEl.classList.toggle('ok', okProv);
 
   // Etiquetas de estado de cada paso
@@ -5231,9 +5830,11 @@ function calcActualizarPasos(){
     el.textContent = ok ? '✓ Completado' : pend;
     el.style.color = ok ? 'var(--save)' : (pend==='Bloqueado' ? 'var(--g400)' : 'var(--red-500)');
   };
-  est('calcPaso1Est', okRef,  'Obligatorio');
-  est('calcPaso2Est', okProv, okRef  ? 'Obligatorio' : 'Bloqueado');
-  est('calcPaso3Est', okCost, okProv ? 'Obligatorio' : 'Bloqueado');
+  est('calcPaso1Est',      okRef,  'Obligatorio');
+  est('calcPasoMarcaEst',  okMa,   okRef  ? 'Obligatorio' : 'Bloqueado');
+  est('calcPasoModeloEst', okMo,   okMa   ? 'Obligatorio' : 'Bloqueado');
+  est('calcPaso2Est',      okProv, okMo   ? 'Obligatorio' : 'Bloqueado');
+  est('calcPaso3Est',      okCost, okProv ? 'Obligatorio' : 'Bloqueado');
 }
 
 /* ── validación y envío de solicitud desde la calculadora ── */
@@ -5241,7 +5842,7 @@ function calcRefSetWarn(msg, isBlocking){
   calcRefBlocked = !!(isBlocking && msg);
   const warnEl=document.getElementById('calcRefWarn');
   if(!warnEl) return;
-  if(!msg){ warnEl.style.display='none'; warnEl.textContent=''; calcRender(); return; }
+  if(!msg){ warnEl.style.display='none'; warnEl.innerHTML=''; calcRender(); return; }
   if(isBlocking){
     warnEl.style.cssText='display:block;margin-top:6px;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.5;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5';
   } else {
@@ -5271,7 +5872,14 @@ window.calcValidarRef = async function(){
     // porque calcRefSetWarn re-renderiza y ahí se decide el desbloqueo del paso 2.
     if(check?.existe && check.conPvp){
       calcRefValidadaOK = false;
-      calcRefSetWarn('⛔ La referencia "'+ref+'" ya tiene PVP asignado en '+check.origen+'. No puedes solicitar una consulta de PVP para esta referencia. Si crees que hay un error en el PVP puedes reportar la referencia desde el catálogo al que corresponda para su revisión.',true);
+      // La referencia ya está tarificada: se le da el PVP directamente, que es lo
+      // que necesita para atender al cliente. No hay nada más que rellenar.
+      const pvpTxt = (check.pvp !== null && check.pvp !== undefined && check.pvp !== '')
+        ? calcEur(Number(check.pvp)) : null;
+      calcRefSetWarn(pvpTxt
+        ? '✅ Esta referencia ya tiene PVP en '+check.origen+': <strong style="font-size:19px">'+pvpTxt+'</strong><br>Es el precio que puedes dar al cliente. Si crees que es incorrecto, repórtalo desde el catálogo correspondiente.'
+        : '⛔ La referencia "'+ref+'" ya tiene PVP asignado en '+check.origen+'. Si crees que hay un error, repórtala desde el catálogo correspondiente.',
+        true);
       return;
     }
     calcRefValidadaOK = true;
@@ -5292,6 +5900,9 @@ function calcCheckAutoSend(){
   const prov=(document.getElementById('calcSolProv')?.value||'').trim();
   const coste=parseFloat(document.getElementById('calcCoste')?.value||0);
   if(!ref || !prov || !coste || calcRepSel<0) return;   // los 4 pasos completos
+  const maSel=(document.getElementById('calcMarca')?.value||'').trim();
+  const moSel=(document.getElementById('calcModelo')?.value||'').trim();
+  if(!maSel || !moSel) return;                          // marca y modelo también obligatorios
   const key = ref + '||' + prov;
   if(key === calcAutoSendKey) return; // ya enviada esta combinación
   calcAutoSendKey = key;
