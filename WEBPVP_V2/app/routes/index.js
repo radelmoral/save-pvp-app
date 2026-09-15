@@ -13,6 +13,7 @@ const chatCtrl      = require('../controllers/chatController');
 const chatLogsCtrl  = require('../controllers/chatLogsController');
 const settingsCtrl  = require('../controllers/settingsController');
 const pedidosCtrl   = require('../controllers/pedidosController');
+const modelosCtrl   = require('../controllers/modelosController');
 
 // ── Auth ──────────────────────────────────────────────────
 router.post('/auth/login', authCtrl.login);
@@ -68,6 +69,13 @@ router.get('/reportes-referencias', auth, reportesCtrl.listar);
 router.post('/reportes-referencias', auth, reportesCtrl.crear);
 router.put('/reportes-referencias/:id/resolver', auth, role('admin'), reportesCtrl.resolver);
 router.put('/reportes-referencias/:id/rechazar', auth, role('admin'), reportesCtrl.rechazar);
+
+// ── Modelos por clasificar (gamas) ────────────────────────
+router.get ('/modelos-por-clasificar',        auth, role('admin'), modelosCtrl.listar);
+router.get ('/modelos-por-clasificar/conteo', auth, role('admin'), modelosCtrl.conteo);
+router.post('/modelos-por-clasificar',        auth, modelosCtrl.crear);
+router.put ('/modelos-por-clasificar/:id/clasificar', auth, role('admin'), modelosCtrl.clasificar);
+router.put ('/modelos-por-clasificar/:id/descartar',  auth, role('admin'), modelosCtrl.descartar);
 
 // ── Usuarios (admin only) ─────────────────────────────────
 router.get ('/usuarios',      auth, role('admin'), usuariosCtrl.listar);
