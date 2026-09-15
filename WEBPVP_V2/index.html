@@ -5232,8 +5232,9 @@ function calcPintarMarcas(){
   const sel=document.getElementById('calcMarca');
   if(!sel) return;
   const prev=sel.value;
-  const marcas=(calcP.marcas&&calcP.marcas.length) ? calcP.marcas
-              : [...new Set((calcP.modelos||[]).map(m=>m.ma))];
+  const marcas=((calcP.marcas&&calcP.marcas.length) ? [...calcP.marcas]
+              : [...new Set((calcP.modelos||[]).map(m=>m.ma))])
+              .sort((a,b)=>String(a).localeCompare(String(b),'es',{sensitivity:'base'}));
   const esTecnico = window.__SAVE_CURRENT_ROLE !== 'admin';
   sel.innerHTML='<option value="">— Sin especificar —</option>'+
     marcas.map(m=>'<option value="'+calcEsc(m)+'">'+calcEsc(m)+'</option>').join('')+
@@ -5248,7 +5249,8 @@ function calcPintarModelos(){
   const marca=(selMa?.value||'').trim();
   const prev=sel.value;
   const marcaOtro = marca==='__OTRO__';
-  const lista=(calcP.modelos||[]).filter(m=>marcaOtro ? false : (!marca || m.ma===marca));
+  const lista=(calcP.modelos||[]).filter(m=>marcaOtro ? false : (!marca || m.ma===marca))
+              .slice().sort((a,b)=>String(a.mo).localeCompare(String(b.mo),'es',{numeric:true,sensitivity:'base'}));
   const esTecnico = window.__SAVE_CURRENT_ROLE !== 'admin';
   sel.innerHTML='<option value="">— Sin especificar —</option>'+
     lista.map(m=>'<option value="'+calcEsc(m.mo)+'">'+calcEsc(m.mo)+'</option>').join('')+
@@ -5285,6 +5287,57 @@ function calcModeloValor(){
 function calcHayModeloNuevo(){
   const selMa=document.getElementById('calcMarca'), selMo=document.getElementById('calcModelo');
   return (selMa&&selMa.value==='__OTRO__') || (selMo&&selMo.value==='__OTRO__');
+}
+
+/* Normaliza un nombre para comparar: sin acentos, sin espacios ni signos, minúsculas.
+   Así "iphone 15" ≡ "iPhone 15" ≡ "iPhone-15". */
+function calcNormNombre(s){
+  return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[\s._\-]/g,'').toLowerCase();
+}
+/* Si el usuario tecleó en "No está en la lista" algo que en realidad SÍ existe,
+   lo detecta y avisa. Comprueba marca contra la lista de marcas, y modelo contra
+   la lista de modelos (respetando la marca elegida si la hay). Pinta el aviso
+   bajo el campo correspondiente. Devuelve true si encontró un duplicado. */
+function calcChequearExistente(){
+  const selMa=document.getElementById('calcMarca'), txtMa=document.getElementById('calcMarcaTxt');
+  const selMo=document.getElementById('calcModelo'), txtMo=document.getElementById('calcModeloTxt');
+  let hayDup=false;
+
+  // ── marca tecleada ──
+  if(selMa && selMa.value==='__OTRO__' && txtMa){
+    const escrito=calcNormNombre(txtMa.value);
+    const marcas=(calcP.marcas&&calcP.marcas.length)?calcP.marcas:[...new Set((calcP.modelos||[]).map(m=>m.ma))];
+    const existe=escrito ? marcas.find(m=>calcNormNombre(m)===escrito) : null;
+    calcAvisoDup(txtMa, existe ? 'Esa marca ya existe: "'+existe+'". Selecciónala del desplegable.' : '');
+    if(existe) hayDup=true;
+  }
+
+  // ── modelo tecleado ──
+  if(selMo && selMo.value==='__OTRO__' && txtMo){
+    const escrito=calcNormNombre(txtMo.value);
+    const marcaSel=(selMa && selMa.value!=='__OTRO__' && selMa.value) ? selMa.value : null;
+    const existe=escrito ? (calcP.modelos||[]).find(m=>calcNormNombre(m.mo)===escrito &&
+                            (!marcaSel || m.ma===marcaSel)) : null;
+    calcAvisoDup(txtMo, existe ? 'Ese modelo ya existe'+(existe.ma?' ('+existe.ma+')':'')+'. Selecciónalo del desplegable.' : '');
+    if(existe) hayDup=true;
+  }
+  return hayDup;
+}
+/* Pinta (o borra) un pequeño aviso naranja justo debajo de un campo de texto. */
+function calcAvisoDup(inputEl, msg){
+  if(!inputEl) return;
+  const id=inputEl.id+'-dup';
+  let el=document.getElementById(id);
+  if(!msg){ if(el) el.remove(); inputEl.style.borderColor=''; return; }
+  if(!el){
+    el=document.createElement('div');
+    el.id=id;
+    el.style.cssText='margin-top:5px;font-size:12px;color:#b45309;line-height:1.4';
+    inputEl.insertAdjacentElement('afterend', el);
+  }
+  el.textContent='⚠️ '+msg;
+  inputEl.style.borderColor='#f59e0b';
 }
 
 function calcRender(){
@@ -6000,12 +6053,12 @@ function calcMount(){
   // Campos de texto de "No está en la lista": recalcular al escribir
   const marcaTxtEl=document.getElementById("calcMarcaTxt");
   if(marcaTxtEl) marcaTxtEl.addEventListener("input",()=>{
-    calcRender();
+    calcChequearExistente(); calcPintarModelos(); calcRender();
     if(window.__SAVE_CURRENT_ROLE !== 'admin') calcCheckAutoSend();
   });
   const modeloTxtEl=document.getElementById("calcModeloTxt");
   if(modeloTxtEl) modeloTxtEl.addEventListener("input",()=>{
-    calcRender();
+    calcChequearExistente(); calcRender();
     if(window.__SAVE_CURRENT_ROLE !== 'admin') calcCheckAutoSend();
   });
 
@@ -6145,6 +6198,7 @@ async function calcRegistrarModeloNuevo(referencia){
 function calcCheckAutoSend(){
   if(window.__SAVE_CURRENT_ROLE === 'admin') return;
   if(calcRefBlocked) return; // ref con PVP → no enviar
+  if(calcChequearExistente()) return; // lo tecleado ya existe → que use el desplegable
   const ref=(document.getElementById('calcSolRef')?.value||'').trim();
   const prov=(document.getElementById('calcSolProv')?.value||'').trim();
   const coste=parseFloat(document.getElementById('calcCoste')?.value||0);
