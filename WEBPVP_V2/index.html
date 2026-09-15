@@ -5385,7 +5385,7 @@ function calcSetModo(modo){
   else { vc.hidden=false; }
   if(tbC) tbC.classList.toggle('active', modo==='calc');
   if(tbA) tbA.classList.toggle('active', modo==='adm');
-  if(modo==='calc'){ calcPintarSelector(); calcPintarBarras(); calcRender(); }
+  if(modo==='calc'){ calcPintarSelector(); calcPintarMarcas(); calcPintarBarras(); calcRender(); }
   else calcPintarAdmin();
 }
 
