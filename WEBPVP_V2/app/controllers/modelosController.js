@@ -43,7 +43,7 @@ async function listar(req, res) {
     const [rows] = await db.execute(
       `SELECT m.*, u.username AS usuario
          FROM modelos_por_clasificar m
-         LEFT JOIN usuarios u ON u.id = m.usuario_id
+         LEFT JOIN usuarios u ON u.id_usuario = m.usuario_id
         WHERE m.estado = ?
         ORDER BY m.veces DESC, m.created_at DESC`,
       [estado]
