@@ -5718,18 +5718,6 @@ function calcMount(){
     calcToast('Marca "'+nombre+'" añadida. Ya puedes asignarle modelos.');
   });
 
-  // ── marca y modelo en la calculadora ──
-  const marcaEl=document.getElementById("calcMarca");
-  if(marcaEl) marcaEl.addEventListener("change",()=>{
-    calcPintarModelos(); calcRender();
-    if(window.__SAVE_CURRENT_ROLE !== 'admin') calcCheckAutoSend();
-  });
-  const modeloEl=document.getElementById("calcModelo");
-  if(modeloEl) modeloEl.addEventListener("change",()=>{
-    calcRender();
-    if(window.__SAVE_CURRENT_ROLE !== 'admin') calcCheckAutoSend();
-  });
-
   const addRepEl=document.getElementById("calcAddRep");
     if(addRepEl) addRepEl.addEventListener("click", ()=>{
       calcP.categorias.push({n:"Nueva categoría", min:calcP.defaults.min,
@@ -5788,6 +5776,18 @@ function calcMount(){
       calcToast("Valores de fábrica cargados. Pulsa 'Guardar y aplicar a todos' para distribuirlos.");
     });
   }
+
+  // ── marca y modelo en la calculadora (para TODOS los roles, no solo admin) ──
+  const marcaEl=document.getElementById("calcMarca");
+  if(marcaEl) marcaEl.addEventListener("change",()=>{
+    calcPintarModelos(); calcRender();
+    if(window.__SAVE_CURRENT_ROLE !== 'admin') calcCheckAutoSend();
+  });
+  const modeloEl=document.getElementById("calcModelo");
+  if(modeloEl) modeloEl.addEventListener("change",()=>{
+    calcRender();
+    if(window.__SAVE_CURRENT_ROLE !== 'admin') calcCheckAutoSend();
+  });
 
   calcSetModo('calc');
 }
