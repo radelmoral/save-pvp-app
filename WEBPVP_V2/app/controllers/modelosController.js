@@ -41,7 +41,7 @@ async function listar(req, res) {
     await ensureSchema();
     const estado = req.query.estado || 'pendiente';
     const [rows] = await db.execute(
-      `SELECT m.*, u.username AS usuario
+      `SELECT m.*, u.nombre AS usuario
          FROM modelos_por_clasificar m
          LEFT JOIN usuarios u ON u.id_usuario = m.usuario_id
         WHERE m.estado = ?
