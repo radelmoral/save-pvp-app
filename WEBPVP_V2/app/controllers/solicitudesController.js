@@ -32,35 +32,35 @@ async function buscarReferenciaExistente(referenciaRaw) {
   // Si existe pero sin PVP, el usuario puede solicitarlo legítimamente.
   const checks = await Promise.all([
     db.execute(
-      `SELECT referencia FROM repuestos
+      `SELECT referencia, pvp FROM repuestos
        WHERE (UPPER(TRIM(referencia)) = ? OR ${normExpr} = ?)
          AND pvp IS NOT NULL
        LIMIT 1`,
       [refParam, refNorm]
     ),
     db.execute(
-      `SELECT referencia FROM telefonos
+      `SELECT referencia, pvp FROM telefonos
        WHERE (UPPER(TRIM(referencia)) = ? OR ${normExpr} = ?)
          AND pvp IS NOT NULL
        LIMIT 1`,
       [refParam, refNorm]
     ),
     db.execute(
-      `SELECT referencia FROM apple_original
+      `SELECT referencia, pvp FROM apple_original
        WHERE (UPPER(TRIM(referencia)) = ? OR ${normExpr} = ?)
          AND pvp IS NOT NULL
        LIMIT 1`,
       [refParam, refNorm]
     ),
     db.execute(
-      `SELECT referencia FROM oppo_original
+      `SELECT referencia, pvp FROM oppo_original
        WHERE (UPPER(TRIM(referencia)) = ? OR ${normExpr} = ?)
          AND pvp IS NOT NULL
        LIMIT 1`,
       [refParam, refNorm]
     ),
     db.execute(
-      `SELECT referencia FROM consolas
+      `SELECT referencia, pvp FROM consolas
        WHERE (UPPER(TRIM(referencia)) = ? OR ${normExpr} = ?)
          AND pvp IS NOT NULL
        LIMIT 1`,
@@ -76,15 +76,15 @@ async function buscarReferenciaExistente(referenciaRaw) {
   ]);
 
   const [repRows] = checks[0];
-  if (repRows.length) return { existe: true, conPvp: true, origen: 'Repuestos', tipo: 'catalogo' };
+  if (repRows.length) return { existe: true, conPvp: true, origen: 'Repuestos', tipo: 'catalogo', pvp: repRows[0].pvp };
   const [telRows] = checks[1];
-  if (telRows.length) return { existe: true, conPvp: true, origen: 'Teléfonos', tipo: 'catalogo' };
+  if (telRows.length) return { existe: true, conPvp: true, origen: 'Teléfonos', tipo: 'catalogo', pvp: telRows[0].pvp };
   const [appleRows] = checks[2];
-  if (appleRows.length) return { existe: true, conPvp: true, origen: 'Apple Original', tipo: 'catalogo' };
+  if (appleRows.length) return { existe: true, conPvp: true, origen: 'Apple Original', tipo: 'catalogo', pvp: appleRows[0].pvp };
   const [oppoRows] = checks[3];
-  if (oppoRows.length) return { existe: true, conPvp: true, origen: 'Oppo Original', tipo: 'catalogo' };
+  if (oppoRows.length) return { existe: true, conPvp: true, origen: 'Oppo Original', tipo: 'catalogo', pvp: oppoRows[0].pvp };
   const [conRows] = checks[4];
-  if (conRows.length) return { existe: true, conPvp: true, origen: 'Consolas', tipo: 'catalogo' };
+  if (conRows.length) return { existe: true, conPvp: true, origen: 'Consolas', tipo: 'catalogo', pvp: conRows[0].pvp };
   const [pendRows] = checks[5];
   if (pendRows.length) return { existe: true, conPvp: false, origen: 'solicitud_pendiente', tipo: 'solicitud' };
 
