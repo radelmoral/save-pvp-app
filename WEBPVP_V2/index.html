@@ -5152,7 +5152,10 @@ function calcRender(){
   if(adminView){
     filas=[
       ["Coste de la pieza en factura","Sin IVA",calcEur(coste)],
-      ["Multiplicador aplicado",r.tramo.c+" "+r.tramo.n+" · "+calcNum(r.tramo.mult)+"x"+(r.cat.factor!==1?" · factor cat. "+calcNum(r.cat.factor):""),calcNum(r.multFinal)+"x"],
+      ["Multiplicador del tramo",r.tramo.c+" · "+r.tramo.n,calcNum(r.tramo.mult)+"x"],
+      ["Factor de la categoría",r.cat.n,calcNum(r.cat.factor||1)+"x"],
+      ["Factor de la gama",(r.gama&&r.gama.c)?(r.gama.c+" · "+r.gama.n):"sin especificar (neutra)",calcNum((r.gama&&r.gama.factor)||1)+"x"],
+      ["Multiplicador total","tramo × categoría × gama",calcNum(r.multFinal)+"x"],
       ["PVP teórico c/IVA","",calcEur(r.teorico)],
       ["Precio mínimo de "+r.cat.n,r.minAplicado?"⚠️ aplicado":"no aplicado",calcEur(r.cat.min)],
       ["Pieza facturada c/IVA","",calcEur(r.pieza)],
