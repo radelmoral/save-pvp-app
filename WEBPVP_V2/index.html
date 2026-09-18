@@ -5136,35 +5136,49 @@ function calcCalcular(coste, catNombre, gamaCod){
   const iva=calcP.iva/100;
   const cat=calcCategoria(catNombre);
   const gama=calcGama(gamaCod);
-  const {t:tramo, i:tramoIdx}=calcTramo(coste);
+
+  // COSTE MÍNIMO DE PIEZA por categoría: si el coste real es menor, se calcula
+  // como si la pieza costara el mínimo (ese mínimo se multiplica luego por el
+  // tramo, la categoría y la gama). Un flex de 1,20€ con minCoste 15 se calcula
+  // como si costara 15€. Si no hay minCoste definido, no cambia nada.
+  const costeReal = coste;
+  const minCoste = cat.minCoste || 0;
+  const costeEfectivo = Math.max(coste, minCoste);
+  const costeMinAplicado = minCoste > 0 && costeReal < minCoste;
+
+  const {t:tramo, i:tramoIdx}=calcTramo(costeEfectivo);
   const factores=(cat.factor||1)*(gama.factor||1);
   const multFinal=tramo.mult*factores;
 
-  const teoricoBruto=coste*multFinal;                     // PVP teórico c/IVA, sin suelo entre tramos
+  const teoricoBruto=costeEfectivo*multFinal;             // PVP teórico c/IVA, sin suelo entre tramos
   const sueloTramo=calcSueloTramo(tramoIdx)*factores;     // techo del tramo anterior, con los mismos factores
   const teorico=Math.max(teoricoBruto, sueloTramo);       // nunca baja al cruzar de tramo
-  const pieza=calcRedondeo99(Math.max(teorico, cat.min));      // PVP pieza propuesto c/IVA
-  const minAplicado=teorico<cat.min;                           // ¿ha entrado el suelo de categoría?
+  const pieza=calcRedondeo99(teorico);                     // PVP pieza propuesto c/IVA (sin suelo de categoría)
   const sueloTramoAplicado=teoricoBruto<sueloTramo;             // ¿ha entrado el suelo de tramo?
 
   const mo=calcP.mo.find(m=>m.c===cat.niv)||calcP.mo[1];
-  const pvp=Math.round((pieza+mo.e)*100)/100;             // PVP reparación total c/IVA
+  // PVP TOTAL c/IVA. El "PVP mínimo" de la categoría es ahora el suelo del
+  // precio FINAL con todo incluido (pieza + mano de obra), no solo de la pieza.
+  const pvpCalculado=Math.round((pieza+mo.e)*100)/100;
+  const pvp=Math.max(pvpCalculado, cat.min||0);          // suelo del precio final
+  const minAplicado=(cat.min||0) > pvpCalculado;         // ¿ha entrado el PVP mínimo final?
 
   const baseFinal=pvp/(1+iva);
   const piezaBase=pieza/(1+iva);
-  const margen=piezaBase-coste;
+  const margen=baseFinal-mo.e/(1+iva)-costeReal;         // margen sobre el coste REAL de la pieza
 
   // Coste interno y riesgo del nivel de MO
   const moInterno = (mo.min/60)*calcP.costeHora;          // coste real del técnico
   const costeIncidente = moInterno + (mo.colat||0);       // rehacer la reparación
   const provision = (mo.tasa||0)*costeIncidente;          // provisión por incidencia
   const margenReal = baseFinal>0
-    ? (baseFinal - coste - moInterno - provision)/baseFinal
+    ? (baseFinal - costeReal - moInterno - provision)/baseFinal
     : 0;
 
   return {coste, cat, gama, tramo, tramoIdx, multFinal, teorico, pieza, piezaBase, minAplicado,
           mo, pvp, baseFinal, ivaEur:pvp-baseFinal, margen,
           moInterno, costeIncidente, provision, margenReal,
+          costeReal, costeEfectivo, costeMinAplicado,
           margenPct: piezaBase>0 ? margen/piezaBase : 0,
           margenHora: mo.min>0 ? margen/(mo.min/60) : 0};
 }
@@ -5403,22 +5417,25 @@ function calcRender(){
   let filas;
   if(adminView){
     filas=[
-      ["Coste de la pieza en factura","Sin IVA",calcEur(coste)],
+      ["Coste de la pieza en factura","Sin IVA",calcEur(r.costeReal)],
+      (r.costeMinAplicado
+        ? ["Coste mínimo de pieza aplicado","⚠️ se calcula como "+calcEur(r.costeEfectivo),calcEur(r.costeEfectivo)]
+        : null),
       ["Multiplicador del tramo",r.tramo.c+" · "+r.tramo.n,calcNum(r.tramo.mult)+"x"],
       ["Factor de la categoría",r.cat.n,calcNum(r.cat.factor||1)+"x"],
       ["Factor de la gama",(r.gama&&r.gama.c)?(r.gama.c+" · "+r.gama.n):"sin especificar (neutra)",calcNum((r.gama&&r.gama.factor)||1)+"x"],
       ["Multiplicador total","tramo × categoría × gama",calcNum(r.multFinal)+"x"],
-      ["PVP teórico c/IVA","",calcEur(r.teorico)],
-      ["Precio mínimo de "+r.cat.n,r.minAplicado?"⚠️ aplicado":"no aplicado",calcEur(r.cat.min)],
       ["Pieza facturada c/IVA","",calcEur(r.pieza)],
       ["Mano de obra",r.mo.c+" · "+r.mo.n+" · "+r.mo.min+" min",calcEur(r.mo.e)],
+      ["PVP calculado c/IVA","pieza + mano de obra",calcEur(r.pieza+r.mo.e)],
+      ["PVP mínimo final de "+r.cat.n,r.minAplicado?"⚠️ aplicado":"no aplicado",calcEur(r.cat.min||0)],
       ["Base imponible","",calcEur(r.baseFinal)],
       ["IVA "+calcNum(calcP.iva)+"%","",calcEur(r.ivaEur)],
       ["Coste interno de MO",r.mo.min+" min × "+calcNum(calcP.costeHora)+" €/h",calcEur(r.moInterno)],
       ["Provisión por incidencia",calcNum((r.mo.tasa||0)*100)+"% × "+calcEur(r.costeIncidente),calcEur(r.provision)],
       ["Margen sobre la pieza",calcNum(r.margenPct*100)+"%",calcEur(r.margen)],
       ["Margen real esperado","descontando MO interna y riesgo",calcNum(r.margenReal*100)+"%"]
-    ];
+    ].filter(Boolean);
   } else {
     filas=[
       ["Pieza facturada","",calcEur(r.pieza)],
@@ -5458,7 +5475,8 @@ function calcPintarReps(){
     const ref=calcCalcular(20,c.n).pvp;
     return '<tr>'+
       '<td><input type="text" data-f="n" data-i="'+i+'" value="'+calcEsc(c.n)+'" aria-label="Categoría"></td>'+
-      '<td><input type="number" step="0.01" min="0" data-f="min" data-i="'+i+'" value="'+c.min+'" aria-label="Precio mínimo c/IVA"></td>'+
+      '<td><input type="number" step="0.01" min="0" data-f="minCoste" data-i="'+i+'" value="'+(c.minCoste||0)+'" aria-label="Coste mínimo de pieza"></td>'+
+      '<td><input type="number" step="0.01" min="0" data-f="min" data-i="'+i+'" value="'+c.min+'" aria-label="PVP mínimo final c/IVA"></td>'+
       '<td><select data-f="niv" data-i="'+i+'" aria-label="Nivel MO">'+
         calcP.mo.map(m=>'<option value="'+m.c+'"'+(m.c===c.niv?' selected':'')+'>'+m.c+' · '+calcEsc(m.n)+'</option>').join("")+
       '</select></td>'+
@@ -5789,7 +5807,7 @@ function calcMount(){
       <div class="calc-reps-wrap">
         <table class="calc-reps" id="calcTablaReps">
           <thead><tr>
-            <th class="colcat">Categoría</th><th class="colmin">Mínimo c/IVA</th><th class="colniv">Mano de obra</th><th class="colfac">Factor</th>
+            <th class="colcat">Categoría</th><th class="colmin">Coste mín. pieza</th><th class="colmin">PVP mínimo final</th><th class="colniv">Mano de obra</th><th class="colfac">Factor</th>
             <th class="colpvp" style="text-align:right">PVP ref.</th><th class="colx"></th>
           </tr></thead>
           <tbody></tbody>
@@ -5900,7 +5918,7 @@ function calcMount(){
       tablaRepsEl.addEventListener("input", e=>{
         const i=e.target.dataset.i, f=e.target.dataset.f;
         if(i===undefined||!f) return;
-        const val=(f==="min"||f==="factor") ? (parseFloat(e.target.value)||0) : e.target.value;
+        const val=(f==="min"||f==="factor"||f==="minCoste") ? (parseFloat(e.target.value)||0) : e.target.value;
         calcP.categorias[+i][f]=val;
         if(f==="niv") calcPintarReps();
         calcGuardar();
