@@ -14,6 +14,7 @@ const chatLogsCtrl  = require('../controllers/chatLogsController');
 const settingsCtrl  = require('../controllers/settingsController');
 const pedidosCtrl   = require('../controllers/pedidosController');
 const modelosCtrl   = require('../controllers/modelosController');
+const reportesPrecioCtrl = require('../controllers/reportesPrecioController');
 
 // ── Auth ──────────────────────────────────────────────────
 router.post('/auth/login', authCtrl.login);
@@ -76,6 +77,13 @@ router.get ('/modelos-por-clasificar/conteo', auth, role('admin'), modelosCtrl.c
 router.post('/modelos-por-clasificar',        auth, modelosCtrl.crear);
 router.put ('/modelos-por-clasificar/:id/clasificar', auth, role('admin'), modelosCtrl.clasificar);
 router.put ('/modelos-por-clasificar/:id/descartar',  auth, role('admin'), modelosCtrl.descartar);
+
+// Reportes de precio (técnico reporta un PVP que no le cuadra → cola del admin)
+router.get ('/reportes-precio',               auth, role('admin'), reportesPrecioCtrl.listar);
+router.get ('/reportes-precio/conteo',        auth, role('admin'), reportesPrecioCtrl.conteo);
+router.post('/reportes-precio',               auth, reportesPrecioCtrl.crear);
+router.put ('/reportes-precio/:id/revisar',   auth, role('admin'), reportesPrecioCtrl.revisar);
+router.put ('/reportes-precio/:id/descartar', auth, role('admin'), reportesPrecioCtrl.descartar);
 
 // ── Usuarios (admin only) ─────────────────────────────────
 router.get ('/usuarios',      auth, role('admin'), usuariosCtrl.listar);
