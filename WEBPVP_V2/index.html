@@ -5286,6 +5286,22 @@ function calcGamaDeModelo(marca, modelo){
   return m ? m.g : (calcP.gamaDefecto||"G2");
 }
 
+/* REDONDEO A 9 del PVP final que se da en tienda (euros enteros):
+   - si ya acaba en 9, se queda igual
+   - si la última cifra es 0, 1 o 2 → baja al 9 anterior   (100 → 99, 92 → 89)
+   - si es 3 o más                  → sube al 9 siguiente   (93 → 99, 97 → 99)
+   El PVP mínimo de la categoría se respeta tal y como queda redondeado con esta
+   misma regla (mínimo 39,99 → 39 €; mínimo 300 → 299 €). Como la regla nunca
+   baja un precio por debajo del redondeo de otro menor, no hace falta más suelo. */
+const CALC_REDONDEO9_BAJA_HASTA = 2;   // últimas cifras que bajan al 9 anterior (0, 1 y 2)
+function calcRedondeo9(pvp){
+  let n=Math.round(pvp);
+  const d=((n%10)+10)%10;
+  if(d!==9) n = (d<=CALC_REDONDEO9_BAJA_HASTA) ? n-d-1 : n+(9-d);
+  if(n<9) n=9;
+  return n;
+}
+
 function calcCalcular(coste, catNombre, gamaCod){
   const iva=calcP.iva/100;
   const cat=calcCategoria(catNombre);
@@ -5314,8 +5330,10 @@ function calcCalcular(coste, catNombre, gamaCod){
   // PVP TOTAL c/IVA. El "PVP mínimo" de la categoría es ahora el suelo del
   // precio FINAL con todo incluido (pieza + mano de obra), no solo de la pieza.
   const pvpCalculado=Math.round((pieza+mo.e)*100)/100;
-  const pvp=Math.max(pvpCalculado, cat.min||0);          // suelo del precio final
+  const pvpSinRedondeo=Math.max(pvpCalculado, cat.min||0);  // suelo del precio final
   const minAplicado=(cat.min||0) > pvpCalculado;         // ¿ha entrado el PVP mínimo final?
+  const pvp=calcRedondeo9(pvpSinRedondeo);   // PVP que se da en tienda, acabado en 9
+  const piezaFactura=Math.round((pvp-mo.e)*100)/100;     // la pieza absorbe el redondeo; la MO no cambia
 
   const baseFinal=pvp/(1+iva);
   const piezaBase=pieza/(1+iva);
@@ -5330,6 +5348,7 @@ function calcCalcular(coste, catNombre, gamaCod){
     : 0;
 
   return {coste, cat, gama, tramo, tramoIdx, multFinal, teorico, pieza, piezaBase, minAplicado,
+          pvpCalculado, pvpSinRedondeo, piezaFactura,
           mo, pvp, baseFinal, ivaEur:pvp-baseFinal, margen,
           moInterno, costeIncidente, provision, margenReal,
           costeReal, costeEfectivo, costeMinAplicado,
@@ -5596,6 +5615,7 @@ function calcRender(){
       ["Mano de obra",r.mo.c+" · "+r.mo.n+" · "+r.mo.min+" min",calcEur(r.mo.e)],
       ["PVP calculado c/IVA","pieza + mano de obra",calcEur(r.pieza+r.mo.e)],
       ["PVP mínimo final de "+r.cat.n,r.minAplicado?"⚠️ aplicado":"no aplicado",calcEur(r.cat.min||0)],
+      ["Redondeo a 9 para tienda",calcEur(r.pvpSinRedondeo)+" → "+calcEur(r.pvp),(r.pvp>=r.pvpSinRedondeo?"+":"")+calcEur(r.pvp-r.pvpSinRedondeo)],
       ["Base imponible","",calcEur(r.baseFinal)],
       ["IVA "+calcNum(calcP.iva)+"%","",calcEur(r.ivaEur)],
       ["Coste interno de MO",r.mo.min+" min × "+calcNum(calcP.costeHora)+" €/h",calcEur(r.moInterno)],
@@ -5605,7 +5625,7 @@ function calcRender(){
     ].filter(Boolean);
   } else {
     filas=[
-      ["Pieza facturada","",calcEur(r.pieza)],
+      ["Pieza facturada","",calcEur(r.piezaFactura)],
       ["Mano de obra","",calcEur(r.mo.e)],
       ["Base imponible","",calcEur(r.baseFinal)],
       ["IVA "+calcNum(calcP.iva)+"%","",calcEur(r.ivaEur)]
@@ -6583,6 +6603,9 @@ window.calcEnviarSolicitud = async function(){
 
 /* ── exponer globalmente ── */
 window.calcSetModo = calcSetModo;
+window.calcRedondeo9 = calcRedondeo9;
+window.calcCalcular = calcCalcular;
+window.calcGetConfig = () => calcP;
 window.calcMountPvp = async function(){
   await calcCargar();
   calcMount();
