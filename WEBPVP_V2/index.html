@@ -343,6 +343,10 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <span class="ic">🏷️</span> Modelos por clasificar
         <span class="sb-badge" id="badgeModelosPendientes">0</span>
       </button>
+      <button class="sb-item" onclick="nav('reportes-precio',this)">
+        <span class="ic">💶</span> Reportes de precio
+        <span class="sb-badge" id="badgeReportesPrecio" style="display:none">0</span>
+      </button>
       <button class="sb-item" id="btnSubirStock" onclick="abrirModalStock()">
         <span class="ic">📦</span> Subir Stock ERP
       </button>
@@ -620,6 +624,51 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         </thead>
         <tbody id="mpcTbody">
           <tr><td colspan="6" style="padding:20px;text-align:center;color:var(--g400)">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="page" id="page-reportes-precio">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div>
+        <h2 style="font-size:20px;font-weight:800;">Reportes de precio</h2>
+        <p style="color:var(--g500);font-size:13px;margin-top:3px;">Precios que los técnicos han consultado y les han parecido demasiado bajos, demasiado altos o sin sentido.</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select class="fi" id="rpFiltroEstado" onchange="cargarReportesPrecio()" style="min-width:160px;">
+          <option value="pendiente">⏳ Pendientes</option>
+          <option value="revisado">✅ Revisados</option>
+          <option value="descartado">❌ Descartados</option>
+          <option value="todos">Todos</option>
+        </select>
+        <span class="pvp-status-pending" style="padding:6px 14px;" id="rpPendBadge">⏳ 0 pendientes</span>
+      </div>
+    </div>
+
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 14px;margin:14px 0;font-size:13px;color:#1e40af;line-height:1.5">
+      Cada reporte guarda el equipo, la categoría, el coste y el PVP exacto que vio el técnico. Si el precio está mal, corrígelo en la <strong>Administración de la calculadora</strong> (factor de la categoría, coste mínimo, PVP mínimo o gama del modelo) o en el catálogo si es un PVP fijo, y marca el reporte como revisado.
+    </div>
+
+    <div class="card" style="overflow:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="text-align:left;border-bottom:2px solid var(--g200)">
+            <th style="padding:8px 10px">Fecha</th>
+            <th style="padding:8px 10px">Técnico</th>
+            <th style="padding:8px 10px">Referencia</th>
+            <th style="padding:8px 10px">Equipo</th>
+            <th style="padding:8px 10px">Categoría</th>
+            <th style="padding:8px 10px;text-align:right">Coste</th>
+            <th style="padding:8px 10px;text-align:right">PVP dado</th>
+            <th style="padding:8px 10px">Motivo</th>
+            <th style="padding:8px 10px;text-align:right">Esperaba</th>
+            <th style="padding:8px 10px">Comentario</th>
+            <th style="padding:8px 10px"></th>
+          </tr>
+        </thead>
+        <tbody id="rpTbody">
+          <tr><td colspan="11" style="padding:20px;text-align:center;color:var(--g400)">Cargando…</td></tr>
         </tbody>
       </table>
     </div>
@@ -1229,7 +1278,8 @@ async function adminRealtimeTick(force = false) {
   if (adminRealtimeBusy) return;
   adminRealtimeBusy = true;
   try {
-    await Promise.all([loadSolicitudesFromAPI(), loadReportesFromAPI(), loadDashboard()]);
+    await Promise.all([loadSolicitudesFromAPI(), loadReportesFromAPI(), loadDashboard(),
+      cargarBadgeModelosPorClasificar(), cargarBadgeReportesPrecio()]);
   } finally {
     adminRealtimeBusy = false;
   }
@@ -1306,7 +1356,7 @@ function setRole(role) {
   if (navTelefonosBtn) navTelefonosBtn.style.display = hideTelefonosForRole ? 'none' : '';
   syncDashboardRoleVisibility();
   // If on an admin-only page, redirect to dashboard
-  const adminPages = ['usuarios','solicitudes-pvp-admin','reportes-referencias-admin','modelos-por-clasificar','chat-logs','calculadora-pvp'];
+  const adminPages = ['usuarios','solicitudes-pvp-admin','reportes-referencias-admin','modelos-por-clasificar','reportes-precio','chat-logs','calculadora-pvp'];
   const restrictedPages = ['pedidos', 'solicitud-pvp', 'mis-reportes'];
   const active = document.querySelector('.page.active');
   const isTestUser = (window.__SAVE_CURRENT_USERNAME || '') === 'test';
@@ -1353,7 +1403,8 @@ function nav(id, btn) {
     'resultados-globales':'Resultados Globales',
     'chat-logs':'Uso del Chatbot',
     'calculadora-pvp':'Calculadora de PVP',
-    'modelos-por-clasificar':'Modelos por clasificar'
+    'modelos-por-clasificar':'Modelos por clasificar',
+    'reportes-precio':'Reportes de precio'
   };
   document.getElementById('tbTitle').textContent = titles[id] || id;
 }
@@ -1377,6 +1428,105 @@ function navById(id) {
   }
   if (id === 'modelos-por-clasificar') {
     cargarModelosPorClasificar();
+  }
+  if (id === 'reportes-precio') {
+    cargarReportesPrecio();
+  }
+}
+
+/* ── Reportes de precio (admin) ─────────────────────── */
+const RP_MOTIVOS = {
+  muy_bajo:   {t:'Demasiado bajo', c:'#1d4ed8', bg:'#dbeafe'},
+  muy_alto:   {t:'Demasiado alto', c:'#b91c1c', bg:'#fee2e2'},
+  sin_sentido:{t:'No tiene sentido', c:'#92400e', bg:'#fef3c7'}
+};
+async function cargarBadgeReportesPrecio(){
+  if (window.__SAVE_CURRENT_ROLE !== 'admin') return;
+  try{
+    const token=localStorage.getItem('savePvpToken');
+    const res=await fetch('/api/reportes-precio/conteo',{headers:{'Authorization':'Bearer '+token}});
+    if(!res.ok) return;
+    const d=await res.json();
+    const b=document.getElementById('badgeReportesPrecio');
+    if(b){ b.textContent=d.pendientes||0; b.style.display=(d.pendientes>0)?'':'none'; }
+    const pb=document.getElementById('rpPendBadge');
+    if(pb) pb.textContent='⏳ '+(d.pendientes||0)+' pendientes';
+  }catch(e){}
+}
+
+async function cargarReportesPrecio(){
+  const tbody=document.getElementById('rpTbody');
+  if(!tbody) return;
+  const estado=(document.getElementById('rpFiltroEstado')||{}).value||'pendiente';
+  tbody.innerHTML='<tr><td colspan="11" style="padding:20px;text-align:center;color:var(--g400)">Cargando…</td></tr>';
+  try{
+    const token=localStorage.getItem('savePvpToken');
+    const res=await fetch('/api/reportes-precio?estado='+encodeURIComponent(estado),{headers:{'Authorization':'Bearer '+token}});
+    if(!res.ok) throw new Error('No se pudo cargar');
+    const {data}=await res.json();
+    cargarBadgeReportesPrecio();
+    if(!data.length){
+      tbody.innerHTML='<tr><td colspan="11" style="padding:24px;text-align:center;color:var(--g400)">'+
+        (estado==='pendiente'?'No hay reportes de precio pendientes. 🎉':'No hay reportes en este estado.')+'</td></tr>';
+      return;
+    }
+    const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const eur=v=>(v===null||v===undefined||v==='')?'—':Number(v).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+    const fecha=f=>{ const d=new Date(f); return isNaN(d)?esc(f):d.toLocaleDateString('es-ES')+' '+d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}); };
+    const td='padding:8px 10px;vertical-align:top';
+    tbody.innerHTML=data.map(r=>{
+      const m=RP_MOTIVOS[r.motivo]||{t:r.motivo,c:'var(--g600)',bg:'var(--g100)'};
+      const equipo=[r.marca,r.modelo].filter(Boolean).map(esc).join(' ')||'<span style="color:var(--g400)">—</span>';
+      const origen=r.origen==='catalogo'
+        ? '<div style="font-size:11px;color:#7c3aed;margin-top:2px">PVP de catálogo'+(r.catalogo?' · '+esc(r.catalogo):'')+'</div>'
+        : (r.proveedor?'<div style="font-size:11px;color:var(--g400);margin-top:2px">'+esc(r.proveedor)+'</div>':'');
+      let acciones;
+      if(r.estado==='pendiente'){
+        acciones='<button class="rp-revisar" style="padding:5px 10px;background:var(--save);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Revisado</button> '+
+                 '<button class="rp-descartar" style="padding:5px 10px;background:transparent;color:var(--g500);border:1px solid var(--g300);border-radius:6px;cursor:pointer;font-size:12px">Descartar</button>';
+      } else {
+        acciones='<span style="font-size:12px;color:'+(r.estado==='revisado'?'var(--save)':'var(--g400)')+'">'+(r.estado==='revisado'?'✅ Revisado':'❌ Descartado')+
+                 (r.admin?' · '+esc(r.admin):'')+'</span>'+
+                 (r.respuesta_admin?'<div style="font-size:11.5px;color:var(--g500);margin-top:3px;max-width:220px">'+esc(r.respuesta_admin)+'</div>':'');
+      }
+      return '<tr style="border-bottom:1px solid var(--g100)" data-id="'+r.id+'">'+
+        '<td style="'+td+';white-space:nowrap;color:var(--g500)">'+fecha(r.created_at)+'</td>'+
+        '<td style="'+td+'">'+esc(r.usuario||'—')+'</td>'+
+        '<td style="'+td+';font-weight:600">'+esc(r.referencia||'—')+origen+'</td>'+
+        '<td style="'+td+'">'+equipo+'</td>'+
+        '<td style="'+td+'">'+esc(r.categoria||'—')+'</td>'+
+        '<td style="'+td+';text-align:right;white-space:nowrap">'+eur(r.coste)+'</td>'+
+        '<td style="'+td+';text-align:right;white-space:nowrap;font-weight:700">'+eur(r.pvp)+'</td>'+
+        '<td style="'+td+'"><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap;color:'+m.c+';background:'+m.bg+'">'+m.t+'</span></td>'+
+        '<td style="'+td+';text-align:right;white-space:nowrap">'+eur(r.precio_esperado)+'</td>'+
+        '<td style="'+td+';max-width:260px;color:var(--g600)">'+(r.comentario?esc(r.comentario):'<span style="color:var(--g400)">—</span>')+'</td>'+
+        '<td style="'+td+';white-space:nowrap">'+acciones+'</td>'+
+      '</tr>';
+    }).join('');
+
+    const cerrar=async (e, accion)=>{
+      const tr=e.target.closest('tr'); const id=tr.dataset.id;
+      const msg = accion==='revisar'
+        ? 'Nota opcional (qué has cambiado). Déjalo vacío si no hace falta:'
+        : 'Motivo para descartarlo (opcional):';
+      const respuesta = window.prompt(msg, '');
+      if(respuesta===null) return;   // cancelado
+      e.target.disabled=true;
+      try{
+        const token=localStorage.getItem('savePvpToken');
+        const res=await fetch('/api/reportes-precio/'+id+'/'+accion,{
+          method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+          body:JSON.stringify({respuesta})});
+        if(!res.ok) throw new Error();
+        tr.style.transition='opacity .3s'; tr.style.opacity='0';
+        setTimeout(()=>{ cargarReportesPrecio(); }, 300);
+        if(typeof toast==='function') toast(accion==='revisar'?'Reporte marcado como revisado':'Reporte descartado','ok');
+      }catch(err){ e.target.disabled=false; if(typeof toast==='function') toast('No se pudo actualizar el reporte','error'); }
+    };
+    tbody.querySelectorAll('.rp-revisar').forEach(b=>b.addEventListener('click',e=>cerrar(e,'revisar')));
+    tbody.querySelectorAll('.rp-descartar').forEach(b=>b.addEventListener('click',e=>cerrar(e,'descartar')));
+  }catch(e){
+    tbody.innerHTML='<tr><td colspan="11" style="padding:20px;text-align:center;color:var(--red-500)">Error al cargar los reportes de precio.</td></tr>';
   }
 }
 
@@ -3923,6 +4073,7 @@ window.addEventListener('load', async () => {
   loadDashboard();
   refreshSidebarCatalogCounts();
   cargarBadgeModelosPorClasificar();
+  cargarBadgeReportesPrecio();
 });
 </script>
 
@@ -5053,6 +5204,9 @@ let calcP = JSON.parse(JSON.stringify(CALC_FABRICA));
 let calcRepSel = 0;
 let calcModo = 'calc'; // 'calc' | 'adm'
 let calcRefBlocked = false;     // true cuando la referencia ya tiene PVP en catálogo
+let calcRepCalculado = null;   // último PVP calculado mostrado al técnico
+let calcRepCatalogo  = null;   // PVP de catálogo mostrado al validar la referencia
+const calcReportados = new Set();
 let calcRefValidadaOK = false;  // true cuando la referencia se valida como libre/pendiente
 let calcAutoSendKey = '';       // ref+prov de la última solicitud auto-enviada
 
@@ -5383,6 +5537,7 @@ function calcRender(){
       const pvpSubEl=document.getElementById("calcPvpSub"); if(pvpSubEl) pvpSubEl.textContent='';
       document.getElementById("calcNivLbl").textContent='';
       document.getElementById("calcDesglose").innerHTML='';
+      calcSetReportable(null);
       return;
     }
   }
@@ -5390,6 +5545,18 @@ function calcRender(){
   const cat=calcP.categorias[calcRepSel];
   if(!cat) return;
   const r=calcCalcular(coste, cat.n, calcGamaSeleccionada());
+  if(!isAdminRol){
+    calcSetReportable({
+      origen:'calculado',
+      referencia:(document.getElementById('calcSolRef')?.value||'').trim(),
+      marca:calcMarcaValor(), modelo:calcModeloValor(),
+      categoria:cat.n,
+      proveedor:(document.getElementById('calcSolProv')?.value||'').trim(),
+      coste:coste,
+      pvp:Math.round(r.pvp*100)/100,
+      pvpVisto:Math.round(r.pvp)
+    });
+  }
 
   const gamaLbl=document.getElementById('calcGamaLbl');
   if(gamaLbl){
@@ -5790,6 +5957,12 @@ function calcMount(){
           <div id="calcEnviarStatus" style="padding:10px 14px;font-size:13px;text-align:center;min-height:38px;border-radius:var(--r);background:var(--g100);color:var(--g500)">
             Completa Referencia y Proveedor para registrar la consulta automáticamente.
           </div>
+          <div id="calcReportarWrap" style="display:none;margin-top:10px;text-align:center">
+            <button type="button" id="calcReportarBtn" onclick="calcAbrirReporte()"
+              style="padding:9px 16px;background:transparent;color:var(--g600);border:1px solid var(--g300);border-radius:var(--r);cursor:pointer;font-size:13px;font-weight:600">
+              🚩 Reportar error en precio
+            </button>
+          </div>
         </div>` : ''}
       </section>
     </div>
@@ -6135,7 +6308,7 @@ function calcActualizarPasos(){
 }
 
 /* ── validación y envío de solicitud desde la calculadora ── */
-function calcRefSetWarn(msg, isBlocking){
+function calcRefSetWarn(msg, isBlocking, isHtml){
   calcRefBlocked = !!(isBlocking && msg);
   const warnEl=document.getElementById('calcRefWarn');
   if(!warnEl) return;
@@ -6145,7 +6318,8 @@ function calcRefSetWarn(msg, isBlocking){
   } else {
     warnEl.style.cssText='display:block;margin-top:6px;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.5;background:#fef3c7;color:#92400e;border:1px solid #fcd34d';
   }
-  warnEl.style.display='block'; warnEl.textContent=msg;
+  warnEl.style.display='block';
+  if(isHtml) warnEl.innerHTML=msg; else warnEl.textContent=msg;
   calcRender(); // re-render para mostrar/ocultar panel derecho
 }
 window.calcRefClearWarn = function(){
@@ -6171,12 +6345,23 @@ window.calcValidarRef = async function(){
       calcRefValidadaOK = false;
       // La referencia ya está tarificada: se le da el PVP directamente, que es lo
       // que necesita para atender al cliente. No hay nada más que rellenar.
-      const pvpTxt = (check.pvp !== null && check.pvp !== undefined && check.pvp !== '')
-        ? calcEur(Number(check.pvp)) : null;
+      const tienePvp = (check.pvp !== null && check.pvp !== undefined && check.pvp !== '' && !isNaN(Number(check.pvp)));
+      const pvpTxt = tienePvp ? calcEur(Number(check.pvp)) : null;
+      const origenTxt = calcEsc(check.origen||'catálogo');
+      if(tienePvp){
+        calcRepCatalogo = {
+          origen:'catalogo', catalogo:check.origen||'', referencia:ref,
+          marca:'', modelo:'', categoria:'', proveedor:'', coste:null,
+          pvp:Math.round(Number(check.pvp)*100)/100, pvpVisto:Number(check.pvp)
+        };
+      }
       calcRefSetWarn(pvpTxt
-        ? '✅ Esta referencia ya tiene PVP en '+check.origen+': <strong style="font-size:19px">'+pvpTxt+'</strong><br>Es el precio que puedes dar al cliente. Si crees que es incorrecto, repórtalo desde el catálogo correspondiente.'
-        : '⛔ La referencia "'+ref+'" ya tiene PVP asignado en '+check.origen+'. Si crees que hay un error, repórtala desde el catálogo correspondiente.',
-        true);
+        ? '✅ Esta referencia ya tiene PVP en '+origenTxt+': <strong style="font-size:19px">'+pvpTxt+'</strong><br>Es el precio que puedes dar al cliente.'+
+          '<div style="margin-top:8px"><button type="button" id="calcReportarCatBtn" onclick="calcAbrirReporte(\'catalogo\')" '+
+          'style="padding:6px 12px;background:#fff;color:var(--g600);border:1px solid var(--g300);border-radius:6px;cursor:pointer;font-size:12.5px;font-weight:600">'+
+          (calcYaReportado(calcRepCatalogo)?'✓ Error en precio reportado':'🚩 Reportar error en precio')+'</button></div>'
+        : '⛔ La referencia "'+calcEsc(ref)+'" ya tiene PVP asignado en '+origenTxt+'. Si crees que hay un error, repórtala desde el catálogo correspondiente.',
+        true, true);
       return;
     }
     calcRefValidadaOK = true;
@@ -6187,6 +6372,116 @@ window.calcValidarRef = async function(){
     }
     calcCheckAutoSend();
   }catch(e){ calcRefValidadaOK=false; calcRefSetWarn(null,false); }
+};
+
+/* ── Reportar precio (técnico) ─────────────────────────────
+   El técnico puede avisar de que un PVP le parece demasiado bajo, alto o sin
+   sentido. No bloquea nada: el precio se puede seguir dando. El reporte guarda
+   todo el contexto para que el admin lo reproduzca en la calculadora. */
+function calcRepKey(d){ return d ? [d.origen,d.referencia,d.categoria,d.marca,d.modelo,d.coste,d.pvp].join('|') : ''; }
+function calcYaReportado(d){ return !!d && calcReportados.has(calcRepKey(d)); }
+function calcSetReportable(d){
+  calcRepCalculado = d;
+  const wrap=document.getElementById('calcReportarWrap');
+  const btn=document.getElementById('calcReportarBtn');
+  if(!wrap) return;
+  wrap.style.display = d ? '' : 'none';
+  if(btn && d){
+    const hecho=calcYaReportado(d);
+    btn.disabled=hecho;
+    btn.style.cursor=hecho?'default':'pointer';
+    btn.textContent = hecho ? '✓ Error en precio reportado' : '🚩 Reportar error en precio';
+  }
+}
+window.calcAbrirReporte = function(tipo){
+  const d = tipo==='catalogo' ? calcRepCatalogo : calcRepCalculado;
+  if(!d || calcYaReportado(d)) return;
+  document.getElementById('calcRepModal')?.remove();
+  const eur=v=>Number(v).toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:2})+' €';
+  const fila=(k,v)=> v ? '<div style="display:flex;justify-content:space-between;gap:12px;padding:3px 0"><span style="color:#6b7280">'+k+'</span><span style="font-weight:600;text-align:right">'+calcEsc(v)+'</span></div>' : '';
+  const resumen =
+    fila('Referencia', d.referencia) +
+    (d.origen==='catalogo' ? fila('Origen', 'PVP de catálogo'+(d.catalogo?' · '+d.catalogo:'')) : '') +
+    fila('Equipo', [d.marca,d.modelo].filter(Boolean).join(' ')) +
+    fila('Categoría', d.categoria) +
+    (d.coste ? fila('Coste pieza', eur(d.coste)) : '') +
+    fila('PVP mostrado', eur(d.pvpVisto));
+  const motivoBtn=(v,t,sub)=>'<label style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;cursor:pointer;margin-bottom:8px">'+
+    '<input type="radio" name="calcRepMotivo" value="'+v+'" style="margin-top:3px"><span><strong style="font-size:14px">'+t+'</strong><br><span style="font-size:12px;color:#6b7280">'+sub+'</span></span></label>';
+  const m=document.createElement('div');
+  m.id='calcRepModal';
+  m.style.cssText='position:fixed;inset:0;background:rgba(17,24,39,.55);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px';
+  m.innerHTML=
+    '<div role="dialog" aria-modal="true" aria-labelledby="calcRepTit" style="background:#fff;border-radius:14px;max-width:460px;width:100%;max-height:92vh;overflow:auto;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,.25);font-size:14px;color:#111827">'+
+      '<h3 id="calcRepTit" style="margin:0 0 4px;font-size:18px;font-weight:800">Reportar error en precio</h3>'+
+      '<p style="margin:0 0 14px;color:#6b7280;font-size:13px">Lo revisará administración. Puedes seguir dando este precio mientras tanto.</p>'+
+      '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:13px">'+resumen+'</div>'+
+      '<div style="font-weight:700;font-size:13px;margin-bottom:8px">¿Qué pasa con este precio?</div>'+
+      motivoBtn('muy_bajo','Demasiado bajo','Inferior a lo esperado para esta reparación') +
+      motivoBtn('muy_alto','Demasiado alto','Superior a lo esperado o fuera de mercado') +
+      motivoBtn('sin_sentido','No tiene sentido','Hay una incoherencia (categoría, equipo, comparación con otra pieza…)') +
+      '<label style="display:block;font-weight:700;font-size:13px;margin:12px 0 6px">¿Qué precio esperabas? <span style="font-weight:400;color:#6b7280">(opcional)</span></label>'+
+      '<div style="position:relative"><input id="calcRepEsperado" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ej: 49" style="width:100%;padding:9px 30px 9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box"><span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#9ca3af">€</span></div>'+
+      '<label style="display:block;font-weight:700;font-size:13px;margin:12px 0 6px">Comentario <span id="calcRepComReq" style="font-weight:400;color:#6b7280">(opcional)</span></label>'+
+      '<textarea id="calcRepComentario" rows="3" maxlength="1000" placeholder="Ej: la misma pieza en el A16 sale a 39 €" style="width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>'+
+      '<div id="calcRepErr" style="display:none;margin-top:10px;padding:8px 10px;border-radius:8px;background:#fee2e2;color:#b91c1c;font-size:12.5px"></div>'+
+      '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">'+
+        '<button type="button" id="calcRepCancelar" style="padding:9px 16px;background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:8px;cursor:pointer;font-size:14px">Cancelar</button>'+
+        '<button type="button" id="calcRepEnviar" style="padding:9px 16px;background:var(--save,#0f766e);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700">Enviar reporte</button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(m);
+  const cerrar=()=>{ m.remove(); document.removeEventListener('keydown',onKey); };
+  const onKey=e=>{ if(e.key==='Escape') cerrar(); };
+  document.addEventListener('keydown',onKey);
+  m.addEventListener('click',e=>{ if(e.target===m) cerrar(); });
+  m.querySelector('#calcRepCancelar').addEventListener('click',cerrar);
+  m.querySelectorAll('input[name="calcRepMotivo"]').forEach(r=>r.addEventListener('change',()=>{
+    const req=m.querySelector('#calcRepComReq');
+    const obligatorio = r.value==='sin_sentido' && r.checked;
+    req.textContent = obligatorio ? '(obligatorio: describe la incidencia)' : '(opcional)';
+    req.style.color = obligatorio ? '#b91c1c' : '#6b7280';
+    m.querySelectorAll('input[name="calcRepMotivo"]').forEach(x=>{
+      x.closest('label').style.borderColor = x.checked ? 'var(--save,#0f766e)' : '#d1d5db';
+      x.closest('label').style.background  = x.checked ? '#f0fdfa' : '#fff';
+    });
+  }));
+  m.querySelector('#calcRepEnviar').addEventListener('click',async ev=>{
+    const err=m.querySelector('#calcRepErr');
+    const showErr=t=>{ err.textContent=t; err.style.display='block'; };
+    const motivo=(m.querySelector('input[name="calcRepMotivo"]:checked')||{}).value;
+    const comentario=m.querySelector('#calcRepComentario').value.trim();
+    const esperadoRaw=m.querySelector('#calcRepEsperado').value.trim();
+    if(!motivo) return showErr('Elige si el precio es demasiado bajo, demasiado alto o no tiene sentido.');
+    if(motivo==='sin_sentido' && !comentario) return showErr('Describe brevemente la incidencia.');
+    const btn=ev.currentTarget; btn.disabled=true; btn.textContent='Enviando…';
+    try{
+      const token=localStorage.getItem('savePvpToken');
+      const res=await fetch('/api/reportes-precio',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body:JSON.stringify({
+          origen:d.origen, catalogo:d.catalogo||null, referencia:d.referencia,
+          marca:d.marca, modelo:d.modelo, categoria:d.categoria, proveedor:d.proveedor,
+          coste:d.coste, pvp:d.pvp, motivo, precioEsperado:esperadoRaw||null, comentario
+        })
+      });
+      const out=await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(out.error||'No se pudo enviar el reporte');
+      calcReportados.add(calcRepKey(d));
+      cerrar();
+      if(d.origen==='catalogo'){
+        const b=document.getElementById('calcReportarCatBtn');
+        if(b){ b.textContent='✓ Error en precio reportado'; b.disabled=true; b.style.cursor='default'; }
+      } else {
+        calcSetReportable(calcRepCalculado);
+      }
+      if(typeof toast==='function') toast('Reporte enviado. Gracias, lo revisaremos.','ok');
+    }catch(e){
+      btn.disabled=false; btn.textContent='Enviar reporte';
+      showErr(e.message||'No se pudo enviar el reporte');
+    }
+  });
 };
 
 /* Registra en la cola de clasificación el equipo tecleado a mano. Solo actúa
