@@ -15,6 +15,7 @@ const settingsCtrl  = require('../controllers/settingsController');
 const pedidosCtrl   = require('../controllers/pedidosController');
 const modelosCtrl   = require('../controllers/modelosController');
 const reportesPrecioCtrl = require('../controllers/reportesPrecioController');
+const calcAccesoCtrl = require('../controllers/calculadoraAccesoController');
 
 // ── Auth ──────────────────────────────────────────────────
 router.post('/auth/login', authCtrl.login);
@@ -84,6 +85,11 @@ router.get ('/reportes-precio/conteo',        auth, role('admin'), reportesPreci
 router.post('/reportes-precio',               auth, reportesPrecioCtrl.crear);
 router.put ('/reportes-precio/:id/revisar',   auth, role('admin'), reportesPrecioCtrl.revisar);
 router.put ('/reportes-precio/:id/descartar', auth, role('admin'), reportesPrecioCtrl.descartar);
+
+// Acceso a la Calculadora PVP (admin decide qué usuarios no-admin la ven)
+router.get ('/calculadora-acceso/me',  auth, calcAccesoCtrl.miAcceso);
+router.get ('/calculadora-acceso',     auth, role('admin'), calcAccesoCtrl.listar);
+router.put ('/calculadora-acceso/:id', auth, role('admin'), calcAccesoCtrl.asignar);
 
 // ── Usuarios (admin only) ─────────────────────────────────
 router.get ('/usuarios',      auth, role('admin'), usuariosCtrl.listar);
