@@ -864,7 +864,7 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
         <input class="fi" id="filtroUsuarios" placeholder="🔍 Buscar usuario, nombre, email o rol…" style="flex:1;" oninput="filtrarUsuariosAdmin()"/>
       </div>
       <div class="tw"><table>
-        <thead><tr><th>ID</th><th>Nombre</th><th>Usuario</th><th>Email</th><th>Rol</th><th style="text-align:center;">Opciones</th></tr></thead>
+        <thead><tr><th>ID</th><th>Nombre</th><th>Usuario</th><th>Email</th><th>Rol</th><th style="text-align:center;">Calculadora</th><th style="text-align:center;">Opciones</th></tr></thead>
         <tbody id="tbUsuarios"></tbody>
       </table></div>
     </div>
@@ -1150,6 +1150,10 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
           </select>
         </div>
         <div class="ff"><label>Contraseña *</label><input class="finp" id="createUserPassword" type="password"/></div>
+        <div class="ff full" id="createUserCalcWrap" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--g200);border-radius:8px;">
+          <input type="checkbox" id="createUserCalc" style="width:18px;height:18px;cursor:pointer;"/>
+          <label for="createUserCalc" style="margin:0;cursor:pointer;text-transform:none;letter-spacing:0;font-size:13px;">🧮 Acceso a la Calculadora PVP <span id="createUserCalcNota" style="color:var(--g500);font-weight:400;">(modo usuario)</span></label>
+        </div>
       </div>
     </div>
     <div class="mf">
@@ -1182,6 +1186,10 @@ label { font-size:11px; font-weight:700; color:var(--g600); letter-spacing:.04em
           </select>
         </div>
         <div class="ff"><label>Nueva contraseña (opcional)</label><input class="finp" id="editUserPassword" type="password" placeholder="Dejar vacío para mantener"/></div>
+        <div class="ff full" id="editUserCalcWrap" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--g200);border-radius:8px;">
+          <input type="checkbox" id="editUserCalc" style="width:18px;height:18px;cursor:pointer;"/>
+          <label for="editUserCalc" style="margin:0;cursor:pointer;text-transform:none;letter-spacing:0;font-size:13px;">🧮 Acceso a la Calculadora PVP <span id="editUserCalcNota" style="color:var(--g500);font-weight:400;">(modo usuario)</span></label>
+        </div>
       </div>
     </div>
     <div class="mf">
@@ -1220,13 +1228,23 @@ const roleConfig = {
   ecclinicas: { label:'ECI Clínicas', avatar:'CL', name:'Usuario ECI Clínicas', rp:'rp-tec', rpText:'● ECI Clínicas' },
 };
 
-/* Usuarios no administradores con acceso a la Calculadora PVP (en modo usuario).
-   Nombres de usuario en minúsculas. Para dar o quitar acceso, editar esta lista. */
-const CALC_USUARIOS_PERMITIDOS = ['test', 'asoldan', 'fcarrillo', 'jmunoz', 'dvalderrabano'];
+/* Acceso a la Calculadora PVP (modo usuario) para no administradores.
+   Lo decide el admin en Usuarios → crear/editar (tabla calculadora_acceso).
+   La lista fija solo se usa si el servidor aún no tiene el endpoint nuevo. */
+const CALC_USUARIOS_RESPALDO = ['test', 'asoldan', 'fcarrillo', 'jmunoz', 'dvalderrabano'];
+window.__SAVE_CALC_ACCESO = null;   // null = sin respuesta del servidor
+async function cargarAccesoCalculadora() {
+  try {
+    const token = localStorage.getItem('savePvpToken');
+    const res = await fetch('/api/calculadora-acceso/me', { headers: { 'Authorization': 'Bearer ' + token } });
+    window.__SAVE_CALC_ACCESO = res.ok ? !!(await res.json()).acceso : null;
+  } catch (e) { window.__SAVE_CALC_ACCESO = null; }
+}
 function puedeUsarCalculadora() {
   if (currentRole === 'admin') return true;
+  if (window.__SAVE_CALC_ACCESO !== null) return window.__SAVE_CALC_ACCESO;
   const u = String(window.__SAVE_CURRENT_USERNAME || '').trim().toLowerCase();
-  return CALC_USUARIOS_PERMITIDOS.includes(u);
+  return CALC_USUARIOS_RESPALDO.includes(u);
 }
 
 function isReadOnlyCatalogRole(role = currentRole) {
@@ -3129,6 +3147,8 @@ async function checkAuth() {
     }
     // Guardar username para comprobaciones específicas por usuario
     window.__SAVE_CURRENT_USERNAME = (user.username || '').toLowerCase();
+    // Saber si este usuario tiene acceso a la calculadora antes de pintar el menú
+    if (String(user.rol || '').toLowerCase() !== 'admin') await cargarAccesoCalculadora();
     // Aplicar rol real primero (antes de eliminar los botones)
     setRole(user.rol);
     // Actualizar UI con datos reales del usuario (sobreescribe lo que puso setRole)
@@ -3549,13 +3569,57 @@ async function loadReportesFromAPI() {
   }
 }
 
+/* ── Acceso a la calculadora desde Usuarios (admin) ── */
+let calcAccesoIds = new Set();
+async function cargarCalcAccesoIds() {
+  try {
+    const token = localStorage.getItem('savePvpToken');
+    const res = await fetch('/api/calculadora-acceso', { headers: { 'Authorization': 'Bearer ' + token } });
+    if (!res.ok) return false;
+    calcAccesoIds = new Set(((await res.json()).ids || []).map(Number));
+    return true;
+  } catch (e) { return false; }
+}
+async function guardarCalcAcceso(id, acceso) {
+  const token = localStorage.getItem('savePvpToken');
+  const res = await fetch('/api/calculadora-acceso/' + id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify({ acceso: !!acceso })
+  });
+  if (!res.ok) throw new Error('No se pudo guardar el acceso a la calculadora');
+}
+/* Los admin siempre tienen acceso: la casilla se marca y bloquea. */
+function syncCalcCheckbox(pref) {
+  const rol = (document.getElementById(pref + 'Rol')?.value || '').toLowerCase();
+  const chk = document.getElementById(pref + 'Calc');
+  const nota = document.getElementById(pref + 'CalcNota');
+  if (!chk) return;
+  if (rol === 'admin') {
+    if (!chk.disabled) chk.dataset.prev = chk.checked ? '1' : '0';
+    chk.checked = true; chk.disabled = true;
+    if (nota) nota.textContent = '(los administradores tienen acceso siempre)';
+  } else {
+    if (chk.disabled) chk.checked = chk.dataset.prev === '1';
+    chk.disabled = false;
+    if (nota) nota.textContent = '(modo usuario)';
+  }
+}
+document.addEventListener('change', e => {
+  if (e.target && e.target.id === 'createUserRol') syncCalcCheckbox('createUser');
+  if (e.target && e.target.id === 'editUserRol') syncCalcCheckbox('editUser');
+});
+
 function openCreateUserModal() {
   if (!isAdminRole()) return toast('Solo admin puede crear usuarios', 'warn');
+  const cc = document.getElementById('createUserCalc');
+  if (cc) { cc.checked = false; cc.disabled = false; cc.dataset.prev = '0'; }
   document.getElementById('createUserNombre').value = '';
   document.getElementById('createUserUsername').value = '';
   document.getElementById('createUserEmail').value = '';
   document.getElementById('createUserRol').value = 'eci';
   document.getElementById('createUserPassword').value = '';
+  syncCalcCheckbox('createUser');
   openModal('modalCreateUser');
 }
 
@@ -3575,9 +3639,23 @@ async function guardarNuevoUsuario() {
   }
 
   try {
-    await API.usuarios.crear({ nombre, username, email, rol, password });
+    const creado = await API.usuarios.crear({ nombre, username, email, rol, password });
+    const quiereCalc = rol !== 'admin' && !!document.getElementById('createUserCalc')?.checked;
+    let avisoCalc = '';
+    if (quiereCalc) {
+      try {
+        let nuevoId = Number(creado?.id || creado?.id_usuario || creado?.insertId || creado?.usuario?.id || creado?.usuario?.id_usuario || 0);
+        if (!nuevoId) {
+          const lista = await API.usuarios.listar();
+          const u = (lista || []).find(x => String(x.username || x.usuario || '').toLowerCase() === username.toLowerCase());
+          nuevoId = Number(u?.id || u?.id_usuario || 0);
+        }
+        if (!nuevoId) throw new Error();
+        await guardarCalcAcceso(nuevoId, true);
+      } catch (e) { avisoCalc = ' (no se pudo dar acceso a la calculadora: hazlo editando el usuario)'; }
+    }
     closeModal('modalCreateUser');
-    toast('Usuario creado', 'ok');
+    toast('Usuario creado' + avisoCalc, avisoCalc ? 'warn' : 'ok');
     loadUsuariosFromAPI();
     loadDashboard();
   } catch (e) {
@@ -3593,6 +3671,9 @@ async function editarUsuario(id, nombre, username, email, rol) {
   document.getElementById('editUserEmail').value = email || '';
   document.getElementById('editUserRol').value = (rol || 'eci').toLowerCase();
   document.getElementById('editUserPassword').value = '';
+  const ec = document.getElementById('editUserCalc');
+  if (ec) { ec.disabled = false; ec.checked = calcAccesoIds.has(Number(id)); ec.dataset.prev = ec.checked ? '1' : '0'; }
+  syncCalcCheckbox('editUser');
   openModal('modalEditUser');
 }
 
@@ -3617,8 +3698,16 @@ async function guardarUsuarioDesdeModal() {
 
   try {
     await API.usuarios.actualizar(id, payload);
+    let avisoCalc = '';
+    if (rol !== 'admin') {
+      const quiere = !!document.getElementById('editUserCalc')?.checked;
+      if (quiere !== calcAccesoIds.has(id)) {
+        try { await guardarCalcAcceso(id, quiere); }
+        catch (e) { avisoCalc = ' (pero no se pudo guardar el acceso a la calculadora)'; }
+      }
+    }
     closeModal('modalEditUser');
-    toast('Usuario actualizado', 'ok');
+    toast('Usuario actualizado' + avisoCalc, avisoCalc ? 'warn' : 'ok');
     loadUsuariosFromAPI();
   } catch (e) {
     toast('Error: ' + e.message, 'err');
@@ -3820,7 +3909,7 @@ async function loadConsolasFromAPI(page = _consolasPage, options = {}) {
 async function loadUsuariosFromAPI() {
   if (!API_AVAILABLE) return;
   try {
-    const lista = await API.usuarios.listar();
+    const [lista, hayAcceso] = await Promise.all([API.usuarios.listar(), cargarCalcAccesoIds()]);
     const tb    = document.getElementById('tbUsuarios');
     tb.innerHTML = '';
     const ROL_LABEL = { admin:'★ Admin', carrefour:'◆ Carrefour', eci:'● ECI', franquicias:'● Franquicias', eciclinicas:'● ECI Clínicas' };
@@ -3840,6 +3929,9 @@ async function loadUsuariosFromAPI() {
         <td class="td-ref">${escHTML(u.username||u.usuario||'—')}</td>
         <td style="color:var(--g500);">${escHTML(u.email||'—')}</td>
         <td><span class="rp ${ROL_CLASS[rolNombre]||''}">${ROL_LABEL[rolNombre]||rolNombre}</span></td>
+        <td style="text-align:center;">${rolNombre === 'admin' ? '<span title="Los administradores tienen acceso siempre">✅</span>'
+            : (!hayAcceso ? '<span style="color:var(--g400)">?</span>'
+            : (calcAccesoIds.has(Number(u.id || u.id_usuario)) ? '✅' : '<span style="color:var(--g400)">—</span>'))}</td>
         <td style="text-align:center;">${actions}</td>`;
       tr.dataset.search = normalizeText(`${u.id || u.id_usuario} ${u.nombre || ''} ${u.username || u.usuario || ''} ${u.email || ''} ${rolNombre}`);
       tb.appendChild(tr);
