@@ -4813,6 +4813,21 @@ select.calc-campo { appearance:none;cursor:pointer; }
 .calc-campo:disabled, .calc-rep:disabled, .calc-costfield input:disabled {
   opacity:.45;cursor:not-allowed;background:var(--g200);border-color:var(--calc-rule);color:var(--calc-ink-faint); }
 .calc-campo.ok { border-color:var(--calc-teal); }
+/* Tipo de equipo + pieza (usuarios no administradores) */
+.calc-fam { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px; }
+@media(max-width:480px){ .calc-fam { grid-template-columns:1fr; } }
+.calc-fam button { display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border:1.5px solid var(--calc-rule-hard);
+  border-radius:var(--r);background:var(--calc-field);color:var(--calc-ink);font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;
+  text-align:center;line-height:1.2;transition:border-color .15s,background .15s; }
+.calc-fam button .ico { font-size:22px;line-height:1; }
+.calc-fam button .sub { font-size:11px;font-weight:500;color:var(--calc-ink-faint); }
+.calc-fam button:hover:not(:disabled) { border-color:var(--calc-teal); }
+.calc-fam button:focus-visible { outline:2px solid var(--calc-teal);outline-offset:2px; }
+.calc-fam button[aria-checked="true"] { border-color:var(--calc-teal);background:var(--calc-teal-wash);box-shadow:inset 0 0 0 1px var(--calc-teal); }
+.calc-fam button:disabled { opacity:.45;cursor:not-allowed;background:var(--g200);border-color:var(--calc-rule); }
+.calc-fam-sug { display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--calc-teal); }
+.calc-cat-ayuda { margin-top:8px;font-size:12.5px;line-height:1.45;color:var(--calc-ink-soft); }
+.calc-cat-ayuda.aviso { padding:9px 11px;border-radius:8px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d; }
 .calc-rep optgroup { font-family:var(--calc-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--calc-ink-faint); }
 .calc-readout { border:1.5px solid var(--calc-rule-hard);border-radius:var(--r);background:var(--calc-rule-hard);color:#fff;padding:18px 20px 16px;box-shadow:var(--sh2); }
 .calc-readout .calc-eyebrow { color:rgba(255,255,255,.6); }
@@ -5475,10 +5490,116 @@ function calcPintarBarras(){
   });
 }
 
+/* ── Tipo de equipo + pieza (vista técnico) ─────────────────────────
+   Las categorías se llaman "Familia · Pieza". El técnico elige primero el
+   tipo de equipo y luego solo ve las piezas de ese tipo, con un nombre claro
+   y una descripción. Las categorías que añada el admin aparecen solas. */
+const CALC_FAMILIAS = {
+  'SmartDevices': { t:'Móvil, tablet o reloj', ico:'📱', sub:'Smartphones, iPad, smartwatch' },
+  'Portatil':     { t:'Portátil',              ico:'💻', sub:'Portátiles y MacBook' },
+  'Consolas':     { t:'Consola',               ico:'🎮', sub:'Consolas y mandos' }
+};
+const CALC_PIEZAS = {
+  'SmartDevices · Pantalla':           ['Pantalla', 'Pantalla completa: LCD u OLED con táctil, con o sin marco.'],
+  'SmartDevices · Bateria':            ['Batería', 'Batería del equipo.'],
+  'SmartDevices · Flex':               ['Flex', 'Cable plano: botones de volumen o encendido, huella, interconexión… (no el de carga).'],
+  'SmartDevices · SubPCB / Flex Carga':['Placa o flex de carga', 'Subplaca o flex donde va el conector de carga.'],
+  'SmartDevices · Cámara Trasera':     ['Cámara', 'Módulo de cámara completo (trasera o frontal).'],
+  'SmartDevices · Lente Camara':       ['Lente de cámara', 'Solo el cristal que protege la cámara.'],
+  'SmartDevices · Carcasa / Chasis':   ['Carcasa o chasis', 'Marco o chasis completo del equipo.'],
+  'SmartDevices · Tapa/Cristal Trasera':['Tapa o cristal trasero', 'Tapa trasera o cristal trasero.'],
+  'SmartDevices · Altavoz':            ['Altavoz', 'Altavoz de manos libres o música.'],
+  'SmartDevices · Buzzer':             ['Buzzer o vibrador', 'Buzzer (timbre) o motor de vibración.'],
+  'SmartDevices · Boton':              ['Botón suelto', 'Solo el botón físico, sin flex.'],
+  'SmartDevices · Lector':             ['Lector', 'Lector de huella o de tarjeta SIM/SD.'],
+  'SmartDevices · Auricular':          ['Auricular de llamada', 'Altavoz superior por el que se oye la llamada.'],
+  'SmartDevices · Conector':           ['Conector soldado', 'Conector que hay que soldar en placa (microsoldadura).'],
+  'SmartDevices · Accesorios (Spen,Portasim)':['Bandeja SIM, S Pen u otro accesorio', 'Portasim, S Pen y piezas que no requieren abrir el equipo.'],
+  'SmartDevices · Otros':              ['Reparación de placa / otros', 'Reparación de placa base o diagnóstico avanzado.'],
+  'Portatil · Pantalla':  ['Pantalla', 'Panel de pantalla del portátil.'],
+  'Portatil · Bateria':   ['Batería', 'Batería del portátil.'],
+  'Portatil · Teclado':   ['Teclado', 'Teclado o top case con teclado.'],
+  'Portatil · Disco Duro':['Disco duro / SSD', 'Disco duro o SSD.'],
+  'Portatil · Carcasa':   ['Carcasa o bisagras', 'Carcasa, tapas o bisagras.'],
+  'Portatil · Otros':     ['Otras piezas de portátil', 'Ventilador, conector de carga, placa…'],
+  'Consolas · Pantalla':  ['Pantalla', 'Pantalla de consola portátil (Switch, Steam Deck…).'],
+  'Consolas · Bateria':   ['Batería', 'Batería de consola o mando.'],
+  'Consolas · Carcasa':   ['Carcasa', 'Carcasa de consola o mando.'],
+  'Consolas · Joystick':  ['Joystick o stick', 'Stick analógico o módulo de joystick del mando.'],
+  'Consolas · Microsoldadura':['Microsoldadura (HDMI, chips)', 'Conector HDMI, chips u otra reparación con soldadura en placa.'],
+  'Consolas · Otros':     ['Otras piezas de consola', 'Lector, ventilador, botones…']
+};
+let calcFamSel = '';        // tipo de equipo elegido por el técnico
+let calcFamSugerida = '';   // el que se ha propuesto a partir de marca/modelo
+function calcParteCategoria(n){
+  const p=String(n).split('·');
+  return p.length>1 ? { fam:p[0].trim(), pieza:p.slice(1).join('·').trim() } : { fam:'', pieza:String(n).trim() };
+}
+function calcFamiliasDisponibles(){
+  const fams=[]; calcP.categorias.forEach(c=>{ const f=calcParteCategoria(c.n).fam||'Otros'; if(!fams.includes(f)) fams.push(f); });
+  return fams;
+}
+function calcPiezaInfo(c){
+  const i=CALC_PIEZAS[c.n]; const pz=calcParteCategoria(c.n).pieza;
+  return { t: i ? i[0] : pz, d: i ? i[1] : '' };
+}
+/* Propone el tipo de equipo a partir de lo que se ha elegido en marca y modelo. */
+function calcSugerirFamilia(){
+  const txt=((calcMarcaValor()||'')+' '+(calcModeloValor()||'')).toLowerCase();
+  if(!txt.trim()) return '';
+  if(/playstation|\bps ?[2345]\b|dualsense|dualshock|xbox|nintendo|switch|joy-?con|steam ?deck|game ?boy|\bpsp\b|\bps vita\b/.test(txt)) return 'Consolas';
+  if(/macbook|port[aá]til|laptop|notebook|vivobook|zenbook|ideapad|thinkpad|pavilion|inspiron|latitude|aspire|chromebook|surface laptop|thinkbook|elitebook|probook/.test(txt)) return 'Portatil';
+  const ma=(calcMarcaValor()||'').toLowerCase();
+  const enTabla=(calcP.marcas||[]).some(m=>String(m).toLowerCase()===ma) || (calcP.modelos||[]).some(m=>String(m.ma).toLowerCase()===ma);
+  return enTabla ? 'SmartDevices' : '';
+}
+function calcPintarFamilias(habilitado){
+  const box=document.getElementById('calcFamilias'); if(!box) return;
+  const fams=calcFamiliasDisponibles();
+  box.style.gridTemplateColumns = fams.length===3 ? '' : 'repeat('+Math.min(fams.length,3)+',minmax(0,1fr))';
+  box.innerHTML=fams.map(f=>{
+    const i=CALC_FAMILIAS[f]||{t:f,ico:'🔧',sub:''};
+    return '<button type="button" role="radio" data-fam="'+calcEsc(f)+'" aria-checked="'+(f===calcFamSel)+'"'+(habilitado?'':' disabled')+'>'+
+      '<span class="ico" aria-hidden="true">'+i.ico+'</span>'+calcEsc(i.t)+
+      (i.sub?'<span class="sub">'+calcEsc(i.sub)+'</span>':'')+
+      (f===calcFamSugerida && !calcFamSel ? '<span class="calc-fam-sug">Sugerido</span>' : '')+'</button>';
+  }).join('');
+}
+function calcPintarAyudaCategoria(){
+  const el=document.getElementById('calcCatAyuda'); if(!el) return;
+  const c=calcP.categorias[calcRepSel];
+  if(!calcFamSel){ el.className='calc-cat-ayuda'; el.textContent=''; return; }
+  if(!c){ el.className='calc-cat-ayuda'; el.textContent='Elige la pieza que vas a cambiar.'; return; }
+  const info=calcPiezaInfo(c); const pz=calcParteCategoria(c.n).pieza.toLowerCase();
+  if(pz==='otros'){
+    el.className='calc-cat-ayuda aviso';
+    el.textContent='⚠️ «'+info.t+'» es para reparaciones de placa o diagnóstico y lleva la mano de obra más alta. Si cambias una pieza suelta (bandeja SIM, botón, flex…), elige su pieza en la lista.';
+  } else {
+    el.className='calc-cat-ayuda';
+    el.textContent=info.d;
+  }
+}
+
 function calcPintarSelector(){
   const sel=document.getElementById("calcReparacion");
   if(!sel) return;
   const isAdmin = window.__SAVE_CURRENT_ROLE === 'admin';
+  if(!isAdmin){
+    // Técnico: solo las piezas del tipo de equipo elegido, con nombre claro
+    let html='<option value="">'+(calcFamSel ? '— Elige la pieza —' : '— Elige primero el tipo de equipo —')+'</option>';
+    if(calcFamSel){
+      calcP.categorias.forEach((c,i)=>{
+        if((calcParteCategoria(c.n).fam||'Otros')!==calcFamSel) return;
+        html+='<option value="'+i+'">'+calcEsc(calcPiezaInfo(c).t)+'</option>';
+      });
+    }
+    sel.innerHTML=html;
+    const valida = calcRepSel>=0 && calcP.categorias[calcRepSel] && (calcParteCategoria(calcP.categorias[calcRepSel].n).fam||'Otros')===calcFamSel;
+    if(!valida) calcRepSel=-1;
+    sel.value = calcRepSel>=0 ? String(calcRepSel) : '';
+    calcPintarAyudaCategoria();
+    return;
+  }
   // Agrupa por familia: el nombre "Familia · Pieza" se parte por el separador.
   let html = isAdmin ? "" : '<option value="">— Selecciona categoría —</option>';
   let grupo=null;
@@ -5689,7 +5810,7 @@ function calcRender(){
   const pvpSubEl = document.getElementById("calcPvpSub");
   if(pvpSubEl) pvpSubEl.textContent = adminView
     ? r.tramo.c+" "+r.tramo.n+" · MO "+r.mo.c+" · "+r.mo.n
-    : '';
+    : ((CALC_FAMILIAS[calcParteCategoria(cat.n).fam]||{t:calcParteCategoria(cat.n).fam}).t+' · '+calcPiezaInfo(cat).t);
   document.getElementById("calcNivLbl").textContent=adminView ? r.mo.c+" · "+r.mo.n : '';
 
   if(adminView){
@@ -6033,10 +6154,13 @@ function calcMount(){
           </div>
           ${isAdmin ? '<p class="calc-hint">Lo que cuesta la pieza en factura de proveedor, sin IVA.</p>' : '<div style="height:12px"></div>'}
           <div class="calc-panel-head" style="margin-top:4px">
-            <span class="calc-eyebrow">${isAdmin ? '2' : '6'} · Categoría de la pieza</span>
-            <span class="calc-eyebrow" id="calcNivLbl"></span>
+            <span class="calc-eyebrow">${isAdmin ? '2 · Categoría de la pieza' : '6 · Tipo de equipo y pieza'}</span>
+            <span class="calc-eyebrow" id="${isAdmin ? 'calcNivLbl' : 'calcPaso4Est'}" ${isAdmin ? '' : 'style="color:var(--g400)"'}>${isAdmin ? '' : 'Bloqueado'}</span>
           </div>
-          <select class="calc-rep" id="calcReparacion" ${isAdmin ? '' : 'disabled'} aria-label="Categoría de la pieza"></select>
+          ${isAdmin ? '' : `<span id="calcNivLbl" hidden></span>
+          <div class="calc-fam" id="calcFamilias" role="radiogroup" aria-label="Tipo de equipo"></div>`}
+          <select class="calc-rep" id="calcReparacion" ${isAdmin ? '' : 'disabled'} aria-label="${isAdmin ? 'Categoría de la pieza' : 'Pieza que se cambia'}"></select>
+          ${isAdmin ? '' : '<div class="calc-cat-ayuda" id="calcCatAyuda" aria-live="polite"></div>'}
           ${isAdmin ? `<p class="calc-hint" style="margin-top:10px">Elige la categoría de la pieza que vas a facturar.</p>
           <div class="calc-panel-head" style="margin-top:4px">
             <span class="calc-eyebrow">3 · Equipo</span>
@@ -6185,8 +6309,17 @@ function calcMount(){
   // Categoría: es el último paso del flujo, así que aquí se cierra el auto-envío
   if(repEl) repEl.addEventListener("change", e=>{
     calcRepSel = e.target.value==='' ? -1 : +e.target.value;
+    calcPintarAyudaCategoria();
     calcRender();
     calcCheckAutoSend();
+  });
+  const famEl=document.getElementById("calcFamilias");
+  if(famEl) famEl.addEventListener("click", e=>{
+    const b=e.target.closest('button[data-fam]'); if(!b || b.disabled) return;
+    if(b.dataset.fam===calcFamSel) return;
+    calcFamSel=b.dataset.fam; calcRepSel=-1;
+    calcPintarSelector(); calcRender();
+    const s=document.getElementById("calcReparacion"); if(s && !s.disabled) s.focus();
   });
   // Proveedor: desbloquea el coste e intenta el auto-envío
   if(provEl) provEl.addEventListener("change", ()=>{ calcRender(); calcCheckAutoSend(); });
@@ -6203,7 +6336,7 @@ function calcMount(){
     calcCosteAutoTimer=setTimeout(()=>{ calcCheckAutoSend(); }, 800);
   });
 
-  if(!isAdmin) calcRepSel=-1;   // sin categoría preseleccionada
+  if(!isAdmin){ calcRepSel=-1; calcFamSel=''; calcFamSugerida=''; }   // sin categoría preseleccionada
 
   if(isAdmin){
     const tablaRepsEl=document.getElementById("calcTablaReps");
@@ -6402,7 +6535,15 @@ function calcActualizarPasos(){
   moEl.disabled  =!okMa;    if(!okMa   && moEl.value){ moEl.value=''; calcSyncOtro(); }
   provEl.disabled=!okMo;    if(!okMo   && provEl.value){ provEl.value=''; }
   costEl.disabled=!okProv;  if(!okProv && costEl.value){ costEl.value=''; }
-  catEl.disabled =!okCost;  if(!okCost && calcRepSel>=0){ calcRepSel=-1; catEl.value=''; }
+  if(!okCost){
+    if(calcRepSel>=0){ calcRepSel=-1; catEl.value=''; }
+    if(calcFamSel || calcFamSugerida){ calcFamSel=''; calcFamSugerida=''; calcPintarSelector(); }
+  } else if(!calcFamSel){
+    const sug=calcSugerirFamilia();
+    if(sug && sug!==calcFamSugerida){ calcFamSugerida=sug; calcFamSel=sug; calcPintarSelector(); }
+  }
+  catEl.disabled = !okCost || !calcFamSel;
+  calcPintarFamilias(okCost);
 
   // Mantener visibles/ocultos los campos de texto según el estado de los desplegables
   const txtMa=document.getElementById('calcMarcaTxt'); if(txtMa) txtMa.disabled=!okRef;
@@ -6425,6 +6566,7 @@ function calcActualizarPasos(){
   est('calcPasoModeloEst', okMo,   okMa   ? 'Obligatorio' : 'Bloqueado');
   est('calcPaso2Est',      okProv, okMo   ? 'Obligatorio' : 'Bloqueado');
   est('calcPaso3Est',      okCost, okProv ? 'Obligatorio' : 'Bloqueado');
+  est('calcPaso4Est',      okCost && calcRepSel>=0, okCost ? 'Obligatorio' : 'Bloqueado');
 }
 
 /* ── validación y envío de solicitud desde la calculadora ── */
